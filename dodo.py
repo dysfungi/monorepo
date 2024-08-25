@@ -37,8 +37,11 @@ def ls() -> dict:
     def _print_all_projects(sortby: list[str]):
         sortby.append("name")
         projects = _get_all_projects()
-        for project in sorted(projects, key=op.attrgetter(*sortby)):
-            print(project)
+        header = f"{'project name':24} | {'language':8} | {'category':16} | path"
+        print(header)
+        print("-" * len(header))
+        for p in sorted(projects, key=op.attrgetter(*sortby)):
+            print(f"{p.name:24} | {p.lang:8} | {p.cat:16} | {p.path}")
 
     return {
         "actions": [_print_all_projects],

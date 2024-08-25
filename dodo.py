@@ -1,6 +1,10 @@
 from pathlib import Path
 from typing import NamedTuple
 
+DOIT_CONFIG = {
+    "default_tasks": ["ls"],
+}
+
 LANGUAGE_DISPLAY_VALUES = {
     "clojure": "Clojure",
     "elixir": "Elixir",

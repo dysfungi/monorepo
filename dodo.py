@@ -20,7 +20,17 @@ LANGUAGE_DISPLAY_VALUES = {
 }
 
 
-def task_ls() -> dict:
+def task(func: callable) -> callable:
+    """Decorate tasks.
+
+    https://pydoit.org/task-creation.html#custom-task-definition
+    """
+    func.create_doit_tasks = func
+    return func
+
+
+@task
+def ls() -> dict:
     """List all projects."""
 
     def _print_all_projects():
@@ -31,7 +41,8 @@ def task_ls() -> dict:
     return {"actions": [_print_all_projects], "verbosity": 2}
 
 
-def task_build() -> dict:
+@task
+def build() -> dict:
     """Build all (default) or given project(s)."""
 
     def _build(args):

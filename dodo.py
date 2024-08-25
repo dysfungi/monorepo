@@ -1,3 +1,4 @@
+import operator as op
 from pathlib import Path
 from typing import NamedTuple
 
@@ -33,12 +34,29 @@ def task(func: callable) -> callable:
 def ls() -> dict:
     """List all projects."""
 
-    def _print_all_projects():
+    def _print_all_projects(sortby: list[str]):
+        sortby.append("name")
         projects = _get_all_projects()
-        for project in projects:
+        for project in sorted(projects, key=op.attrgetter(*sortby)):
             print(project)
 
-    return {"actions": [_print_all_projects], "verbosity": 2}
+    return {
+        "actions": [_print_all_projects],
+        "params": [
+            {
+                "name": "sortby",
+                "short": "s",
+                "type": list,
+                "default": [],
+                "choices": [
+                    ("cat", "project category"),
+                    ("lang", "project language"),
+                    ("name", "project name")
+                ],
+            },
+        ],
+        "verbosity": 2,
+    }
 
 
 @task
@@ -66,14 +84,22 @@ class Project(NamedTuple):
     language: str  # primary programming language
     path: Path
 
+    @property
+    def cat(self):
+        return self.category
+
+    @property
+    def lang(self):
+        return self.language
+
     def __str__(self):
-        return f"{self.name} [{self.language}] ({self.category}) {self.path}"
+        return f"{self.name} [{self.lang}] ({self.cat}) {self.path}"
 
 
 def _get_all_projects() -> list[Project]:
     # https://www.rocketpoweredjetpants.com/2017/11/organising-a-monorepo/#blended-monorepos
     cwd = Path.cwd()
-    projects = sorted(
+    projects = [
         Project(
             name=directory.name,
             category=directory.parent.name,
@@ -85,5 +111,5 @@ def _get_all_projects() -> list[Project]:
         )
         for directory in cwd.glob("*/*/*/")
         if ".git" not in directory.parts
-    )
+    ]
     return projects

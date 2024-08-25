@@ -1,0 +1,2 @@
+# frankenstructure
+Common infrastructure

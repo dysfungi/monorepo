@@ -1,11 +1,18 @@
 from pathlib import Path
 from typing import NamedTuple
 
-from doit import task_params
-
 LANGUAGE_DISPLAY_VALUES = {
+    "clojure": "Clojure",
+    "elixir": "Elixir",
+    "elm": "Elm",
     "fsharp": "F#",
+    "go": "Go",
+    "haskell": "Haskell",
     "hcl": "HCL",
+    "ocaml": "OCaml",
+    "python": "Python",
+    "reasonml": "ReasonML",
+    "rust": "Rust",
 }
 
 
@@ -49,16 +56,16 @@ class Project(NamedTuple):
 
 def _get_all_projects() -> list[Project]:
     cwd = Path.cwd()
-    projects = [
+    projects = sorted(
         Project(
             name=directory.name,
-            path=directory,
             language=LANGUAGE_DISPLAY_VALUES.get(
                 directory.parent.name,
                 directory.parent.name,
             ),
+            path=directory,
         )
         for directory in cwd.glob("*/*/")
         if ".git" not in directory.parts
-    ]
+    )
     return projects

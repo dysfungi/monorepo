@@ -34,7 +34,11 @@ def task(func: callable) -> callable:
 def ls() -> dict:
     """List all projects."""
 
-    def _print_all_projects(sortby: list[str], category: str | None):
+    def _print_all_projects(
+        sortby: list[str],
+        category: str | None,
+        language: str | None,
+    ) -> None:
         sortby.append("name")
         projects = _get_all_projects()
         header = f"{'project name':24} | {'language':8} | {'category':16} | path"
@@ -42,6 +46,8 @@ def ls() -> dict:
         print("-" * len(header))
         for p in sorted(projects, key=op.attrgetter(*sortby)):
             if category and category.lower() not in p.cat.lower():
+                continue
+            if language and language.lower() not in p.lang.lower():
                 continue
             print(f"{p.name:24} | {p.lang:8} | {p.cat:16} | {p.path}")
 
@@ -66,6 +72,14 @@ def ls() -> dict:
                 "type": str,
                 "default": None,
                 "help": "case-insensitive substring match on category",
+            },
+            {
+                "name": "language",
+                "long": "lang",
+                "short": "l",
+                "type": str,
+                "default": None,
+                "help": "case-insensitive substring match on language",
             },
         ],
         "verbosity": 2,

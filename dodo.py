@@ -62,25 +62,28 @@ def build() -> dict:
 
 class Project(NamedTuple):
     name: str
-    language: str
+    category: str  # functional-area
+    language: str  # primary programming language
     path: Path
 
     def __str__(self):
-        return f"{self.name} ({self.language}) {self.path}"
+        return f"{self.name} [{self.language}] ({self.category}) {self.path}"
 
 
 def _get_all_projects() -> list[Project]:
+    # https://www.rocketpoweredjetpants.com/2017/11/organising-a-monorepo/#blended-monorepos
     cwd = Path.cwd()
     projects = sorted(
         Project(
             name=directory.name,
+            category=directory.parent.name,
             language=LANGUAGE_DISPLAY_VALUES.get(
-                directory.parent.name,
-                directory.parent.name,
+                directory.parent.parent.name,
+                directory.parent.parent.name,
             ),
             path=directory,
         )
-        for directory in cwd.glob("*/*/")
+        for directory in cwd.glob("*/*/*/")
         if ".git" not in directory.parts
     )
     return projects

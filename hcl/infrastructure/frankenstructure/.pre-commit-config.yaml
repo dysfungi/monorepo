@@ -1,0 +1,44 @@
+---
+# https://pre-commit.com/hooks.html
+repos:
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v4.5.0
+      hooks:
+          - id: check-case-conflict
+          - id: check-executables-have-shebangs
+          - id: check-json
+          - id: check-merge-conflict
+          - id: check-toml
+          - id: check-yaml
+          - id: end-of-file-fixer
+          - id: sort-simple-yaml
+          - id: trailing-whitespace
+    - repo: https://github.com/jorisroovers/gitlint
+      rev: v0.19.1
+      hooks:
+          - id: gitlint
+    - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
+      rev: 0.2.3
+      hooks:
+          - id: yamlfmt
+    - repo: https://github.com/adrienverge/yamllint
+      rev: v1.33.0
+      hooks:
+          - id: yamllint
+    - repo: https://github.com/antonbabenko/pre-commit-terraform
+      rev: v1.86.0
+      hooks:
+          - id: terraform_trivy
+    - repo: local
+      hooks:
+          - id: tofu-fmt
+            name: tofu fmt
+            language: system
+            entry: tofu fmt
+            types: [terraform]
+          - id: tofu-validate
+            name: tofu validate
+            language: system
+            entry: tofu validate
+            types: [terraform]
+            pass_filenames: false

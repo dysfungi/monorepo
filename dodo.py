@@ -38,6 +38,7 @@ def ls() -> dict:
         sortby: list[str],
         category: str | None,
         language: str | None,
+        name: str | None,
     ) -> None:
         sortby.append("name")
         projects = _get_all_projects()
@@ -48,6 +49,8 @@ def ls() -> dict:
             if category and category.lower() not in p.cat.lower():
                 continue
             if language and language.lower() not in p.lang.lower():
+                continue
+            if name and name.lower() not in p.name.lower():
                 continue
             print(f"{p.name:24} | {p.lang:8} | {p.cat:16} | {p.path}")
 
@@ -80,6 +83,13 @@ def ls() -> dict:
                 "type": str,
                 "default": None,
                 "help": "case-insensitive substring match on language",
+            },
+            {
+                "name": "name",
+                "short": "n",
+                "type": str,
+                "default": None,
+                "help": "case-insensitive substring match on name",
             },
         ],
         "verbosity": 2,

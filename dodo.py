@@ -1,4 +1,5 @@
-import operator as op
+from itertools import chain
+from operator import attrgetter
 from pathlib import Path
 from typing import NamedTuple
 
@@ -41,18 +42,48 @@ def ls() -> dict:
         name: str | None,
     ) -> None:
         sortby.append("name")
-        projects = _get_all_projects()
-        header = f"{'project name':24} | {'language':8} | {'category':16} | path"
+        projects = [
+            p
+            for p in _get_all_projects()
+            if (not category or category.lower() in p.cat.lower())
+            and (not language or language.lower() in p.lang.lower())
+            and (not name or name.lower() in p.name.lower())
+        ]
+        head_name = "project name"
+        head_lang = "language"
+        head_cat = "category"
+
+        def get_max(attr: str, header: str) -> int:
+            return max(
+                len(s)
+                for s in chain((getattr(p, attr) for p in projects), [header])
+            )
+
+        max_cat = get_max("category", head_cat)
+        max_lang = get_max("language", head_lang)
+        max_name = get_max("name", head_name)
+
+        def format_cat(v): return format(v, f"{max_cat}")
+        def format_lang(v): return format(v, f"{max_lang}")
+        def format_name(v): return format(v, f"{max_name}")
+
+        cwd = Path.cwd()
+        header = " | ".join([
+            format_name(head_name),
+            format_lang(head_lang),
+            format_cat(head_cat),
+            f"relative path ({cwd})",
+        ])
         print(header)
         print("-" * len(header))
-        for p in sorted(projects, key=op.attrgetter(*sortby)):
-            if category and category.lower() not in p.cat.lower():
-                continue
-            if language and language.lower() not in p.lang.lower():
-                continue
-            if name and name.lower() not in p.name.lower():
-                continue
-            print(f"{p.name:24} | {p.lang:8} | {p.cat:16} | {p.path}")
+        for p in sorted(projects, key=attrgetter(*sortby)):
+            row = " | ".join([
+                format_name(p.name),
+                format_lang(p.lang),
+                format_cat(p.cat),
+                f"{p.path.relative_to(cwd)}",
+            ])
+            print(row)
 
     return {
         "actions": [_print_all_projects],

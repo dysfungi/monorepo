@@ -1,24 +1,13 @@
 from itertools import chain
+from logging import getLogger
 from operator import attrgetter
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, Self
+
+logger = getLogger(__name__)
 
 DOIT_CONFIG = {
     "default_tasks": ["ls"],
-}
-
-LANGUAGE_DISPLAY_VALUES = {
-    "clojure": "Clojure",
-    "elixir": "Elixir",
-    "elm": "Elm",
-    "fsharp": "F#",
-    "go": "Go",
-    "haskell": "Haskell",
-    "hcl": "HCL",
-    "ocaml": "OCaml",
-    "python": "Python",
-    "reasonml": "ReasonML",
-    "rust": "Rust",
 }
 
 
@@ -44,7 +33,7 @@ def ls() -> dict:
         sortby.append("name")
         projects = [
             p
-            for p in _get_all_projects()
+            for p in Project.all()
             if (not category or category.lower() in p.cat.lower())
             and (not language or language.lower() in p.lang.lower())
             and (not name or name.lower() in p.name.lower())
@@ -79,7 +68,7 @@ def ls() -> dict:
         for p in sorted(projects, key=attrgetter(*sortby)):
             row = " | ".join([
                 format_name(p.name),
-                format_lang(p.lang),
+                format_lang(p.display_lang),
                 format_cat(p.cat),
                 f"{p.path.relative_to(cwd)}",
             ])
@@ -132,7 +121,7 @@ def build() -> dict:
     """Build all (default) or given project(s)."""
 
     def _build(args):
-        projects = _get_all_projects()
+        projects = Project.all()
         given = set(args) if args else {project.name for project in projects}
         for project in projects:
             if project.name not in given:
@@ -153,31 +142,62 @@ class Project(NamedTuple):
     path: Path
 
     @property
-    def cat(self):
-        return self.category
+    def cat(self) -> str: return self.category
 
     @property
-    def lang(self):
-        return self.language
+    def lang(self) -> str: return self.language
 
-    def __str__(self):
-        return f"{self.name} [{self.lang}] ({self.cat}) {self.path}"
+    @property
+    def display_category(self) -> str: return self.category.title()
 
+    @property
+    def display_cat(self) -> str: return self.display_category
 
-def _get_all_projects() -> list[Project]:
-    # https://www.rocketpoweredjetpants.com/2017/11/organising-a-monorepo/#blended-monorepos
-    cwd = Path.cwd()
-    projects = [
-        Project(
-            name=directory.name,
-            category=directory.parent.name,
-            language=LANGUAGE_DISPLAY_VALUES.get(
-                directory.parent.parent.name,
-                directory.parent.parent.name,
-            ),
-            path=directory,
-        )
-        for directory in cwd.glob("*/*/*/")
-        if ".git" not in directory.parts
-    ]
-    return projects
+    @property
+    def display_language(self) -> str:
+        return {
+            "clojure": "Clojure",
+            "elixir": "Elixir",
+            "elm": "Elm",
+            "fsharp": "F#",
+            "go": "Go",
+            "haskell": "Haskell",
+            "hcl": "HCL",
+            "ocaml": "OCaml",
+            "python": "Python",
+            "reasonml": "ReasonML",
+            "rust": "Rust",
+        }[self.language]
+
+    @property
+    def display_lang(self) -> str: return self.display_language
+
+    @property
+    def display_path(self) -> str: return str(self.path)
+
+    def __str__(self) -> str:
+        return " ".join([
+            self.name,
+            f"[{self.display_language}]",
+            f"({self.display_category})",
+            self.display_path,
+        ])
+
+    @classmethod
+    def all(cls, root: Path = Path.cwd()) -> list[Self]:
+        """Return a list of project instances for every project in this repo.
+
+        References:
+            https://www.rocketpoweredjetpants.com/2017/11/organising-a-monorepo/#blended-monorepos
+        """
+        projects = [
+            cls(
+                name=directory.name,
+                category=directory.parent.name,
+                language=directory.parent.parent.name,
+                path=directory,
+            )
+            for directory in root.glob("*/*/*/")
+            if ".git" not in directory.parts
+        ]
+        return projects

@@ -119,20 +119,15 @@ def ls() -> dict:
 @task
 def build() -> dict:
     """Build all (default) or given project(s)."""
+    def _build(*, project):
+        pass
 
-    def _build(args):
-        projects = Project.all()
-        given = set(args) if args else {project.name for project in projects}
-        for project in projects:
-            if project.name not in given:
-                continue
-            print(f"Building {project}")
-
-    return {
-        "actions": [_build],
-        "pos_arg": "args",
-        "verbosity": 2,
-    }
+    for project in Project.all():
+        yield {
+            "name": project.name,
+            "actions": [(_build, (), {"project": project})],
+            "verbosity": 2,
+        }
 
 
 class Project(NamedTuple):

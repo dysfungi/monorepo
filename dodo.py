@@ -1,3 +1,4 @@
+from functools import cached_property
 from itertools import chain
 from logging import getLogger
 from operator import attrgetter
@@ -143,19 +144,19 @@ class Project(NamedTuple):
     language: str  # primary programming language
     path: Path
 
-    @property
+    @cached_property
     def cat(self) -> str: return self.category
 
-    @property
+    @cached_property
     def lang(self) -> str: return self.language
 
-    @property
+    @cached_property
     def display_category(self) -> str: return self.category.title()
 
-    @property
+    @cached_property
     def display_cat(self) -> str: return self.display_category
 
-    @property
+    @cached_property
     def display_language(self) -> str:
         return {
             "clojure": "Clojure",
@@ -171,10 +172,10 @@ class Project(NamedTuple):
             "rust": "Rust",
         }[self.language]
 
-    @property
+    @cached_property
     def display_lang(self) -> str: return self.display_language
 
-    @property
+    @cached_property
     def display_path(self) -> str: return str(self.path)
 
     def __str__(self) -> str:

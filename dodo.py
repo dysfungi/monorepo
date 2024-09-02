@@ -41,6 +41,7 @@ def ls() -> dict:
         head_name = "project name"
         head_lang = "language"
         head_cat = "category"
+        head_subtask = "sub-task name"
 
         def get_max(attr: str, header: str) -> int:
             return max(
@@ -51,17 +52,20 @@ def ls() -> dict:
         max_cat = get_max("category", head_cat)
         max_lang = get_max("language", head_lang)
         max_name = get_max("name", head_name)
+        max_subtask = get_max("subtask_name", head_subtask)
 
         def format_cat(v): return format(v, f"{max_cat}")
         def format_lang(v): return format(v, f"{max_lang}")
         def format_name(v): return format(v, f"{max_name}")
+        def format_subtask(v): return format(v, f"{max_subtask}")
 
-        cwd = Path.cwd()
+        # TODO(relative-path): cwd = Path.cwd()
         header = " | ".join([
             format_name(head_name),
             format_lang(head_lang),
             format_cat(head_cat),
-            f"relative path ({cwd})",
+            format_subtask(head_subtask),
+            # TODO(relative-path): f"relative path ({cwd})",
         ])
         print(header)
         print("-" * len(header))
@@ -70,7 +74,8 @@ def ls() -> dict:
                 format_name(p.name),
                 format_lang(p.display_lang),
                 format_cat(p.cat),
-                f"{p.path.relative_to(cwd)}",
+                format_subtask(p.subtask_name),
+                # TODO(relative-path): f"{p.path.relative_to(cwd)}",
             ])
             print(row)
 
@@ -203,6 +208,14 @@ class Project(NamedTuple):
 
     @property
     def display_path(self) -> str: return str(self.path)
+
+    @property
+    def subtask_name(self) -> str:
+        return "/".join(map(str.lower, [
+            self.display_language,
+            self.category,
+            self.name,
+        ]))
 
     def __str__(self) -> str:
         return " ".join([

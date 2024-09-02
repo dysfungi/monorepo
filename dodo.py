@@ -118,13 +118,20 @@ def ls() -> dict:
 
 @task
 def build() -> dict:
-    """Build all (default) or given project(s)."""
+    """Build all (default) or given project(s).
+
+    Filter subtasks with wildcards for `$LANGUAGE/$CATEGORY/$PROJECT`
+    """
     def _build(*, project):
         pass
 
     for project in Project.all():
         yield {
-            "name": project.name,
+            "name": "/".join(map(str.lower, [
+                project.display_lang,
+                project.cat,
+                project.name,
+            ])),
             "actions": [(_build, (), {"project": project})],
             "verbosity": 2,
         }

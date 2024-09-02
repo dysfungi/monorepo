@@ -128,11 +128,29 @@ def build() -> dict:
     for project in Project.all():
         yield {
             "name": "/".join(map(str.lower, [
-                project.display_lang,
-                project.cat,
+                project.display_language,
+                project.category,
                 project.name,
             ])),
             "actions": [(_build, (), {"project": project})],
+            "verbosity": 2,
+        }
+
+
+@task
+def cleanpy():
+    """Clean reproducible Python files."""
+    cwd = Path.cwd()
+
+    def cache():
+        """Clean Python cache files."""
+        for pycache_dir in cwd.rglob("__pycache__"):
+            _rmtree(pycache_dir)
+
+    for clean_func in [cache]:
+        yield {
+            "name": clean_func.__name__,
+            "actions": [clean_func],
             "verbosity": 2,
         }
 
@@ -212,3 +230,24 @@ class Project(NamedTuple):
             if ".git" not in directory.parts
         ]
         return projects
+
+
+def _rmtree(path: Path) -> None:
+    """Recursively delete a given path by walking and deleting the tree
+    bottom-up. Allows for deleting non-empty directories, which is not
+    supported by ``Path.rmdir()``. Essentially an implementation of
+    ``shutil.rmtree`` for ``pathlib``.
+
+    References:
+        https://docs.python.org/3/library/pathlib.html#pathlib.Path.walk
+        https://docs.python.org/3/library/shutil.html#shutil.rmtree
+    """
+    for root, dirs, files in path.walk(top_down=False):
+        for name in files:
+            (root / name).unlink()
+        for name in dirs:
+            (root / name).rmdir()
+    if path.is_dir():
+        path.rmdir()
+    else:
+        path.unlink()

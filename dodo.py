@@ -1,4 +1,3 @@
-from functools import cached_property
 from itertools import chain
 from logging import getLogger
 from operator import attrgetter
@@ -138,25 +137,34 @@ def build() -> dict:
         }
 
 
+@task
+def cwd():
+    """Print working directory for Doit dodo.py execution."""
+    return {
+        "actions": ["pwd"],
+        "verbosity": 2,
+    }
+
+
 class Project(NamedTuple):
     name: str
     category: str  # functional-area
     language: str  # primary programming language
     path: Path
 
-    @cached_property
+    @property
     def cat(self) -> str: return self.category
 
-    @cached_property
+    @property
     def lang(self) -> str: return self.language
 
-    @cached_property
+    @property
     def display_category(self) -> str: return self.category.title()
 
-    @cached_property
+    @property
     def display_cat(self) -> str: return self.display_category
 
-    @cached_property
+    @property
     def display_language(self) -> str:
         return {
             "clojure": "Clojure",
@@ -172,10 +180,10 @@ class Project(NamedTuple):
             "rust": "Rust",
         }[self.language]
 
-    @cached_property
+    @property
     def display_lang(self) -> str: return self.display_language
 
-    @cached_property
+    @property
     def display_path(self) -> str: return str(self.path)
 
     def __str__(self) -> str:

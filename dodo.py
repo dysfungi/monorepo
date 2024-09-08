@@ -1,6 +1,6 @@
 import os
 from contextlib import contextmanager
-from importlib import import_module
+from importlib.machinery import SourceFileLoader
 from itertools import chain
 from logging import getLogger
 from operator import attrgetter
@@ -247,9 +247,11 @@ class Project(NamedTuple):
         **tasks: Unpack[ProjectTasks],
     ) -> int:
         """Run tasks from this project's dodo.py."""
-        module = self.import_dodo_module()
-        if module is None:
+        dodo_path = self.path / "dodo.py"
+        if not dodo_path.exists():
             return -1
+        module_name = ".".join([self.lang, self.cat, self.name, "dodo"])
+        module = SourceFileLoader(module_name, str(dodo_path)).load_module()
         task_loader = ModuleTaskLoader(module)
         extra_config = {
             "GLOBAL": {
@@ -258,14 +260,6 @@ class Project(NamedTuple):
         }
         with _chdir(self.path):
             return run_tasks(task_loader, tasks, extra_config)
-
-    def import_dodo_module(self) -> ModuleType | None:
-        """Import the dodo.py for this project."""
-        name = ".".join([self.language, self.category, self.name, "dodo"])
-        try:
-            return import_module(name)
-        except ModuleNotFoundError:
-            return None
 
     @classmethod
     def all(cls, root: Path = Path.cwd()) -> list[Self]:

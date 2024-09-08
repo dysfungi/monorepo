@@ -1,8 +1,15 @@
+import os
+from contextlib import contextmanager
+from importlib import import_module
 from itertools import chain
 from logging import getLogger
 from operator import attrgetter
 from pathlib import Path
-from typing import NamedTuple, Self
+from types import ModuleType
+from typing import Generator, NamedTuple, Optional, Self, TypedDict, Unpack
+
+from doit.api import run_tasks
+from doit.cmd_base import ModuleTaskLoader
 
 logger = getLogger(__name__)
 
@@ -122,13 +129,13 @@ def ls() -> dict:
 
 
 @task
-def build() -> dict:
+def build() -> Generator[dict, None, None]:
     """Build all (default) or given project(s).
 
     Filter subtasks with wildcards for `$LANGUAGE/$CATEGORY/$PROJECT`
     """
     def _build(*, project):
-        pass
+        project.doit(build=None)
 
     for project in Project.all():
         yield {
@@ -143,7 +150,7 @@ def build() -> dict:
 
 
 @task
-def cleanpy():
+def cleanpy() -> Generator[dict, None, None]:
     """Clean reproducible Python files."""
     cwd = Path.cwd()
 
@@ -161,12 +168,20 @@ def cleanpy():
 
 
 @task
-def cwd():
+def cwd() -> dict:
     """Print working directory for Doit dodo.py execution."""
     return {
         "actions": ["pwd"],
         "verbosity": 2,
     }
+
+
+class BuildParams(TypedDict, total=False):
+    foobar: str
+
+
+class ProjectTasks(TypedDict, total=False):
+    build: Optional[BuildParams]
 
 
 class Project(NamedTuple):
@@ -225,6 +240,33 @@ class Project(NamedTuple):
             self.display_path,
         ])
 
+    def doit(
+        self,
+        *,
+        verbosity: int = 2,
+        **tasks: Unpack[ProjectTasks],
+    ) -> int:
+        """Run tasks from this project's dodo.py."""
+        module = self.import_dodo_module()
+        if module is None:
+            return -1
+        task_loader = ModuleTaskLoader(module)
+        extra_config = {
+            "GLOBAL": {
+                "verbosity": verbosity,
+            },
+        }
+        with _chdir(self.path):
+            return run_tasks(task_loader, tasks, extra_config)
+
+    def import_dodo_module(self) -> ModuleType | None:
+        """Import the dodo.py for this project."""
+        name = ".".join([self.language, self.category, self.name, "dodo"])
+        try:
+            return import_module(name)
+        except ModuleNotFoundError:
+            return None
+
     @classmethod
     def all(cls, root: Path = Path.cwd()) -> list[Self]:
         """Return a list of project instances for every project in this repo.
@@ -264,3 +306,13 @@ def _rmtree(path: Path) -> None:
         path.rmdir()
     else:
         path.unlink()
+
+
+@contextmanager
+def _chdir(path: Path):
+    cwd = os.getcwd()
+    os.chdir(path)
+    try:
+        yield path
+    finally:
+        os.chdir(cwd)

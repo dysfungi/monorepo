@@ -5,26 +5,33 @@ from itertools import chain
 from logging import getLogger
 from operator import attrgetter
 from pathlib import Path
-from types import ModuleType
-from typing import Generator, NamedTuple, Optional, Self, TypedDict, Unpack
+from typing import Callable, Generator, NamedTuple, Optional, Self, TypedDict, Unpack
 
 from doit.api import run_tasks
 from doit.cmd_base import ModuleTaskLoader
 
 logger = getLogger(__name__)
 
-DOIT_CONFIG = {
+DOIT_CONFIG: dict = {
     "default_tasks": ["ls"],
 }
 
 
-def task(func: callable) -> callable:
-    """Decorate tasks.
+class task:
+    """Decorate tasks with a special attribute to be found by Doit.
+    This is a class instead of a function to prevent mypy
+    [attr-defined] error.
 
-    https://pydoit.org/task-creation.html#custom-task-definition
+    References:
+        https://pydoit.org/task-creation.html#custom-task-definition
+        https://mypy.readthedocs.io/en/stable/error_code_list.html#check-that-attribute-exists-attr-defined
     """
-    func.create_doit_tasks = func
-    return func
+
+    def __init__(self, func: Callable):
+        self.create_doit_tasks = func
+
+    def __call__(self, *args, **kwargs):
+        return self.create_doit_tasks(*args, **kwargs)
 
 
 @task
@@ -53,7 +60,10 @@ def ls() -> dict:
         def get_max(attr: str, header: str) -> int:
             return max(
                 len(s)
-                for s in chain((getattr(p, attr) for p in projects), [header])
+                for s in chain(
+                    (getattr(p, attr) for p in projects),
+                    [header],
+                )
             )
 
         max_cat = get_max("category", head_cat)
@@ -61,29 +71,40 @@ def ls() -> dict:
         max_name = get_max("name", head_name)
         max_subtask = get_max("subtask_name", head_subtask)
 
-        def format_cat(v): return format(v, f"{max_cat}")
-        def format_lang(v): return format(v, f"{max_lang}")
-        def format_name(v): return format(v, f"{max_name}")
-        def format_subtask(v): return format(v, f"{max_subtask}")
+        def format_cat(v):
+            return format(v, f"{max_cat}")
+
+        def format_lang(v):
+            return format(v, f"{max_lang}")
+
+        def format_name(v):
+            return format(v, f"{max_name}")
+
+        def format_subtask(v):
+            return format(v, f"{max_subtask}")
 
         # TODO(relative-path): cwd = Path.cwd()
-        header = " | ".join([
-            format_name(head_name),
-            format_lang(head_lang),
-            format_cat(head_cat),
-            format_subtask(head_subtask),
-            # TODO(relative-path): f"relative path ({cwd})",
-        ])
+        header = " | ".join(
+            [
+                format_name(head_name),
+                format_lang(head_lang),
+                format_cat(head_cat),
+                format_subtask(head_subtask),
+                # TODO(relative-path): f"relative path ({cwd})",
+            ],
+        )
         print(header)
         print("-" * len(header))
         for p in sorted(projects, key=attrgetter(*sortby)):
-            row = " | ".join([
-                format_name(p.name),
-                format_lang(p.display_lang),
-                format_cat(p.cat),
-                format_subtask(p.subtask_name),
-                # TODO(relative-path): f"{p.path.relative_to(cwd)}",
-            ])
+            row = " | ".join(
+                [
+                    format_name(p.name),
+                    format_lang(p.display_lang),
+                    format_cat(p.cat),
+                    format_subtask(p.subtask_name),
+                    # TODO(relative-path): f"{p.path.relative_to(cwd)}",
+                ],
+            )
             print(row)
 
     return {
@@ -97,7 +118,7 @@ def ls() -> dict:
                 "choices": [
                     ("cat", "project category"),
                     ("lang", "project language"),
-                    ("name", "project name")
+                    ("name", "project name"),
                 ],
             },
             {
@@ -134,16 +155,22 @@ def build() -> Generator[dict, None, None]:
 
     Filter subtasks with wildcards for `$LANGUAGE/$CATEGORY/$PROJECT`
     """
+
     def _build(*, project):
         project.doit(build=None)
 
     for project in Project.all():
         yield {
-            "name": "/".join(map(str.lower, [
-                project.display_language,
-                project.category,
-                project.name,
-            ])),
+            "name": "/".join(
+                map(
+                    str.lower,
+                    [
+                        project.display_language,
+                        project.category,
+                        project.name,
+                    ],
+                ),
+            ),
             "actions": [(_build, (), {"project": project})],
             "verbosity": 2,
         }
@@ -176,6 +203,18 @@ def cwd() -> dict:
     }
 
 
+@task
+def lint() -> dict:
+    """Run linters using Pre-commit."""
+    return {
+        "actions": [
+            "git add --patch",
+            "pre-commit run --all-files --show-diff-on-failure",
+        ],
+        "verbosity": 2,
+    }
+
+
 class BuildParams(TypedDict, total=False):
     foobar: str
 
@@ -191,16 +230,20 @@ class Project(NamedTuple):
     path: Path
 
     @property
-    def cat(self) -> str: return self.category
+    def cat(self) -> str:
+        return self.category
 
     @property
-    def lang(self) -> str: return self.language
+    def lang(self) -> str:
+        return self.language
 
     @property
-    def display_category(self) -> str: return self.category.title()
+    def display_category(self) -> str:
+        return self.category.title()
 
     @property
-    def display_cat(self) -> str: return self.display_category
+    def display_cat(self) -> str:
+        return self.display_category
 
     @property
     def display_language(self) -> str:
@@ -219,26 +262,35 @@ class Project(NamedTuple):
         }[self.language]
 
     @property
-    def display_lang(self) -> str: return self.display_language
+    def display_lang(self) -> str:
+        return self.display_language
 
     @property
-    def display_path(self) -> str: return str(self.path)
+    def display_path(self) -> str:
+        return str(self.path)
 
     @property
     def subtask_name(self) -> str:
-        return "/".join(map(str.lower, [
-            self.display_language,
-            self.category,
-            self.name,
-        ]))
+        return "/".join(
+            map(
+                str.lower,
+                [
+                    self.display_language,
+                    self.category,
+                    self.name,
+                ],
+            ),
+        )
 
     def __str__(self) -> str:
-        return " ".join([
-            self.name,
-            f"[{self.display_language}]",
-            f"({self.display_category})",
-            self.display_path,
-        ])
+        return " ".join(
+            [
+                self.name,
+                f"[{self.display_language}]",
+                f"({self.display_category})",
+                self.display_path,
+            ],
+        )
 
     def doit(
         self,
@@ -268,6 +320,7 @@ class Project(NamedTuple):
         References:
             https://www.rocketpoweredjetpants.com/2017/11/organising-a-monorepo/#blended-monorepos
         """
+        part_ignores = {".git", "node_modules", "__pycache__"}
         projects = [
             cls(
                 name=directory.name,
@@ -276,7 +329,8 @@ class Project(NamedTuple):
                 path=directory,
             )
             for directory in root.glob("*/*/*/")
-            if ".git" not in directory.parts
+            if not part_ignores & set(directory.parts)
+            and (directory / "dodo.py").exists()
         ]
         return projects
 

@@ -18,9 +18,7 @@
             "related": ".xml"
           }
         },
-        "frameworkReferences": [
-          "Microsoft.AspNetCore.App"
-        ]
+        "frameworkReferences": ["Microsoft.AspNetCore.App"]
       },
       "Falco.Markup/1.0.2": {
         "type": "package",
@@ -173,10 +171,7 @@
     }
   },
   "projectFileDependencyGroups": {
-    "net8.0": [
-      "FSharp.Core >= 8.0.301",
-      "Falco >= 4.0.6"
-    ]
+    "net8.0": ["FSharp.Core >= 8.0.301", "Falco >= 4.0.6"]
   },
   "packageFolders": {
     "/Users/dmf/.nuget/packages/": {}
@@ -190,12 +185,8 @@
       "packagesPath": "/Users/dmf/.nuget/packages/",
       "outputPath": "/Users/dmf/Code/monorepo/fsharp/integration/TodoistLogseqIntegration/obj/",
       "projectStyle": "PackageReference",
-      "configFilePaths": [
-        "/Users/dmf/.nuget/NuGet/NuGet.Config"
-      ],
-      "originalTargetFrameworks": [
-        "net8.0"
-      ],
+      "configFilePaths": ["/Users/dmf/.nuget/NuGet/NuGet.Config"],
+      "originalTargetFrameworks": ["net8.0"],
       "sources": {
         "/usr/local/share/dotnet/sdk/8.0.303/FSharp/library-packs": {},
         "https://api.nuget.org/v3/index.json": {}

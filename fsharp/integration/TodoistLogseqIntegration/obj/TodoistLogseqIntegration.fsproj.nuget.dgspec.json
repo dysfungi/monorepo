@@ -13,12 +13,8 @@
         "packagesPath": "/Users/dmf/.nuget/packages/",
         "outputPath": "/Users/dmf/Code/monorepo/fsharp/integration/TodoistLogseqIntegration/obj/",
         "projectStyle": "PackageReference",
-        "configFilePaths": [
-          "/Users/dmf/.nuget/NuGet/NuGet.Config"
-        ],
-        "originalTargetFrameworks": [
-          "net8.0"
-        ],
+        "configFilePaths": ["/Users/dmf/.nuget/NuGet/NuGet.Config"],
+        "originalTargetFrameworks": ["net8.0"],
         "sources": {
           "/usr/local/share/dotnet/sdk/8.0.303/FSharp/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}

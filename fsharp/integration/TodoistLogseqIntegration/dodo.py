@@ -1,19 +1,28 @@
 from logging import getLogger
+from typing import Callable
 
 logger = getLogger(__name__)
 
-DOIT_CONFIG = {
+DOIT_CONFIG: dict = {
     "default_tasks": [],
 }
 
 
-def task(func: callable) -> callable:
-    """Decorate tasks.
+class task:
+    """Decorate tasks with a special attribute to be found by Doit.
+    This is a class instead of a function to prevent mypy
+    [attr-defined] error.
 
-    https://pydoit.org/task-creation.html#custom-task-definition
+    References:
+        https://pydoit.org/task-creation.html#custom-task-definition
+        https://mypy.readthedocs.io/en/stable/error_code_list.html#check-that-attribute-exists-attr-defined
     """
-    func.create_doit_tasks = func
-    return func
+
+    def __init__(self, func: Callable):
+        self.create_doit_tasks = func
+
+    def __call__(self, *args, **kwargs):
+        return self.create_doit_tasks(*args, **kwargs)
 
 
 @task
@@ -21,9 +30,6 @@ def build() -> dict:
     return {
         "actions": ["echo build successful - %(foobar)s"],
         "params": [
-            {
-                "name": "foobar",
-                "default": "foobar"
-            },
+            {"name": "foobar", "default": "foobar"},
         ],
     }

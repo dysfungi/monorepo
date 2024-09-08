@@ -243,8 +243,8 @@ class Project(NamedTuple):
     def doit(
         self,
         *,
-        verbosity: int = 2,
-        **tasks: Unpack[ProjectTasks],
+        verbosity: int = 2,  # TOOD(dfrank): support extra/global/build config?
+        **tasks_to_params: Unpack[ProjectTasks],
     ) -> int:
         """Run tasks from this project's dodo.py."""
         dodo_path = self.path / "dodo.py"
@@ -259,7 +259,7 @@ class Project(NamedTuple):
             },
         }
         with _chdir(self.path):
-            return run_tasks(task_loader, tasks, extra_config)
+            return run_tasks(task_loader, tasks_to_params, extra_config)
 
     @classmethod
     def all(cls, root: Path = Path.cwd()) -> list[Self]:

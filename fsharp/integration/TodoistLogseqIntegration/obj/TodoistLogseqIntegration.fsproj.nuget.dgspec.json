@@ -16,7 +16,7 @@
         "configFilePaths": ["/Users/dmf/.nuget/NuGet/NuGet.Config"],
         "originalTargetFrameworks": ["net8.0"],
         "sources": {
-          "/usr/local/share/dotnet/sdk/8.0.303/FSharp/library-packs": {},
+          "/usr/local/share/dotnet/sdk/8.0.401/FSharp/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -38,7 +38,7 @@
             "FSharp.Core": {
               "include": "Runtime, Compile, Build, Native, Analyzers, BuildTransitive",
               "target": "Package",
-              "version": "[8.0.301, )",
+              "version": "[8.0.400, )",
               "generatePathProperty": true
             },
             "Falco": {
@@ -66,7 +66,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.303/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.401/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

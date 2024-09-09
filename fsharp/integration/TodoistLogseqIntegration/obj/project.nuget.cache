@@ -1,12 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "bSw34BI8Cc4=",
+  "dgSpecHash": "ywoqCtRGiTU=",
   "success": true,
   "projectFilePath": "/Users/dmf/Code/monorepo/fsharp/integration/TodoistLogseqIntegration/TodoistLogseqIntegration.fsproj",
   "expectedPackageFiles": [
     "/Users/dmf/.nuget/packages/falco/4.0.6/falco.4.0.6.nupkg.sha512",
     "/Users/dmf/.nuget/packages/falco.markup/1.0.2/falco.markup.1.0.2.nupkg.sha512",
-    "/Users/dmf/.nuget/packages/fsharp.core/8.0.301/fsharp.core.8.0.301.nupkg.sha512"
+    "/Users/dmf/.nuget/packages/fsharp.core/8.0.400/fsharp.core.8.0.400.nupkg.sha512"
   ],
   "logs": []
 }

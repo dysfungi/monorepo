@@ -36,7 +36,7 @@
           }
         }
       },
-      "FSharp.Core/8.0.301": {
+      "FSharp.Core/8.0.400": {
         "type": "package",
         "compile": {
           "lib/netstandard2.1/FSharp.Core.dll": {
@@ -127,15 +127,15 @@
         "lib/netstandard2.0/Falco.Markup.xml"
       ]
     },
-    "FSharp.Core/8.0.301": {
-      "sha512": "I94+2zfAhWMJwPzVDFSlsutZvjPkaRvLVipf8b2O4AyzxKUBmevDkUBzcJBqSQNB1Ikig8xdphswoeKrObqx7Q==",
+    "FSharp.Core/8.0.400": {
+      "sha512": "kHMdDDmlZl98tujgHCmL8/HNH9VKbxsRMC9s7wbwr4noR40SSa5D4d00yF8cMK52s8jabVuiLLcrUw9r+PkKDQ==",
       "type": "package",
-      "path": "fsharp.core/8.0.301",
+      "path": "fsharp.core/8.0.400",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "Icon.png",
-        "fsharp.core.8.0.301.nupkg.sha512",
+        "fsharp.core.8.0.400.nupkg.sha512",
         "fsharp.core.nuspec",
         "lib/netstandard2.0/FSharp.Core.dll",
         "lib/netstandard2.0/FSharp.Core.xml",
@@ -171,7 +171,7 @@
     }
   },
   "projectFileDependencyGroups": {
-    "net8.0": ["FSharp.Core >= 8.0.301", "Falco >= 4.0.6"]
+    "net8.0": ["FSharp.Core >= 8.0.400", "Falco >= 4.0.6"]
   },
   "packageFolders": {
     "/Users/dmf/.nuget/packages/": {}
@@ -188,7 +188,7 @@
       "configFilePaths": ["/Users/dmf/.nuget/NuGet/NuGet.Config"],
       "originalTargetFrameworks": ["net8.0"],
       "sources": {
-        "/usr/local/share/dotnet/sdk/8.0.303/FSharp/library-packs": {},
+        "/usr/local/share/dotnet/sdk/8.0.401/FSharp/library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -210,7 +210,7 @@
           "FSharp.Core": {
             "include": "Runtime, Compile, Build, Native, Analyzers, BuildTransitive",
             "target": "Package",
-            "version": "[8.0.301, )",
+            "version": "[8.0.400, )",
             "generatePathProperty": true
           },
           "Falco": {
@@ -238,7 +238,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.303/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.401/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

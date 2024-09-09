@@ -1,7 +1,10 @@
 from logging import getLogger
 from typing import Callable
 
+from doit import tools
+
 logger = getLogger(__name__)
+
 
 DOIT_CONFIG: dict = {
     "default_tasks": [],
@@ -28,8 +31,20 @@ class task:
 @task
 def build() -> dict:
     return {
-        "actions": ["echo build successful - %(foobar)s"],
-        "params": [
-            {"name": "foobar", "default": "foobar"},
+        "actions": [
+            "dotnet build",
         ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def start() -> dict:
+    return {
+        "actions": [
+            tools.LongRunning("dotnet watch run"),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
     }

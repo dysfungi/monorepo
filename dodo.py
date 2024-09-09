@@ -7,6 +7,7 @@ from operator import attrgetter
 from pathlib import Path
 from typing import Callable, Generator, NamedTuple, Optional, Self, TypedDict, Unpack
 
+from doit import tools
 from doit.api import run_tasks
 from doit.cmd_base import ModuleTaskLoader
 
@@ -208,19 +209,51 @@ def lint() -> dict:
     """Run linters using Pre-commit."""
     return {
         "actions": [
-            "git add --patch",
+            tools.Interactive("git add --patch"),
             "pre-commit run --all-files --show-diff-on-failure",
         ],
         "verbosity": 2,
     }
 
 
+@task
+def start() -> Generator[dict, None, None]:
+    """Run all (default) or given projects.
+
+    Filter subtasks with wildcards for `$LANGUAGE/$CATEGORY/$PROJECT`
+    """
+
+    def _start(*, project):
+        project.doit(start=None)
+
+    for project in Project.all():
+        yield {
+            "name": "/".join(
+                [
+                    s.lower()
+                    for s in [
+                        project.display_language,
+                        project.category,
+                        project.name,
+                    ]
+                ],
+            ),
+            "actions": [(_start, (), {"project": project})],
+            "verbosity": 2,
+        }
+
+
 class BuildParams(TypedDict, total=False):
-    foobar: str
+    pass
+
+
+class StartParams(TypedDict, total=False):
+    pass
 
 
 class ProjectTasks(TypedDict, total=False):
     build: Optional[BuildParams]
+    start: Optional[StartParams]
 
 
 class Project(NamedTuple):
@@ -305,13 +338,19 @@ class Project(NamedTuple):
         module_name = ".".join([self.lang, self.cat, self.name, "dodo"])
         module = SourceFileLoader(module_name, str(dodo_path)).load_module()
         task_loader = ModuleTaskLoader(module)
+
         extra_config = {
             "GLOBAL": {
                 "verbosity": verbosity,
             },
+            # TODO(dmf): Support task config like "task:build"
         }
         with _chdir(self.path):
-            return run_tasks(task_loader, tasks_to_params, extra_config)
+            return run_tasks(
+                loader=task_loader,
+                tasks=tasks_to_params,
+                extra_config=extra_config,
+            )
 
     @classmethod
     def all(cls, root: Path = Path.cwd()) -> list[Self]:

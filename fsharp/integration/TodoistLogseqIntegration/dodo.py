@@ -34,6 +34,7 @@ def build() -> dict:
         "actions": [
             "dotnet build",
         ],
+        "clean": ["dotnet clean"],
         "title": tools.title_with_actions,
         "verbosity": 2,
     }

@@ -1,6 +1,10 @@
 ---
 # https://pre-commit.com/hooks.html
 repos:
+  ###########
+  # GENERAL #
+  ###########
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -34,6 +38,11 @@ repos:
     rev: v3.0.1
     hooks:
       - id: docker-compose-check
+
+  ###########
+  # PYTHON #
+  ###########
+
   - repo: https://github.com/psf/black
     rev: 23.12.1
     hooks:
@@ -64,6 +73,11 @@ repos:
           - alembic
           - pydantic
           - types-pyyaml
+
+  #############
+  # TERRAFORM #
+  #############
+
   - repo: https://github.com/antonbabenko/pre-commit-terraform
     rev: v1.86.0
     hooks:

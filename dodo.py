@@ -217,6 +217,38 @@ def ls() -> dict:
 
 
 @task
+def setup() -> Generator[dict, None, None]:
+    def _setup(*, project):
+        project.doit(setup=None)
+
+    yield {
+        "name": "root",
+        "actions": [
+            "brew bundle",
+            "pre-commit install",
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+    for project in Project.all():
+        yield {
+            "name": "/".join(
+                map(
+                    str.lower,
+                    [
+                        project.display_language,
+                        project.category,
+                        project.name,
+                    ],
+                ),
+            ),
+            "actions": [(_setup, (), {"project": project})],
+            "verbosity": 2,
+        }
+
+
+@task
 def start() -> Generator[dict, None, None]:
     """Run all (default) or given projects.
 
@@ -247,12 +279,17 @@ class BuildParams(TypedDict, total=False):
     pass
 
 
+class SetupParams(TypedDict, total=False):
+    pass
+
+
 class StartParams(TypedDict, total=False):
     pass
 
 
 class ProjectTasks(TypedDict, total=False):
     build: Optional[BuildParams]
+    setup: Optional[SetupParams]
     start: Optional[StartParams]
 
 
@@ -334,11 +371,21 @@ class Project(NamedTuple):
         """Run tasks from this project's dodo.py."""
         dodo_path = self.path / "dodo.py"
         if not dodo_path.exists():
-            return -1
+            return 1
+
         module_name = ".".join([self.lang, self.cat, self.name, "dodo"])
         module = SourceFileLoader(module_name, str(dodo_path)).load_module()
-        task_loader = ModuleTaskLoader(module)
+        supported_tasks_to_params = {
+            task_name: params
+            for task_name, params in tasks_to_params.items()
+            if hasattr(module, task_name)
+            and hasattr(getattr(module, task_name), "create_doit_tasks")
+            or hasattr(module, f"task_{task_name}")
+        }
+        if not supported_tasks_to_params:
+            return 2
 
+        task_loader = ModuleTaskLoader(module)
         extra_config = {
             "GLOBAL": {
                 "verbosity": verbosity,
@@ -348,7 +395,7 @@ class Project(NamedTuple):
         with _chdir(self.path):
             return run_tasks(
                 loader=task_loader,
-                tasks=tasks_to_params,
+                tasks=supported_tasks_to_params,
                 extra_config=extra_config,
             )
 

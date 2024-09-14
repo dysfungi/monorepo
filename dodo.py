@@ -36,6 +36,72 @@ class task:
 
 
 @task
+def build() -> Generator[dict, None, None]:
+    """Build all (default) or given project(s).
+
+    Filter subtasks with wildcards for `$LANGUAGE/$CATEGORY/$PROJECT`
+    """
+
+    def _build(*, project):
+        project.doit(build=None)
+
+    for project in Project.all():
+        yield {
+            "name": "/".join(
+                map(
+                    str.lower,
+                    [
+                        project.display_language,
+                        project.category,
+                        project.name,
+                    ],
+                ),
+            ),
+            "actions": [(_build, (), {"project": project})],
+            "verbosity": 2,
+        }
+
+
+@task
+def cleanpy() -> Generator[dict, None, None]:
+    """Clean reproducible Python files."""
+    cwd = Path.cwd()
+
+    def cache():
+        """Clean Python cache files."""
+        for pycache_dir in cwd.rglob("__pycache__"):
+            _rmtree(pycache_dir)
+
+    for clean_func in [cache]:
+        yield {
+            "name": clean_func.__name__,
+            "actions": [clean_func],
+            "verbosity": 2,
+        }
+
+
+@task
+def cwd() -> dict:
+    """Print working directory for Doit dodo.py execution."""
+    return {
+        "actions": ["pwd"],
+        "verbosity": 2,
+    }
+
+
+@task
+def lint() -> dict:
+    """Run linters using Pre-commit."""
+    return {
+        "actions": [
+            tools.Interactive("git add --patch"),
+            "pre-commit run --all-files --show-diff-on-failure",
+        ],
+        "verbosity": 2,
+    }
+
+
+@task
 def ls() -> dict:
     """List all projects."""
 
@@ -145,72 +211,6 @@ def ls() -> dict:
                 "default": None,
                 "help": "case-insensitive substring match on name",
             },
-        ],
-        "verbosity": 2,
-    }
-
-
-@task
-def build() -> Generator[dict, None, None]:
-    """Build all (default) or given project(s).
-
-    Filter subtasks with wildcards for `$LANGUAGE/$CATEGORY/$PROJECT`
-    """
-
-    def _build(*, project):
-        project.doit(build=None)
-
-    for project in Project.all():
-        yield {
-            "name": "/".join(
-                map(
-                    str.lower,
-                    [
-                        project.display_language,
-                        project.category,
-                        project.name,
-                    ],
-                ),
-            ),
-            "actions": [(_build, (), {"project": project})],
-            "verbosity": 2,
-        }
-
-
-@task
-def cleanpy() -> Generator[dict, None, None]:
-    """Clean reproducible Python files."""
-    cwd = Path.cwd()
-
-    def cache():
-        """Clean Python cache files."""
-        for pycache_dir in cwd.rglob("__pycache__"):
-            _rmtree(pycache_dir)
-
-    for clean_func in [cache]:
-        yield {
-            "name": clean_func.__name__,
-            "actions": [clean_func],
-            "verbosity": 2,
-        }
-
-
-@task
-def cwd() -> dict:
-    """Print working directory for Doit dodo.py execution."""
-    return {
-        "actions": ["pwd"],
-        "verbosity": 2,
-    }
-
-
-@task
-def lint() -> dict:
-    """Run linters using Pre-commit."""
-    return {
-        "actions": [
-            tools.Interactive("git add --patch"),
-            "pre-commit run --all-files --show-diff-on-failure",
         ],
         "verbosity": 2,
     }

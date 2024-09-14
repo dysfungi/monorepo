@@ -39,6 +39,19 @@ repos:
     hooks:
       - id: docker-compose-check
 
+  ######
+  # F# #
+  ######
+
+  - repo: local
+    hooks:
+      - id: fantomas
+        name: dotnet fantomas
+        language: system
+        entry: dotnet fantomas
+        types: [file]
+        files: \.(fs|fsx)$
+
   ###########
   # PYTHON #
   ###########

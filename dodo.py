@@ -97,6 +97,7 @@ def lint() -> dict:
             tools.Interactive("git add --patch"),
             "pre-commit run --all-files --show-diff-on-failure",
         ],
+        "title": tools.title_with_actions,
         "verbosity": 2,
     }
 

@@ -38,3 +38,20 @@ resource "vultr_vpc2" "frankenetwork" {
   description = "frankenetwork"
   region      = "lax"
 }
+
+resource "vultr_kubernetes" "k8s" {
+  region           = "lax"
+  label            = "frank8s"
+  version          = "v1.31.0+1"
+  ha_controlplanes = false
+  enable_firewall  = true
+
+  node_pools {
+    node_quantity = 1
+    plan          = "vc2-1c-2gb"
+    label         = "frankenodes"
+    auto_scaler   = true
+    min_nodes     = 1
+    max_nodes     = 2
+  }
+}

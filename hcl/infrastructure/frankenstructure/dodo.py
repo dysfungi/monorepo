@@ -1,5 +1,6 @@
 from logging import getLogger
-from typing import Any, Callable, Iterable, Optional
+from pathlib import Path
+from typing import Any, Callable, Generator, Iterable, Optional
 
 from doit import tools
 
@@ -104,21 +105,167 @@ def deploy() -> dict:
 
 
 @task
+def deploy_api_key() -> dict:
+    """Deploy Vultr credentials for Cert Manager.
+
+    References:
+        https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr
+    """
+    return {
+        "actions": [
+            _kubectl(
+                "create",
+                "secret",
+                "generic",
+                "vultr-credentials",
+                from_literal="apiKey=${VULTR_API_KEY:?Vultr API Key required}",
+                namespace="cert-manager",
+            ),
+        ],
+        "task_dep": ["deploy_cert_manager"],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+        "uptodate": [
+            " | ".join(
+                [
+                    _kubectl(
+                        "get",
+                        "secret",
+                        "vultr-credentials",
+                        namespace="cert-manager",
+                    ),
+                    _jq(".metadata.creationTimestamp"),
+                ],
+            ),
+        ],
+    }
+
+
+@task
+def deploy_cert_manager() -> dict:
+    """Deploy Cert Manager Helm chart into Kubernetes cluster.
+
+    References:
+        https://cert-manager.io/docs/installation/helm/
+    """
+    return {
+        "actions": [
+            _helm(
+                "install",
+                "cert-manager",
+                "jetstack/cert-manager",
+                create_namespace=None,
+                namespace="cert-manager",
+                set="crds.enabled=true",
+                version="v1.15.3",
+            ),
+        ],
+        "task_dep": ["setup"],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+        "uptodate": [
+            " | ".join(
+                [
+                    _helm("status", "cert-manager", namespace="cert-manager"),
+                    _jq(".info.last_deployed"),
+                ],
+            ),
+        ],
+    }
+
+
+@task
+def deploy_cert_manager_webhook() -> dict:
+    """Deploy Cert Manager Webhook for Vultr.
+
+    References:
+          https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr#installing-the-chart
+    """
+    return {
+        "actions": [
+            _helm(
+                "install",
+                "cert-manager-webhook-vultr",
+                "vultr/cert-manager-webhook-vultr",
+            ),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+        "uptodate": [
+            " | ".join(
+                [
+                    _helm("status", "cert-manager-webhook-vultr"),
+                    _jq(".info.last_deployed"),
+                ],
+            ),
+        ],
+    }
+
+
+@task
 def setup() -> dict:
     return {
-        "actions": [_tofu("init")],
+        "actions": [
+            _tofu("init"),
+            _helm("repo", "add", "vultr", "https://vultr.github.io/helm-charts"),
+            _helm(
+                "repo",
+                "add",
+                "jetstack",
+                "https://charts.jetstack.io",
+                force_update=None,
+            ),
+            _helm("repo", "update"),
+        ],
         "title": tools.title_with_actions,
         "verbosity": 2,
     }
 
 
-def _jq(script: str, *files, raw_output=True, **options) -> str:
+@task
+def test() -> Generator[dict, None, None]:
+    cert_manager_testfile = Path("tests/test-cert-manager.yaml")
+    assert cert_manager_testfile.exists()
+    clean_cert_manager = _kubectl("delete", filename=cert_manager_testfile)
+    yield {
+        # https://cert-manager.io/docs/installation/kubectl/#verify
+        "name": "cert-manager",
+        "actions": [
+            _kubectl("apply", filename=cert_manager_testfile),
+            "sleep 10",
+            _kubectl("describe", "certificate", n="cert-manager-test"),
+            clean_cert_manager,
+        ],
+        "clean": [clean_cert_manager],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+def _helm(command: str, *args, output: str = "json", **options) -> str:
+    """Build a string for calling Helm in the CLI."""
+    output = options.pop("o", output)
+    if command not in {"repo"}:
+        options["output"] = output
+    pos_params = _positionize(args)
+    opt_params = _optize(options)
+    return f"helm {command} {pos_params} {opt_params}"
+
+
+def _jq(script: str, *files, raw_output: bool = True, **options) -> str:
     """Build a string for calling JQ in the CLI."""
     if raw_output or raw_output is None:
         options["raw_output"] = None
     pos_params = _positionize(files)
     opt_params = _optize(options)
     return f"jq {opt_params} '{script}' {pos_params}"
+
+
+def _kubectl(command: str, *args, **options) -> str:
+    """Build a string for calling kubectl in the CLI."""
+    pos_params = _positionize(args)
+    opt_params = _optize(options)
+    return f"kubectl {command} {pos_params} {opt_params}"
 
 
 def _tofu(command: str, *args, **options) -> str:
@@ -130,6 +277,7 @@ def _tofu(command: str, *args, **options) -> str:
 
 def _vultr(resource: str, command: str, *args, output: str = "json", **options) -> str:
     """Build a string for calling Vultr in the CLI."""
+    output = options.pop("o", output)
     pos_params = _positionize(args)
     opt_params = _optize(options)
     return f"vultr --output={output} {resource} {command} {opt_params} {pos_params}"

@@ -14,7 +14,7 @@ Vultr:
 
 - [Vultr API Documentation][vultr-api-docs]
 - [Vultr Terraform Documentation][vultr-terraform-docs]
-- [Vultr Kubernetes Documentation][vult-k8s-docs]
+- [Vultr Kubernetes Documentation][vultr-k8s-docs]
 - [How to containerize Python web applications on Vultr][vultr-containerize-apps]
 - [How to deploy a Vultr Kubernetes Engine Cluster][vultr-deploy-vke-cluster]
 

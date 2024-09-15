@@ -6,7 +6,7 @@ terraform {
     bucket                      = "frankenstructure"
     key                         = "frankenstructure/production/terraform.tfstate"
     endpoint                    = "sjc1.vultrobjects.com"
-    region                      = "us-east-1"
+    region                      = "us-west-1"
     skip_credentials_validation = true
   }
   required_version = ">= 1.5.7"

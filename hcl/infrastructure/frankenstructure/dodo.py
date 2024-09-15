@@ -1,5 +1,5 @@
 from logging import getLogger
-from typing import Callable
+from typing import Any, Callable, Iterable, Optional
 
 from doit import tools
 
@@ -35,7 +35,24 @@ class task:
 @task
 def build() -> dict:
     return {
-        "actions": ["tofu plan"],
+        "actions": [_tofu("plan")],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def copy_k8s_id() -> dict:
+    return {
+        "actions": [
+            " | ".join(
+                [
+                    _vultr("kubernetes", "list"),
+                    _jq('.vke_clusters[] | select(.label == "frank8s").id'),
+                ],
+            ),
+            "pbpaste",
+        ],
         "title": tools.title_with_actions,
         "verbosity": 2,
     }
@@ -47,11 +64,8 @@ def copy_registry_id() -> dict:
         "actions": [
             " | ".join(
                 [
-                    "vultr container-registry list --output=json",
-                    _jq(
-                        '.registries[] | select(.name == "frankistry").id',
-                        raw_output=None,
-                    ),
+                    _vultr("container-registry", "list"),
+                    _jq('.registries[] | select(.name == "frankistry").id'),
                     "pbcopy",
                 ],
             ),
@@ -68,11 +82,8 @@ def copy_storage_id() -> dict:
         "actions": [
             " | ".join(
                 [
-                    "vultr object-storage list --output=json",
-                    _jq(
-                        '.object_storages[] | select(.label == "frankenstorage").id',
-                        raw_output=None,
-                    ),
+                    _vultr("object-storage", "list"),
+                    _jq('.object_storages[] | select(.label == "frankenstorage").id'),
                     "pbcopy",
                 ],
             ),
@@ -86,7 +97,7 @@ def copy_storage_id() -> dict:
 @task
 def deploy() -> dict:
     return {
-        "actions": ["tofu apply -auto-approve"],
+        "actions": [_tofu("apply", auto_approve=None)],
         "title": tools.title_with_actions,
         "verbosity": 2,
     }
@@ -101,16 +112,56 @@ def setup() -> dict:
     }
 
 
-def _jq(script: str, *files, **options) -> str:
-    opt_params = " ".join(
-        optname if optvalue is None else f"{optname}={optvalue}"
-        for optname, optvalue in (
-            (
-                (f"-{name}" if len(name) == 1 else f"--{name}").replace("_", "-"),
-                value,
-            )
-            for name, value in options.items()
-        )
+def _jq(script: str, *files, raw_output=True, **options) -> str:
+    """Build a string for calling JQ in the CLI."""
+    if raw_output or raw_output is None:
+        options["raw_output"] = None
+    pos_params = _positionize(files)
+    opt_params = _optize(options)
+    return f"jq {opt_params} '{script}' {pos_params}"
+
+
+def _tofu(command: str, *args, **options) -> str:
+    """Build a string for calling Tofu in the CLI."""
+    pos_params = _positionize(args)
+    opt_params = _optize(options, long_prefix="-")
+    return f"tofu {command} {opt_params} {pos_params}"
+
+
+def _vultr(resource: str, command: str, *args, output: str = "json", **options) -> str:
+    """Build a string for calling Vultr in the CLI."""
+    pos_params = _positionize(args)
+    opt_params = _optize(options)
+    return f"vultr --output={output} {resource} {command} {opt_params} {pos_params}"
+
+
+def _positionize(args: Iterable) -> str:
+    """Convert args to a CLI style positional parameter string where each
+    argument is double quoted.
+    """
+    return " ".join(f'"{arg}"' for arg in args)
+
+
+def _optize(options: dict[str, Any], *, long_prefix="--") -> str:
+    """Convert a dictionary to a CLI style option parameters string. Single
+    character names are treated as short options while anything else are treated as
+    long options. Also, underscores are converted to dashes.
+    """
+
+    def fix_optname(name: str) -> str:
+        name = name.replace("_", "-").strip("-")
+        return f"-{name}" if len(name) == 1 else f"{long_prefix}{name}"
+
+    def fix_optvalue(value: Any) -> Optional[str]:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return str(value).lower()
+        return f'"{value}"'
+
+    optionized = (
+        (fix_optname(name), fix_optvalue(value)) for name, value in options.items()
     )
-    params = " ".join(f'"{name}"' for name in files)
-    return f"jq {opt_params} '{script}' {params}"
+    return " ".join(
+        name if value is None else f"{name}={value}" for name, value in optionized
+    )

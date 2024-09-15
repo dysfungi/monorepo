@@ -1,3 +1,4 @@
+brew 'jq'
 brew 'opentofu'
 brew 'pre-commit'
 brew 's3cmd'

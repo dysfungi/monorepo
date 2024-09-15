@@ -42,6 +42,48 @@ def build() -> dict:
 
 
 @task
+def copy_registry_id() -> dict:
+    return {
+        "actions": [
+            " | ".join(
+                [
+                    "vultr container-registry list --output=json",
+                    _jq(
+                        '.registries[] | select(.name == "frankistry").id',
+                        raw_output=None,
+                    ),
+                    "pbcopy",
+                ],
+            ),
+            "pbpaste",
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def copy_storage_id() -> dict:
+    return {
+        "actions": [
+            " | ".join(
+                [
+                    "vultr object-storage list --output=json",
+                    _jq(
+                        '.object_storages[] | select(.label == "frankenstorage").id',
+                        raw_output=None,
+                    ),
+                    "pbcopy",
+                ],
+            ),
+            "pbpaste",
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
 def deploy() -> dict:
     return {
         "actions": ["tofu apply -auto-approve"],
@@ -57,3 +99,18 @@ def setup() -> dict:
         "title": tools.title_with_actions,
         "verbosity": 2,
     }
+
+
+def _jq(script: str, *files, **options) -> str:
+    opt_params = " ".join(
+        optname if optvalue is None else f"{optname}={optvalue}"
+        for optname, optvalue in (
+            (
+                (f"-{name}" if len(name) == 1 else f"--{name}").replace("_", "-"),
+                value,
+            )
+            for name, value in options.items()
+        )
+    )
+    params = " ".join(f'"{name}"' for name in files)
+    return f"jq {opt_params} '{script}' {params}"

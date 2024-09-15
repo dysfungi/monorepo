@@ -106,7 +106,7 @@ def deploy() -> dict:
 @task
 def setup() -> dict:
     return {
-        "actions": ["tofu init"],
+        "actions": [_tofu("init")],
         "title": tools.title_with_actions,
         "verbosity": 2,
     }
@@ -133,6 +133,13 @@ def _vultr(resource: str, command: str, *args, output: str = "json", **options) 
     pos_params = _positionize(args)
     opt_params = _optize(options)
     return f"vultr --output={output} {resource} {command} {opt_params} {pos_params}"
+
+
+def _xargs(utility: str, *args, **options) -> str:
+    """Build a string for calling Xargs in the CLI."""
+    pos_params = _positionize(args)
+    opt_params = _optize(options)
+    return f"xargs {opt_params} {utility} {pos_params}"
 
 
 def _positionize(args: Iterable) -> str:

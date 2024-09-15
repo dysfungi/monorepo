@@ -1,4 +1,5 @@
 brew 'jq'
+brew 'kubernetes-cli'
 brew 'opentofu'
 brew 'pre-commit'
 brew 's3cmd'

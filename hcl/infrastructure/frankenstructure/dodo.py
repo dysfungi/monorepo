@@ -126,10 +126,26 @@ def test() -> Generator[dict, None, None]:
         "actions": [
             _kubectl("apply", filename=cert_manager_testfile),
             "sleep 10",
-            _kubectl("describe", "certificate", n="cert-manager-test"),
+            _kubectl("describe", "certificate", namespace="cert-manager-test"),
             clean_cert_manager,
         ],
         "clean": [clean_cert_manager],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+    certificate_testfile = Path("tests/test-certificate.yaml")
+    assert certificate_testfile.exists()
+    clean_certificate = _kubectl("delete", filename=certificate_testfile)
+    yield {
+        "name": "certificate",
+        "actions": [
+            _kubectl("apply", filename=certificate_testfile),
+            "sleep 10",
+            _kubectl("describe", "certificate", filename=certificate_testfile),
+            clean_certificate,
+        ],
+        "clean": [clean_certificate],
         "title": tools.title_with_actions,
         "verbosity": 2,
     }

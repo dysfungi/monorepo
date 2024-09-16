@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: staging-cert-frank-sh
+spec:
+  commonName: frank.sh
+  dnsNames:
+    - frank.sh
+  issuerRef:
+    name: letsencrypt-staging
+    kind: ClusterIssuer
+  secretName: frank-sh-tls

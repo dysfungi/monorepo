@@ -8,16 +8,25 @@ can deploy containerized apps without needing to setup custom
 infrastructure for each project. Sharing resources will allow me to
 optimize costs.
 
-## Shared Resources
+## Tools
 
-### Managed with Terraform
+### Vultr
 
-**Resources:**
+**API:**
 
 - [Vultr API Documentation][vultr-api-docs]
-- [Vultr Terraform Documentation][vultr-terraform-docs]
 
-#### Kubernetes Cluster (frank8s)
+### Terraform
+
+**Providers:**
+
+- [Vultr Terraform Provider][vultr-terraform-docs]
+- [Kubernetes Terraform Provider][terraform-provider-k8s]
+- [Helm Terraform Provider][terraform-provider-helm]
+
+## Shared Resources
+
+### Kubernetes Cluster (frank8s)
 
 **Resources:**
 
@@ -25,9 +34,7 @@ optimize costs.
 - [How to containerize Python web applications on Vultr][vultr-containerize-apps]
 - [How to deploy a Vultr Kubernetes Engine Cluster][vultr-deploy-vke-cluster]
 
-### Managed with Helm Charts
-
-#### Certificate Manager
+### Certificate Manager
 
 **Resources:**
 
@@ -37,6 +44,8 @@ optimize costs.
 
 [cert-manager-helm-install]: https://cert-manager.io/docs/installation/helm/
 [cert-manager-verify]: https://cert-manager.io/docs/installation/kubectl/#verify
+[terraform-provider-helm]: https://registry.terraform.io/providers/hashicorp/helm/latest/docs
+[terraform-provider-k8s]: https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs
 [vultr-api-docs]: https://www.vultr.com/api/
 [vultr-containerize-apps]: https://docs.vultr.com/how-to-containerize-python-web-applications#prerequisites
 [vultr-deploy-vke-cluster]: https://docs.vultr.com/vultr-kubernetes-engine#How_to_Deploy_a_VKE_Cluster

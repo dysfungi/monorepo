@@ -23,6 +23,18 @@ provider "helm" {
   }
 }
 
+# https://artifacthub.io/packages/helm/k8s-dashboard/kubernetes-dashboard
+/*
+resource "helm_release" "kubernetes_dashboard" {
+  name             = "kubernetes-dashboard"
+  repository       = "https://kubernetes.github.io/dashboard"
+  chart            = "kubernetes-dashboard"
+  version          = "7.6.1"
+  namespace        = "kubernetes-dashboard"
+  create_namespace = true
+}
+*/
+
 resource "kubernetes_namespace" "cert_manager" {
   metadata {
     name = "cert-manager"
@@ -58,6 +70,7 @@ resource "helm_release" "cert_manager_webhook" {
   name       = "cert-manager-webhook-vultr"
   repository = "https://vultr.github.io/helm-charts"
   chart      = "cert-manager-webhook-vultr"
+  namespace  = kubernetes_namespace.cert_manager.metadata[0].name
 }
 
 # https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr#deploying-a-clusterissuer
@@ -153,7 +166,7 @@ resource "kubernetes_role" "secret_reader" {
 # https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr#deploying-a-clusterissuer
 resource "kubernetes_role_binding" "secret_reader" {
   metadata {
-    name      = "cert-manager-webhook-vultr:secret-reader"
+    name      = kubernetes_role.secret_reader.metadata[0].name
     namespace = kubernetes_namespace.cert_manager.metadata[0].name
   }
   role_ref {
@@ -165,5 +178,6 @@ resource "kubernetes_role_binding" "secret_reader" {
     api_group = ""
     kind      = "ServiceAccount"
     name      = helm_release.cert_manager_webhook.name
+    namespace = helm_release.cert_manager_webhook.namespace
   }
 }

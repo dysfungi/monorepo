@@ -142,7 +142,7 @@ def test() -> Generator[dict, None, None]:
         "actions": [
             _kubectl("apply", filename=certificate_testfile),
             "sleep 10",
-            _kubectl("describe", "certificate", filename=certificate_testfile),
+            _kubectl("describe", filename=certificate_testfile),
             clean_certificate,
         ],
         "clean": [clean_certificate],

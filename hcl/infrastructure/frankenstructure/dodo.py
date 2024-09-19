@@ -96,6 +96,48 @@ def copy_storage_id() -> dict:
 
 
 @task
+def debug_staging_cert() -> Generator[dict, None, None]:
+    yield {
+        "name": "certificate",
+        "actions": [
+            _kubectl("get", "certificate", namespace="staging"),
+            _kubectl("describe", "certificate", namespace="staging"),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+    yield {
+        "name": "certificaterequest",
+        "actions": [
+            _kubectl("get", "certificaterequest", namespace="staging"),
+            _kubectl("describe", "certificaterequest", namespace="staging"),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+    yield {
+        "name": "order",
+        "actions": [
+            _kubectl("get", "order", namespace="staging"),
+            _kubectl("describe", "order", namespace="staging"),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+    yield {
+        # https://cert-manager.io/docs/installation/kubectl/#verify
+        "name": "challenge",
+        "actions": [
+            _kubectl("get", "challenge", namespace="staging"),
+            _kubectl("describe", "challenge", namespace="staging"),
+            "dig -t TXT _acme-challenge.letsencrypt-test.staging.api.frank.sh",
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
 def deploy() -> dict:
     return {
         "actions": [_tofu("apply", auto_approve=None)],

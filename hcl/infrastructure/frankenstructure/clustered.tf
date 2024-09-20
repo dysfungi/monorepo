@@ -52,6 +52,15 @@ resource "helm_release" "cert_manager" {
     name  = "crds.enabled"
     value = "true"
   }
+  set_list {
+    # https://cert-manager.io/docs/configuration/acme/dns01/#setting-nameservers-for-dns01-self-check
+    name = "extraArgs"
+    # Since Terraform Utilizes HCL as well as Helm using the Helm Template Language,
+    # it's necessary to escape the `{}`, `[]`, `.`, and `,` characters twice in order
+    # for it to be parsed.
+    # https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release#example-usage---chart-repository-configured-outside-of-terraform
+    value = ["--dns01-recursive-nameservers-only", "--dns01-recursive-nameservers=1.1.1.1:53\\,1.0.0.1:53"]
+  }
 }
 
 # https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr

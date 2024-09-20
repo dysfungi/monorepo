@@ -102,6 +102,7 @@ def debug_staging_cert() -> Generator[dict, None, None]:
         "actions": [
             _kubectl("get", "certificate", namespace="staging"),
             _kubectl("describe", "certificate", namespace="staging"),
+            "echo",
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,
@@ -111,6 +112,7 @@ def debug_staging_cert() -> Generator[dict, None, None]:
         "actions": [
             _kubectl("get", "certificaterequest", namespace="staging"),
             _kubectl("describe", "certificaterequest", namespace="staging"),
+            "echo",
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,
@@ -120,6 +122,7 @@ def debug_staging_cert() -> Generator[dict, None, None]:
         "actions": [
             _kubectl("get", "order", namespace="staging"),
             _kubectl("describe", "order", namespace="staging"),
+            "echo",
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,
@@ -131,6 +134,7 @@ def debug_staging_cert() -> Generator[dict, None, None]:
             _kubectl("get", "challenge", namespace="staging"),
             _kubectl("describe", "challenge", namespace="staging"),
             "dig -t TXT _acme-challenge.letsencrypt-test.staging.api.frank.sh",
+            "echo",
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,

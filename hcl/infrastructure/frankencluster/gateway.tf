@@ -97,6 +97,24 @@ resource "helm_release" "gateway" {
   wait          = false
   wait_for_jobs = true
 
+  # https://github.com/nginxinc/nginx-gateway-fabric/blob/main/charts/nginx-gateway-fabric/values.yaml
+  # https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#configure-delayed-pod-termination-for-zero-downtime-upgrades
+  set_list {
+    name  = "nginxGateway.lifecycle.preStop.exec.command"
+    value = ["/usr/bin/gateway", "sleep", "--duration=30s"]
+  }
+
+  set_list {
+    name  = "nginx.lifecycle.preStop.exec.command"
+    value = ["/bin/sh", "-c", "/bin/sleep 30"]
+  }
+
+  set {
+    name  = "terminationGracePeriodSeconds"
+    value = "50"
+    type  = "auto"
+  }
+
   depends_on = [
     kustomization_resource.gateway_crds_p2,
   ]

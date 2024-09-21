@@ -49,6 +49,13 @@ Owned by [frankenstructure](../frankenstructure).
 - [Gateway API Docs][gateway-api-docs]
 - [Nginx Gateway Fabric - Helm Install][nginx-gateway-helm]
 
+### HTTPBin
+
+**Resources:**
+
+- [go-httpbin][httpbingo]
+- [go-httpbin Helm Chart][httpbingo-helm-chart]
+
 ### Load Balancer
 
 **Resources:**
@@ -66,6 +73,8 @@ TODO
 [cert-manager-verify]: https://cert-manager.io/docs/installation/kubectl/#verify
 [gateway-api-docs]: https://gateway-api.sigs.k8s.io/implementations/#nginx-gateway-fabric
 [ghcr-docs-pkgs]: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+[httpbingo]: https://httpbingo.org/
+[httpbingo-helm-chart]: https://github.com/matheusfm/httpbin-chart
 [k8s-docs-svc-lb]: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
 [k8s-gateway-api]: https://kubernetes.io/docs/concepts/services-networking/gateway/
 [nginx-gateway-helm]: https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/

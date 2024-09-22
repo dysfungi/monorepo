@@ -75,6 +75,10 @@ Owned by [frankenstructure](../frankenstructure).
 
 ### HTTPBin
 
+**Usage:**
+
+- `api.frank.sh/httpbin`
+
 **Resources:**
 
 - [go-httpbin][httpbingo]

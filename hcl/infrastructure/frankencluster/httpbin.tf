@@ -15,7 +15,7 @@ resource "helm_release" "httpbin" {
   namespace  = kubernetes_namespace.httpbin.metadata[0].name
 }
 
-resource "kubernetes_manifest" "httpbin_route" {
+resource "kubernetes_manifest" "httpbin_route_path" {
   manifest = {
     "apiVersion" = "gateway.networking.k8s.io/v1"
     "kind"       = "HTTPRoute"
@@ -37,7 +37,18 @@ resource "kubernetes_manifest" "httpbin_route" {
             {
               "path" = {
                 "type"  = "PathPrefix"
-                "value" = "/"
+                "value" = "/httpbin"
+              }
+            }
+          ]
+          "filters" = [
+            {
+              "type" = "URLRewrite"
+              "urlRewrite" = {
+                "path" = {
+                  "type"               = "ReplacePrefixMatch"
+                  "replacePrefixMatch" = "/"
+                }
               }
             }
           ]

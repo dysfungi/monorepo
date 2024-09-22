@@ -77,6 +77,8 @@ Owned by [frankenstructure](../frankenstructure).
 
 **Usage:**
 
+- `httpbin.frank.sh`
+- `httpbin.api.frank.sh`
 - `api.frank.sh/httpbin`
 
 **Resources:**

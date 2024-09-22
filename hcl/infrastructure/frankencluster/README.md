@@ -3,6 +3,18 @@
 The goal of this infrastructure project is to configure and setup the shared
 Kubernetes cluster.
 
+## Project APIs
+
+### Tiers
+
+_Inspired by [Deployment Environments][wiki-deploy-envs]._
+
+- Production: `prod` -- serves end-users/clients
+- Staging: `stage` -- mirror of production
+- Testing: `test` -- where interface testing is performed
+- Development: `dev` -- sandbox environment for development
+- Local: `local` -- developer's desktop/workstation
+
 ## Tools
 
 ### Terraform
@@ -43,11 +55,23 @@ Owned by [frankenstructure](../frankenstructure).
 
 ### Gateway API
 
+**Gateways:**
+
+- `prod-web`: intended for production tier HTTP requests
+  - Only allows routes from namespaces with label `tier=prod`
+- `stage-web`: intended for staging tier HTTP requests
+  - Only allows routes from namespaces with label `tier=stage`
+
+**Project API:**
+
+- `HTTPRoute`
+
 **Resources:**
 
 - [Kubernetes Gateway API][k8s-gateway-api]
 - [Gateway API Docs][gateway-api-docs]
-- [Nginx Gateway Fabric - Helm Install][nginx-gateway-helm]
+- [Nginx Gateway Fabric - Helm Install][ngf-helm-install]
+- [Nginx Gateway Fabric - Routing Traffic to Apps][ngf-routing]
 
 ### HTTPBin
 
@@ -77,9 +101,11 @@ TODO
 [httpbingo-helm-chart]: https://github.com/matheusfm/httpbin-chart
 [k8s-docs-svc-lb]: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
 [k8s-gateway-api]: https://kubernetes.io/docs/concepts/services-networking/gateway/
-[nginx-gateway-helm]: https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/
+[ngf-helm-install]: https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/
+[ngf-routing]: https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/routing-traffic-to-your-app/
 [terraform-provider-helm]: https://registry.terraform.io/providers/hashicorp/helm/latest/docs
 [terraform-provider-k8s]: https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs
 [terraform-provider-kustomization]: https://registry.terraform.io/providers/kbst/kustomization/latest/docs
 [vultr-vke-lb]: https://docs.vultr.com/vultr-kubernetes-engine#vke-load-balancer
 [vultr-webhook-cert-manager]: https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr
+[wiki-deploy-envs]: https://en.wikipedia.org/wiki/Deployment_environment#Environments

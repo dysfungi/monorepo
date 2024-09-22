@@ -180,6 +180,7 @@ def ls() -> dict:
         "params": [
             {
                 "name": "sortby",
+                "long": "sortby",
                 "short": "s",
                 "type": list,
                 "default": [],
@@ -207,6 +208,7 @@ def ls() -> dict:
             },
             {
                 "name": "name",
+                "long": "name",
                 "short": "n",
                 "type": str,
                 "default": None,

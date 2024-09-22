@@ -8,7 +8,7 @@ resource "kubernetes_manifest" "certificate_api_frank_sh" {
     "kind"       = "Certificate"
     "metadata" = {
       "name"      = "api-frank-sh"
-      "namespace" = kubernetes_namespace.staging.metadata[0].name
+      "namespace" = kubernetes_namespace.cert_manager.metadata[0].name
     }
     "spec" = {
       "commonName" = "api.frank.sh"
@@ -84,18 +84,39 @@ resource "kustomization_resource" "gateway_crds_p2" {
 resource "kubernetes_namespace" "gateway" {
   metadata {
     name = "nginx-gateway"
+    labels = {
+      tier = "prod"
+    }
   }
 }
 
 # https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/
 resource "helm_release" "gateway" {
-  name          = "gateway"
+  name          = "nginx-gateway"
   repository    = "oci://ghcr.io/nginxinc/charts"
   chart         = "nginx-gateway-fabric"
   version       = "1.4.0"
   namespace     = kubernetes_namespace.gateway.metadata[0].name
   wait          = false
   wait_for_jobs = true
+
+  set {
+    name  = "fullnameOverride"
+    value = "nginx-gateway"
+  }
+
+  set {
+    name  = "nginxGateway.securityContext.allowPrivilegeEscalation"
+    value = true
+  }
+
+  /*
+  set {
+    name  = "service.create"
+    value = "false"
+    type  = "auto"
+  }
+  */
 
   # https://github.com/nginxinc/nginx-gateway-fabric/blob/main/charts/nginx-gateway-fabric/values.yaml
   # https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#configure-delayed-pod-termination-for-zero-downtime-upgrades
@@ -119,3 +140,74 @@ resource "helm_release" "gateway" {
     kustomization_resource.gateway_crds_p2,
   ]
 }
+
+resource "kubernetes_manifest" "stage_gateway" {
+  manifest = {
+    "apiVersion" = "gateway.networking.k8s.io/v1"
+    "kind"       = "Gateway"
+    "metadata" = {
+      "name" : "stage-web"
+      "namespace" : helm_release.gateway.namespace
+    }
+    "spec" = {
+      "gatewayClassName" = "nginx"
+      "listeners" = [
+        {
+          "name"     = "http"
+          "hostname" = "stage.api.frank.sh"
+          "port"     = 80
+          "protocol" = "HTTP"
+          "allowedRoutes" = {
+            "namespaces" = {
+              "from" = "Selector"
+              "selector" = {
+                "matchLabels" = {
+                  "tier" = "stage"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+resource "kubernetes_manifest" "prod_gateway" {
+  manifest = {
+    "apiVersion" = "gateway.networking.k8s.io/v1"
+    "kind"       = "Gateway"
+    "metadata" = {
+      "name" : "prod-web"
+      "namespace" : helm_release.gateway.namespace
+    }
+    "spec" = {
+      "gatewayClassName" = "nginx"
+      "listeners" = [
+        {
+          "name"     = "http"
+          "hostname" = "*.frank.sh"
+          "port"     = 80
+          "protocol" = "HTTP"
+          "allowedRoutes" = {
+            "namespaces" = {
+              # TODO: filter for tier=prod
+              "from" = "All"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+/*
+resource "vultr_load_balancer" "gateway" {
+  region = "lax"
+  label = ""
+  balancing_algorithm = "roundrobin"
+  proxy_protocol = true
+  ssl_redirect = false
+  vpc =
+}
+*/

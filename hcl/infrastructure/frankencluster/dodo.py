@@ -1,8 +1,9 @@
+from functools import partial
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Callable, Generator, Iterable, Optional
+from typing import Any, Callable, Generator, Iterable, Optional, Self, TypedDict
 
-from doit import tools
+from doit import task_params, tools
 
 logger = getLogger(__name__)
 
@@ -22,11 +23,15 @@ class task:
         https://mypy.readthedocs.io/en/stable/error_code_list.html#check-that-attribute-exists-attr-defined
     """
 
-    def __init__(self, func: Callable):
-        self.create_doit_tasks = func
+    def __init__(self, func: Callable, *, params: Optional[list[dict]] = None):
+        self.create_doit_tasks = func if params is None else task_params(params)(func)
 
     def __call__(self, *args, **kwargs):
         return self.create_doit_tasks(*args, **kwargs)
+
+    @classmethod
+    def with_params(cls, params: list[dict]) -> Callable[[Callable], Self]:
+        return partial(cls, params=params)
 
 
 @task
@@ -93,11 +98,141 @@ def deploy() -> dict:
     }
 
 
+@task.with_params(
+    [
+        {
+            "name": "all_containers",
+            "long": "all-containers",
+            "short": "a",
+            "type": bool,
+            "default": False,
+            "help": "Get all containers' logs in the pod(s).",
+        },
+        {
+            "name": "container",
+            "long": "container",
+            "short": "c",
+            "type": str,
+            "default": None,
+            "help": "Print the logs of this container.",
+        },
+        {
+            "name": "follow",
+            "long": "follow",
+            "short": "f",
+            "type": bool,
+            "default": False,
+            "help": "Specify if the logs should be streamed.",
+        },
+        {
+            "name": "prefix",
+            "long": "prefix",
+            "short": "p",
+            "type": bool,
+            "default": False,
+            "help": "Prefix each log line with the log source (pod/container name).",
+        },
+        {
+            "name": "since",
+            "long": "since",
+            "short": "s",
+            "type": str,
+            "default": "0s",
+            "help": "Only return logs newer than a relative duration (e.g., 2m, 3h).",
+        },
+        {
+            "name": "tail",
+            "long": "tail",
+            "short": "t",
+            "type": int,
+            "default": -1,
+            "help": "Lines of recent log file to display.",
+        },
+    ]
+)
+def logs(
+    *,
+    all_containers: bool = False,
+    container: Optional[str] = None,
+    follow: bool = False,
+    prefix: bool = False,
+    since: str = "0s",
+    tail: int = -1,
+) -> Generator[dict, None, None]:
+    extra: LogsExtra = {}
+    if all_containers:
+        extra["all_containers"] = all_containers
+    elif container:
+        extra["container"] = container
+    elif container is None:
+        extra["container"] = "nginx"
+    yield {
+        "name": "nginx-gateway",
+        "actions": [
+            _kubectl(
+                "logs",
+                follow=follow,
+                namespace="nginx-gateway",
+                prefix=prefix,
+                selector="app.kubernetes.io/name=nginx-gateway-fabric",
+                since=since,
+                tail=tail,
+                **extra,
+            ),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
 @task
 def setup() -> dict:
     return {
         "actions": [
             _tofu("init"),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task.with_params(
+    [
+        {
+            "name": "command",
+            "long": "command",
+            "short": "c",
+            "type": list,
+            "default": [],
+            "help": "Command to execute in container.",
+        },
+        {
+            "name": "shell",
+            "long": "shell",
+            "short": "s",
+            "type": str,
+            "default": "/bin/sh",
+            "help": "Path to or name of shell executable.",
+        },
+    ]
+)
+def shell(command: list[str], shell: str = "/bin/sh") -> Generator[dict, None, None]:
+    command = command or [shell, "--interactive", "--login"]
+    yield {
+        "name": "nginx-gateway",
+        "actions": [
+            tools.Interactive(
+                _kubectl(
+                    "exec",
+                    "deployment/nginx-gateway",
+                    "--",
+                    *command,
+                    container="nginx",
+                    namespace="nginx-gateway",
+                    stdin=True,
+                    tty=True,
+                ),
+            ),
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,
@@ -139,6 +274,17 @@ def test() -> Generator[dict, None, None]:
         "verbosity": 2,
     }
 
+    for subtask in shell(command=["nginx", "-T"]):
+        if subtask.pop("name") == "nginx-gateway":
+            subtask["name"] = "nginx-config"
+            yield subtask
+            break
+
+
+class LogsExtra(TypedDict, total=False):
+    all_containers: bool
+    container: str
+
 
 def _helm(command: str, *args, output: str = "json", **options) -> str:
     """Build a string for calling Helm in the CLI."""
@@ -163,7 +309,7 @@ def _kubectl(command: str, *args, **options) -> str:
     """Build a string for calling kubectl in the CLI."""
     pos_params = _positionize(args)
     opt_params = _optize(options)
-    return f"kubectl {command} {pos_params} {opt_params}"
+    return f"kubectl {command} {opt_params} {pos_params}"
 
 
 def _tofu(command: str, *args, **options) -> str:

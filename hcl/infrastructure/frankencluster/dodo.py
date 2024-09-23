@@ -133,6 +133,13 @@ def deploy() -> dict:
             "help": "Prefix each log line with the log source (pod/container name).",
         },
         {
+            "name": "previous",
+            "long": "previous",
+            "type": bool,
+            "default": False,
+            "help": "Print logs for the previous instance of the container in a pod.",
+        },
+        {
             "name": "since",
             "long": "since",
             "short": "s",
@@ -154,30 +161,41 @@ def logs(
     *,
     all_containers: bool = False,
     container: Optional[str] = None,
-    follow: bool = False,
-    prefix: bool = False,
-    since: str = "0s",
-    tail: int = -1,
+    previous,
+    **options,
 ) -> Generator[dict, None, None]:
-    extra: LogsExtra = {}
-    if all_containers:
-        extra["all_containers"] = all_containers
-    elif container:
-        extra["container"] = container
-    elif container is None:
-        extra["container"] = "nginx"
+    def _gen_extra(container: Optional[str] = None) -> LogsExtra:
+        extra: LogsExtra = {}
+        if all_containers:
+            extra["all_containers"] = all_containers
+        elif container:
+            extra["container"] = container
+        return extra
+
+    yield {
+        "name": "external-dns",
+        "actions": [
+            _kubectl(
+                "logs",
+                namespace="external-dns",
+                selector="app.kubernetes.io/name=external-dns",
+                **options,
+                **_gen_extra(container=container or "external-dns"),
+            ),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
     yield {
         "name": "nginx-gateway",
         "actions": [
             _kubectl(
                 "logs",
-                follow=follow,
                 namespace="nginx-gateway",
-                prefix=prefix,
                 selector="app.kubernetes.io/name=nginx-gateway-fabric",
-                since=since,
-                tail=tail,
-                **extra,
+                **options,
+                **_gen_extra(container=container or "nginx"),
             ),
         ],
         "title": tools.title_with_actions,

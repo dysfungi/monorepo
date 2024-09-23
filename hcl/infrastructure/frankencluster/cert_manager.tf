@@ -27,9 +27,9 @@ resource "helm_release" "cert_manager" {
 }
 
 # https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr
-resource "kubernetes_secret" "vultr_creds" {
+resource "kubernetes_secret" "cert_manager_vultr_creds" {
   metadata {
-    name      = "vultr-credentials"
+    name      = "cert-manager-vultr-credentials"
     namespace = kubernetes_namespace.cert_manager.metadata[0].name
   }
   data = {
@@ -71,7 +71,7 @@ resource "kubernetes_manifest" "clusterissuer_letsencrypt_staging" {
                 "config" = {
                   "apiKeySecretRef" = {
                     "key"  = "apiKey"
-                    "name" = "vultr-credentials"
+                    "name" = kubernetes_secret.cert_manager_vultr_creds.metadata[0].name
                   }
                 }
               }
@@ -106,7 +106,7 @@ resource "kubernetes_manifest" "clusterissuer_letsencrypt_prod" {
                 "config" = {
                   "apiKeySecretRef" = {
                     "key"  = "apiKey"
-                    "name" = "vultr-credentials"
+                    "name" = kubernetes_secret.cert_manager_vultr_creds.metadata[0].name
                   }
                 }
               }
@@ -120,15 +120,15 @@ resource "kubernetes_manifest" "clusterissuer_letsencrypt_prod" {
 
 # https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/role
 # https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr#deploying-a-clusterissuer
-resource "kubernetes_role" "secret_reader" {
+resource "kubernetes_role" "cert_manager_webhook_secret_reader" {
   metadata {
-    name      = "cert-manager-webhook-vultr:secret-reader"
-    namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    name      = "${helm_release.cert_manager_webhook.name}:secret-reader"
+    namespace = helm_release.cert_manager_webhook.namespace
   }
   rule {
     api_groups     = [""]
     resources      = ["secrets"]
-    resource_names = [kubernetes_secret.vultr_creds.metadata[0].name]
+    resource_names = [kubernetes_secret.cert_manager_vultr_creds.metadata[0].name]
     verbs          = ["get", "watch"]
   }
 
@@ -136,18 +136,17 @@ resource "kubernetes_role" "secret_reader" {
 
 # https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/role_binding
 # https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr#deploying-a-clusterissuer
-resource "kubernetes_role_binding" "secret_reader" {
+resource "kubernetes_role_binding" "cert_manager_webhook_secret_reader" {
   metadata {
-    name      = kubernetes_role.secret_reader.metadata[0].name
-    namespace = kubernetes_namespace.cert_manager.metadata[0].name
+    name      = kubernetes_role.cert_manager_webhook_secret_reader.metadata[0].name
+    namespace = kubernetes_role.cert_manager_webhook_secret_reader.metadata[0].namespace
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
     kind      = "Role"
-    name      = kubernetes_role.secret_reader.metadata[0].name
+    name      = kubernetes_role.cert_manager_webhook_secret_reader.metadata[0].name
   }
   subject {
-    api_group = ""
     kind      = "ServiceAccount"
     name      = helm_release.cert_manager_webhook.name
     namespace = helm_release.cert_manager_webhook.namespace

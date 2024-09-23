@@ -84,9 +84,6 @@ resource "kustomization_resource" "gateway_crds_p2" {
 resource "kubernetes_namespace" "gateway" {
   metadata {
     name = "nginx-gateway"
-    labels = {
-      tier = "prod"
-    }
   }
 }
 
@@ -110,11 +107,15 @@ resource "helm_release" "gateway" {
     value = true
   }
 
+  set {
+    name  = "service.annotations.external-dns\\.alpha\\.kubernetes\\.io/hostname"
+    value = "*.frank.sh"
+  }
+
   /*
   set {
     name  = "service.create"
-    value = "false"
-    type  = "auto"
+    value = false
   }
   */
 

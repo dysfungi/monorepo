@@ -42,11 +42,12 @@ resource "kubernetes_manifest" "httpbin_route_paths" {
     "kind"       = "HTTPRoute"
     "metadata" = {
       "name"      = "httpbin-paths"
-      "namespace" = "httpbin"
+      "namespace" = kubernetes_namespace.httpbin.metadata[0].name
     }
     "spec" = {
       "parentRefs" = [
         {
+          "kind"      = "Gateway"
           "name"      = kubernetes_manifest.prod_gateway.manifest.metadata.name
           "namespace" = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
         }
@@ -54,7 +55,7 @@ resource "kubernetes_manifest" "httpbin_route_paths" {
       "hostnames" = ["api.frank.sh"]
       "rules" = [
         {
-          "matches" : [
+          "matches" = [
             {
               "path" = {
                 "type"  = "PathPrefix"
@@ -73,10 +74,12 @@ resource "kubernetes_manifest" "httpbin_route_paths" {
               }
             }
           ]
-          "backendRefs" : [
+          "backendRefs" = [
             {
-              "name" = helm_release.httpbin.name
-              "port" = 80
+              "kind"      = "Service"
+              "name"      = helm_release.httpbin.name
+              "namespace" = kubernetes_namespace.httpbin.metadata[0].name
+              "port"      = 80
             }
           ]
         }
@@ -90,12 +93,13 @@ resource "kubernetes_manifest" "httpbin_route_domains" {
     "apiVersion" = "gateway.networking.k8s.io/v1"
     "kind"       = "HTTPRoute"
     "metadata" = {
-      "name" : "httpbin-domains"
-      "namespace" : "httpbin"
+      "name"      = "httpbin-domains"
+      "namespace" = kubernetes_namespace.httpbin.metadata[0].name
     }
     "spec" = {
       "parentRefs" = [
         {
+          "kind"      = "Gateway"
           "name"      = kubernetes_manifest.prod_gateway.manifest.metadata.name
           "namespace" = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
         }
@@ -103,7 +107,7 @@ resource "kubernetes_manifest" "httpbin_route_domains" {
       "hostnames" = ["httpbin.frank.sh", "httpbin.api.frank.sh"]
       "rules" = [
         {
-          "matches" : [
+          "matches" = [
             {
               "path" = {
                 "type"  = "PathPrefix"
@@ -111,10 +115,12 @@ resource "kubernetes_manifest" "httpbin_route_domains" {
               }
             }
           ]
-          "backendRefs" : [
+          "backendRefs" = [
             {
-              "name" = helm_release.httpbin.name
-              "port" = 80
+              "kind"      = "Service"
+              "name"      = helm_release.httpbin.name
+              "namespace" = kubernetes_namespace.httpbin.metadata[0].name
+              "port"      = 80
             }
           ]
         }

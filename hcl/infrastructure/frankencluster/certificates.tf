@@ -18,6 +18,8 @@ resource "kubernetes_manifest" "certificate_wildcard_frank_sh" {
       "commonName" = "*.frank.sh"
       "dnsNames" = [
         "*.frank.sh",
+        "*.api.frank.sh",
+        "*.k8s.frank.sh",
       ]
       "issuerRef" = {
         "kind" = "ClusterIssuer"

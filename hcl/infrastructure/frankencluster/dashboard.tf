@@ -31,7 +31,7 @@ resource "kubernetes_manifest" "k8s_dashboard_web_route" {
           "kind"        = "Gateway"
           "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
           "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
-          "sectionName" = "https"
+          "sectionName" = "https-wildcard.frank.sh"
         }
       ]
       "hostnames" = [

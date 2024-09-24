@@ -50,7 +50,7 @@ resource "kubernetes_manifest" "httpbin_route_paths" {
           "kind"        = "Gateway"
           "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
           "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
-          "sectionName" = "https"
+          "sectionName" = "https-wildcard.frank.sh"
         }
       ]
       "hostnames" = ["api.frank.sh"]
@@ -103,7 +103,7 @@ resource "kubernetes_manifest" "httpbin_route_domains" {
           "kind"        = "Gateway"
           "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
           "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
-          "sectionName" = "https"
+          "sectionName" = "https-wildcard.frank.sh"
         }
       ]
       "hostnames" = [

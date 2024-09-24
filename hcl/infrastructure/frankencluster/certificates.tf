@@ -63,12 +63,13 @@ resource "kubernetes_manifest" "gateway_refgrant_to_certs" {
 }
 
 # https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/https-termination/#configure-https-termination-and-routing
-resource "kubernetes_manifest" "https_redirect_route" {
+resource "kubernetes_manifest" "https_redirect_wildcard_frank_sh" {
   manifest = {
     "apiVersion" = "gateway.networking.k8s.io/v1"
     "kind"       = "HTTPRoute"
     "metadata" = {
-      "name"      = "tls-redirect"
+      "name"      = "wildcard-frank-sh-tls-redirect"
+      "name"      = "frank-sh-redirect"
       "namespace" = kubernetes_namespace.certificate.metadata[0].name
     }
     "spec" = {
@@ -77,7 +78,7 @@ resource "kubernetes_manifest" "https_redirect_route" {
           "kind"        = "Gateway"
           "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
           "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
-          "sectionName" = "http"
+          "sectionName" = "http-wildcard.frank.sh"
         }
       ]
       "hostnames" = [
@@ -91,6 +92,50 @@ resource "kubernetes_manifest" "https_redirect_route" {
               "requestRedirect" = {
                 "scheme" = "https"
                 "port"   = 443
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+
+resource "kubernetes_manifest" "http_redirect_frank_sh" {
+  manifest = {
+    "apiVersion" = "gateway.networking.k8s.io/v1"
+    "kind"       = "HTTPRoute"
+    "metadata" = {
+      "name"      = "frank-sh-redirect"
+      "namespace" = kubernetes_namespace.certificate.metadata[0].name
+    }
+    "spec" = {
+      "parentRefs" = [
+        {
+          "kind"        = "Gateway"
+          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
+          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "sectionName" = "http-frank.sh"
+        },
+        {
+          "kind"        = "Gateway"
+          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
+          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "sectionName" = "https-frank.sh"
+        }
+      ]
+      "hostnames" = [
+        "frank.sh",
+      ]
+      "rules" = [
+        {
+          "filters" = [
+            {
+              "type" = "RequestRedirect"
+              "requestRedirect" = {
+                "scheme"   = "https"
+                "hostname" = "derekmfrank.com"
+                "port"     = 443
               }
             }
           ]

@@ -86,9 +86,10 @@ resource "helm_release" "gateway" {
     value = true
   }
 
+  # https://github.com/kubernetes-sigs/external-dns/blob/master/docs/annotations/annotations.md#external-dnsalphakubernetesiohostname
   set {
     name  = "service.annotations.external-dns\\.alpha\\.kubernetes\\.io/hostname"
-    value = "*.frank.sh"
+    value = "frank.sh\\,*.frank.sh"
   }
 
   /*
@@ -170,7 +171,31 @@ resource "kubernetes_manifest" "prod_gateway" {
       "gatewayClassName" = "nginx"
       "listeners" = [
         {
-          "name"     = "http"
+          "name"     = "http-frank.sh"
+          "hostname" = "frank.sh"
+          "port"     = 80
+          "protocol" = "HTTP"
+          "allowedRoutes" = {
+            "namespaces" = {
+              # TODO: filter for tier=prod
+              "from" = "All"
+            }
+          }
+        },
+        {
+          "name"     = "https-frank.sh"
+          "hostname" = "frank.sh"
+          "port"     = 443
+          "protocol" = "HTTPS"
+          "allowedRoutes" = {
+            "namespaces" = {
+              # TODO: filter for tier=prod
+              "from" = "All"
+            }
+          }
+        },
+        {
+          "name"     = "http-wildcard.frank.sh"
           "hostname" = "*.frank.sh"
           "port"     = 80
           "protocol" = "HTTP"
@@ -182,7 +207,7 @@ resource "kubernetes_manifest" "prod_gateway" {
           }
         },
         {
-          "name"     = "https"
+          "name"     = "https-wildcard.frank.sh"
           "hostname" = "*.frank.sh"
           "port"     = 443
           "protocol" = "HTTPS"

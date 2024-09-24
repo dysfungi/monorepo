@@ -73,6 +73,20 @@ Owned by [frankenstructure](../frankenstructure).
 - [Nginx Gateway Fabric - Helm Install][ngf-helm-install]
 - [Nginx Gateway Fabric - Routing Traffic to Apps][ngf-routing]
 
+### Load Balancer
+
+**Resources:**
+
+- [Vultr VKE Load Balancer][vultr-vke-lb]
+- [Kubernetes - Service - Load Balancer][k8s-docs-svc-lb]
+
+### External DNS
+
+- [External DNS Docs][external-dns-docs]
+- [External DNS with Cloudflare][external-dns-cloudflare]
+
+## Deployed Applications
+
 ### HTTPBin
 
 **Usage:**
@@ -86,25 +100,23 @@ Owned by [frankenstructure](../frankenstructure).
 - [go-httpbin][httpbingo]
 - [go-httpbin Helm Chart][httpbingo-helm-chart]
 
-### Load Balancer
+### Kubernetes Dashboard
 
 **Resources:**
 
-- [Vultr VKE Load Balancer][vultr-vke-lb]
-- [Kubernetes - Service - Load Balancer)][k8s-docs-svc-lb]
-
-### External DNS
-
-TODO
+- [Kubernetes Dashboard Docs][k8s-dash-docs]
 
 <!--- REFERENCE LINKS --->
 
 [cert-manager-helm-install]: https://cert-manager.io/docs/installation/helm/
 [cert-manager-verify]: https://cert-manager.io/docs/installation/kubectl/#verify
+[external-dns-cloudflare]: https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/cloudflare.md#using-helm
+[external-dns-docs]: https://artifacthub.io/packages/helm/external-dns/external-dns
 [gateway-api-docs]: https://gateway-api.sigs.k8s.io/implementations/#nginx-gateway-fabric
 [ghcr-docs-pkgs]: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
 [httpbingo]: https://httpbingo.org/
 [httpbingo-helm-chart]: https://github.com/matheusfm/httpbin-chart
+[k8s-dash-docs]: https://artifacthub.io/packages/helm/k8s-dashboard/kubernetes-dashboard
 [k8s-docs-svc-lb]: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
 [k8s-gateway-api]: https://kubernetes.io/docs/concepts/services-networking/gateway/
 [ngf-helm-install]: https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/

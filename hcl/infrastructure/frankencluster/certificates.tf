@@ -41,9 +41,9 @@ resource "kubernetes_manifest" "gateway_refgrant_to_certs" {
     "spec" = {
       "to" = [
         {
-          "group" = ""
-          "kind"  = "Secret"
-          "name"  = kubernetes_manifest.certificate_wildcard_frank_sh.manifest.metadata.name
+          "group"     = ""
+          "kind"      = "Secret"
+          "namespace" = kubernetes_namespace.certificate.metadata[0].name
         }
       ]
       "from" = [

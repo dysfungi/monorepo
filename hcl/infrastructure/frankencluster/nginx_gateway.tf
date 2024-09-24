@@ -1,27 +1,6 @@
 # https://docs.vultr.com/vultr-kubernetes-engine#vke-load-balancer
 # https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/service#example-usage
 
-# https://github.com/vultr/cert-manager-webhook-vultr?tab=readme-ov-file#request-a-certificate
-resource "kubernetes_manifest" "certificate_api_frank_sh" {
-  manifest = {
-    "apiVersion" = "cert-manager.io/v1"
-    "kind"       = "Certificate"
-    "metadata" = {
-      "name"      = "api-frank-sh"
-      "namespace" = kubernetes_namespace.cert_manager.metadata[0].name
-    }
-    "spec" = {
-      "commonName" = "api.frank.sh"
-      "dnsNames"   = ["api.frank.sh"]
-      "issuerRef" = {
-        "name" = "letsencrypt-prod"
-        "kind" = "ClusterIssuer"
-      }
-      "secretName" = "api-frank-sh-tls"
-    }
-  }
-}
-
 /*
 # https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
 resource "kubernetes_service" "load_balancer" {
@@ -196,13 +175,35 @@ resource "kubernetes_manifest" "prod_gateway" {
               "from" = "All"
             }
           }
+        },
+        {
+          "name"     = "https"
+          "hostname" = "*.frank.sh"
+          "port"     = 443
+          "protocol" = "HTTPS"
+          "tls" = {
+            "mode" = "Terminate"
+            "certificateRefs" = [
+              {
+                "kind"      = "Secret"
+                "name"      = kubernetes_manifest.certificate_wildcard_frank_sh.manifest.spec.secretName
+                "namespace" = kubernetes_namespace.certificate.metadata[0].name
+              }
+            ]
+          }
+          "allowedRoutes" = {
+            "namespaces" = {
+              # TODO: filter for tier=prod
+              "from" = "All"
+            }
+          }
         }
       ]
     }
   }
 }
 
-/*
+/* TODO: customize Service LoadBalancer configuration?
 resource "vultr_load_balancer" "gateway" {
   region = "lax"
   label = ""

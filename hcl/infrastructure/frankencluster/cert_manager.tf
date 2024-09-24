@@ -5,6 +5,7 @@ resource "kubernetes_namespace" "cert_manager" {
 }
 
 # https://cert-manager.io/docs/installation/helm/
+# https://artifacthub.io/packages/helm/cert-manager/cert-manager
 resource "helm_release" "cert_manager" {
   name       = "cert-manager"
   repository = "https://charts.jetstack.io"
@@ -31,28 +32,21 @@ resource "helm_release" "cert_manager" {
   }
 }
 
-# https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr
-resource "kubernetes_secret" "cert_manager_vultr_creds" {
+# https://cert-manager.io/docs/configuration/acme/dns01/cloudflare/#api-tokens
+resource "kubernetes_secret" "cert_manager_cloudflare_creds" {
   metadata {
-    name      = "cert-manager-vultr-credentials"
+    name      = "cert-manager-cloudflare-credentials"
     namespace = kubernetes_namespace.cert_manager.metadata[0].name
   }
   data = {
-    apiKey = var.vultr_api_key
+    apiToken = var.cloudflare_api_token
   }
-}
-
-# https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr#installing-the-chart
-resource "helm_release" "cert_manager_webhook" {
-  name       = "cert-manager-webhook-vultr"
-  repository = "https://vultr.github.io/helm-charts"
-  chart      = "cert-manager-webhook-vultr"
-  namespace  = kubernetes_namespace.cert_manager.metadata[0].name
 }
 
 # https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr#deploying-a-clusterissuer
 # https://stackoverflow.com/a/71037775
 # https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/manifest
+# https://cert-manager.io/docs/configuration/acme/dns01/cloudflare/#api-tokens
 resource "kubernetes_manifest" "clusterissuer_letsencrypt_staging" {
   manifest = {
     "apiVersion" = "cert-manager.io/v1"
@@ -70,14 +64,10 @@ resource "kubernetes_manifest" "clusterissuer_letsencrypt_staging" {
         "solvers" = [
           {
             "dns01" = {
-              "webhook" = {
-                "groupName"  = "acme.vultr.com"
-                "solverName" = "vultr"
-                "config" = {
-                  "apiKeySecretRef" = {
-                    "key"  = "apiKey"
-                    "name" = kubernetes_secret.cert_manager_vultr_creds.metadata[0].name
-                  }
+              "cloudflare" = {
+                "apiTokenSecretRef" = {
+                  "name" = kubernetes_secret.cert_manager_cloudflare_creds.metadata[0].name
+                  "key"  = "apiToken"
                 }
               }
             }
@@ -105,31 +95,13 @@ resource "kubernetes_manifest" "clusterissuer_letsencrypt_prod" {
         "solvers" = [
           {
             "dns01" = {
-              "webhook" = {
-                "groupName"  = "acme.vultr.com"
-                "solverName" = "vultr"
-                "config" = {
-                  "apiKeySecretRef" = {
-                    "key"  = "apiKey"
-                    "name" = kubernetes_secret.cert_manager_vultr_creds.metadata[0].name
-                  }
+              "cloudflare" = {
+                "apiTokenSecretRef" = {
+                  "name" = kubernetes_secret.cert_manager_cloudflare_creds.metadata[0].name
+                  "key"  = "apiToken"
                 }
               }
             }
-            # https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/integrating-cert-manager/#create-a-clusterissuer
-            /* NOTE: Requires disabling TLS Redirect of HTTP -> HTTPS
-            "http01" = {
-              "gatewayHTTPRoute" = {
-                "parentRefs" = [
-                  {
-                    "kind"      = "Gateway"
-                    "name"      = kubernetes_manifest.prod_gateway.manifest.metadata.name
-                    "namespace" = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
-                  }
-                ]
-              }
-            }
-            */
           },
         ]
       }
@@ -139,15 +111,15 @@ resource "kubernetes_manifest" "clusterissuer_letsencrypt_prod" {
 
 # https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/role
 # https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr#deploying-a-clusterissuer
-resource "kubernetes_role" "cert_manager_webhook_secret_reader" {
+resource "kubernetes_role" "cert_manager_secret_reader" {
   metadata {
-    name      = "${helm_release.cert_manager_webhook.name}:secret-reader"
-    namespace = helm_release.cert_manager_webhook.namespace
+    name      = "${helm_release.cert_manager.name}:secret-reader"
+    namespace = helm_release.cert_manager.namespace
   }
   rule {
     api_groups     = [""]
     resources      = ["secrets"]
-    resource_names = [kubernetes_secret.cert_manager_vultr_creds.metadata[0].name]
+    resource_names = [kubernetes_secret.cert_manager_cloudflare_creds.metadata[0].name]
     verbs          = ["get", "watch"]
   }
 
@@ -155,19 +127,19 @@ resource "kubernetes_role" "cert_manager_webhook_secret_reader" {
 
 # https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/role_binding
 # https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr#deploying-a-clusterissuer
-resource "kubernetes_role_binding" "cert_manager_webhook_secret_reader" {
+resource "kubernetes_role_binding" "cert_manager_secret_reader" {
   metadata {
-    name      = kubernetes_role.cert_manager_webhook_secret_reader.metadata[0].name
-    namespace = kubernetes_role.cert_manager_webhook_secret_reader.metadata[0].namespace
+    name      = kubernetes_role.cert_manager_secret_reader.metadata[0].name
+    namespace = kubernetes_role.cert_manager_secret_reader.metadata[0].namespace
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
     kind      = "Role"
-    name      = kubernetes_role.cert_manager_webhook_secret_reader.metadata[0].name
+    name      = kubernetes_role.cert_manager_secret_reader.metadata[0].name
   }
   subject {
     kind      = "ServiceAccount"
-    name      = helm_release.cert_manager_webhook.name
-    namespace = helm_release.cert_manager_webhook.namespace
+    name      = helm_release.cert_manager.name
+    namespace = helm_release.cert_manager.namespace
   }
 }

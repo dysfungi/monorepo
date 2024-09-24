@@ -49,9 +49,11 @@ Owned by [frankenstructure](../frankenstructure).
 
 **Resources:**
 
+- [Cert Manager Docs][cert-manager-docs]
 - [Install Cert Manager using Helm][cert-manager-helm-install]
 - [Verify Cert Manager install][cert-manager-verify]
 - [Vultr Webhook for Cert Manager][vultr-webhook-cert-manager]
+- [Cert Manager with Cloudflare][cert-manager-cloudflare]
 
 ### Gateway API
 
@@ -108,6 +110,8 @@ Owned by [frankenstructure](../frankenstructure).
 
 <!--- REFERENCE LINKS --->
 
+[cert-manager-cloudflare]: https://cert-manager.io/docs/configuration/acme/dns01/cloudflare/#api-tokens
+[cert-manager-docs]: https://artifacthub.io/packages/helm/cert-manager/cert-manager
 [cert-manager-helm-install]: https://cert-manager.io/docs/installation/helm/
 [cert-manager-verify]: https://cert-manager.io/docs/installation/kubectl/#verify
 [external-dns-cloudflare]: https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/cloudflare.md#using-helm

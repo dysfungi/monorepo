@@ -47,9 +47,10 @@ resource "kubernetes_manifest" "httpbin_route_paths" {
     "spec" = {
       "parentRefs" = [
         {
-          "kind"      = "Gateway"
-          "name"      = kubernetes_manifest.prod_gateway.manifest.metadata.name
-          "namespace" = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "kind"        = "Gateway"
+          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
+          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "sectionName" = "https"
         }
       ]
       "hostnames" = ["api.frank.sh"]
@@ -99,12 +100,16 @@ resource "kubernetes_manifest" "httpbin_route_domains" {
     "spec" = {
       "parentRefs" = [
         {
-          "kind"      = "Gateway"
-          "name"      = kubernetes_manifest.prod_gateway.manifest.metadata.name
-          "namespace" = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "kind"        = "Gateway"
+          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
+          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "sectionName" = "https"
         }
       ]
-      "hostnames" = ["httpbin.frank.sh", "httpbin.api.frank.sh"]
+      "hostnames" = [
+        "httpbin.api.frank.sh",
+        "httpbin.frank.sh",
+      ]
       "rules" = [
         {
           "matches" = [

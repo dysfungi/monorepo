@@ -59,3 +59,41 @@ resource "kubernetes_manifest" "gateway_refgrant_to_certs" {
     helm_release.gateway,
   ]
 }
+
+# https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/https-termination/#configure-https-termination-and-routing
+resource "kubernetes_manifest" "https_redirect_route" {
+  manifest = {
+    "apiVersion" = "gateway.networking.k8s.io/v1"
+    "kind"       = "HTTPRoute"
+    "metadata" = {
+      "name"      = "tls-redirect"
+      "namespace" = kubernetes_namespace.certificate.metadata[0].name
+    }
+    "spec" = {
+      "parentRefs" = [
+        {
+          "kind"        = "Gateway"
+          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
+          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "sectionName" = "http"
+        }
+      ]
+      "hostnames" = [
+        "*.frank.sh",
+      ]
+      "rules" = [
+        {
+          "filters" = [
+            {
+              "type" = "RequestRedirect"
+              "requestRedirect" = {
+                "scheme" = "https"
+                "port"   = 443
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

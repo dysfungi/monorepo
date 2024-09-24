@@ -121,6 +121,7 @@ resource "helm_release" "gateway" {
   ]
 }
 
+/* TODO: https://github.com/nginxinc/nginx-gateway-fabric/issues/1443
 resource "kubernetes_manifest" "stage_gateway" {
   manifest = {
     "apiVersion" = "gateway.networking.k8s.io/v1"
@@ -152,6 +153,7 @@ resource "kubernetes_manifest" "stage_gateway" {
     }
   }
 }
+*/
 
 resource "kubernetes_manifest" "prod_gateway" {
   manifest = {

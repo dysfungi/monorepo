@@ -28,12 +28,16 @@ resource "kubernetes_manifest" "k8s_dashboard_web_route" {
     "spec" = {
       "parentRefs" = [
         {
-          "kind"      = "Gateway"
-          "name"      = kubernetes_manifest.prod_gateway.manifest.metadata.name
-          "namespace" = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "kind"        = "Gateway"
+          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
+          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "sectionName" = "https"
         }
       ]
-      "hostnames" = ["k8s.frank.sh", "k8s.api.frank.sh"]
+      "hostnames" = [
+        "k8s.api.frank.sh",
+        "k8s.frank.sh",
+      ]
       "rules" = [
         {
           "matches" = [

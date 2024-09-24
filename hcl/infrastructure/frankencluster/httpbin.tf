@@ -28,8 +28,8 @@ resource "kubernetes_manifest" "certificate_httpbin_frank_sh" {
       "commonName" = "httpbin.frank.sh"
       "dnsNames"   = ["httpbin.frank.sh", "httpbin.api.frank.sh"]
       "issuerRef" = {
-        "name" = "letsencrypt-prod"
         "kind" = "ClusterIssuer"
+        "name" = kubernetes_manifest.clusterissuer_letsencrypt_prod.manifest.metadata.name
       }
       "secretName" = "httpbin-frank-sh-tls"
     }

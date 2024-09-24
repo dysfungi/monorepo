@@ -20,8 +20,8 @@ resource "kubernetes_manifest" "certificate_wildcard_frank_sh" {
         "*.frank.sh",
       ]
       "issuerRef" = {
-        "name" = "letsencrypt-prod"
         "kind" = "ClusterIssuer"
+        "name" = kubernetes_manifest.clusterissuer_letsencrypt_prod.manifest.metadata.name
       }
       "secretName" = "wildcard-frank-sh-tls"
     }

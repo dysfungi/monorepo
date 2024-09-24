@@ -13,7 +13,7 @@ resource "helm_release" "cert_manager" {
   namespace  = kubernetes_namespace.cert_manager.metadata[0].name
   set {
     name  = "crds.enabled"
-    value = "true"
+    value = true
   }
   set_list {
     # https://cert-manager.io/docs/configuration/acme/dns01/#setting-nameservers-for-dns01-self-check
@@ -21,8 +21,13 @@ resource "helm_release" "cert_manager" {
     # Since Terraform Utilizes HCL as well as Helm using the Helm Template Language,
     # it's necessary to escape the `{}`, `[]`, `.`, and `,` characters twice in order
     # for it to be parsed.
-    # https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release#example-usage---chart-repository-configured-outside-of-terraform
-    value = ["--dns01-recursive-nameservers-only", "--dns01-recursive-nameservers=1.1.1.1:53\\,1.0.0.1:53"]
+    value = [
+      # https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release#example-usage---chart-repository-configured-outside-of-terraform
+      "--dns01-recursive-nameservers-only",
+      "--dns01-recursive-nameservers=1.1.1.1:53\\,1.0.0.1:53",
+      # https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/integrating-cert-manager/#deploy-cert-manager
+      "--feature-gates=ExperimentalGatewayAPISupport=true",
+    ]
   }
 }
 
@@ -111,6 +116,20 @@ resource "kubernetes_manifest" "clusterissuer_letsencrypt_prod" {
                 }
               }
             }
+            # https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/integrating-cert-manager/#create-a-clusterissuer
+            /* NOTE: Requires disabling TLS Redirect of HTTP -> HTTPS
+            "http01" = {
+              "gatewayHTTPRoute" = {
+                "parentRefs" = [
+                  {
+                    "kind"      = "Gateway"
+                    "name"      = kubernetes_manifest.prod_gateway.manifest.metadata.name
+                    "namespace" = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+                  }
+                ]
+              }
+            }
+            */
           },
         ]
       }

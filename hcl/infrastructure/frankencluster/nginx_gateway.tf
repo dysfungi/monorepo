@@ -162,6 +162,9 @@ resource "kubernetes_manifest" "prod_gateway" {
     "metadata" = {
       "name" : "prod-web"
       "namespace" : helm_release.gateway.namespace
+      "annotations" = {
+        "cert-manager.io/cluster-issuer" = kubernetes_manifest.clusterissuer_letsencrypt_prod.manifest.metadata.name
+      }
     }
     "spec" = {
       "gatewayClassName" = "nginx"

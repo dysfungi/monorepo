@@ -187,6 +187,16 @@ resource "kubernetes_manifest" "prod_gateway" {
           "hostname" = "frank.sh"
           "port"     = 443
           "protocol" = "HTTPS"
+          "tls" = {
+            "mode" = "Terminate"
+            "certificateRefs" = [
+              {
+                "kind"      = "Secret"
+                "name"      = kubernetes_manifest.certificate_wildcard_frank_sh.manifest.spec.secretName
+                "namespace" = kubernetes_namespace.certificate.metadata[0].name
+              }
+            ]
+          }
           "allowedRoutes" = {
             "namespaces" = {
               # TODO: filter for tier=prod

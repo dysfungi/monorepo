@@ -4,7 +4,6 @@ resource "kubernetes_namespace" "certificate" {
   }
 }
 
-
 # https://github.com/vultr/cert-manager-webhook-vultr?tab=readme-ov-file#request-a-certificate
 resource "kubernetes_manifest" "certificate_wildcard_frank_sh" {
   manifest = {
@@ -15,8 +14,9 @@ resource "kubernetes_manifest" "certificate_wildcard_frank_sh" {
       "namespace" = kubernetes_namespace.certificate.metadata[0].name
     }
     "spec" = {
-      "commonName" = "*.frank.sh"
+      "commonName" = "frank.sh"
       "dnsNames" = [
+        "frank.sh",
         "*.frank.sh",
         "*.api.frank.sh",
         "*.k8s.frank.sh",
@@ -60,87 +60,4 @@ resource "kubernetes_manifest" "gateway_refgrant_to_certs" {
   depends_on = [
     helm_release.gateway,
   ]
-}
-
-# https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/https-termination/#configure-https-termination-and-routing
-resource "kubernetes_manifest" "https_redirect_wildcard_frank_sh" {
-  manifest = {
-    "apiVersion" = "gateway.networking.k8s.io/v1"
-    "kind"       = "HTTPRoute"
-    "metadata" = {
-      "name"      = "wildcard-frank-sh-tls-redirect"
-      "name"      = "frank-sh-redirect"
-      "namespace" = kubernetes_namespace.certificate.metadata[0].name
-    }
-    "spec" = {
-      "parentRefs" = [
-        {
-          "kind"        = "Gateway"
-          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
-          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
-          "sectionName" = "http-wildcard.frank.sh"
-        }
-      ]
-      "hostnames" = [
-        "*.frank.sh",
-      ]
-      "rules" = [
-        {
-          "filters" = [
-            {
-              "type" = "RequestRedirect"
-              "requestRedirect" = {
-                "scheme" = "https"
-                "port"   = 443
-              }
-            }
-          ]
-        }
-      ]
-    }
-  }
-}
-
-resource "kubernetes_manifest" "http_redirect_frank_sh" {
-  manifest = {
-    "apiVersion" = "gateway.networking.k8s.io/v1"
-    "kind"       = "HTTPRoute"
-    "metadata" = {
-      "name"      = "frank-sh-redirect"
-      "namespace" = kubernetes_namespace.certificate.metadata[0].name
-    }
-    "spec" = {
-      "parentRefs" = [
-        {
-          "kind"        = "Gateway"
-          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
-          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
-          "sectionName" = "http-frank.sh"
-        },
-        {
-          "kind"        = "Gateway"
-          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
-          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
-          "sectionName" = "https-frank.sh"
-        }
-      ]
-      "hostnames" = [
-        "frank.sh",
-      ]
-      "rules" = [
-        {
-          "filters" = [
-            {
-              "type" = "RequestRedirect"
-              "requestRedirect" = {
-                "scheme"   = "https"
-                "hostname" = "derekmfrank.com"
-                "port"     = 443
-              }
-            }
-          ]
-        }
-      ]
-    }
-  }
 }

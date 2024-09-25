@@ -22,7 +22,7 @@ resource "kubernetes_manifest" "k8s_dashboard_web_route" {
     "apiVersion" = "gateway.networking.k8s.io/v1"
     "kind"       = "HTTPRoute"
     "metadata" = {
-      "name"      = "kubernetes-dashboard-web-route"
+      "name"      = "kubernetes-dashboard-web"
       "namespace" = kubernetes_namespace.k8s_dashboard.metadata[0].name
     }
     "spec" = {
@@ -35,7 +35,6 @@ resource "kubernetes_manifest" "k8s_dashboard_web_route" {
         }
       ]
       "hostnames" = [
-        "k8s.api.frank.sh",
         "k8s.frank.sh",
       ]
       "rules" = [

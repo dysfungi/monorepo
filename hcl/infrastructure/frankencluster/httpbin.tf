@@ -36,65 +36,12 @@ resource "kubernetes_manifest" "certificate_httpbin_frank_sh" {
   }
 }
 
-resource "kubernetes_manifest" "httpbin_route_paths" {
+resource "kubernetes_manifest" "httpbin_route" {
   manifest = {
     "apiVersion" = "gateway.networking.k8s.io/v1"
     "kind"       = "HTTPRoute"
     "metadata" = {
-      "name"      = "httpbin-paths"
-      "namespace" = kubernetes_namespace.httpbin.metadata[0].name
-    }
-    "spec" = {
-      "parentRefs" = [
-        {
-          "kind"        = "Gateway"
-          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
-          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
-          "sectionName" = "https-wildcard.frank.sh"
-        }
-      ]
-      "hostnames" = ["api.frank.sh"]
-      "rules" = [
-        {
-          "matches" = [
-            {
-              "path" = {
-                "type"  = "PathPrefix"
-                "value" = "/httpbin"
-              }
-            }
-          ]
-          "filters" = [
-            {
-              "type" = "URLRewrite"
-              "urlRewrite" = {
-                "path" = {
-                  "type"               = "ReplacePrefixMatch"
-                  "replacePrefixMatch" = "/"
-                }
-              }
-            }
-          ]
-          "backendRefs" = [
-            {
-              "kind"      = "Service"
-              "name"      = helm_release.httpbin.name
-              "namespace" = kubernetes_namespace.httpbin.metadata[0].name
-              "port"      = 80
-            }
-          ]
-        }
-      ]
-    }
-  }
-}
-
-resource "kubernetes_manifest" "httpbin_route_domains" {
-  manifest = {
-    "apiVersion" = "gateway.networking.k8s.io/v1"
-    "kind"       = "HTTPRoute"
-    "metadata" = {
-      "name"      = "httpbin-domains"
+      "name"      = "httpbin"
       "namespace" = kubernetes_namespace.httpbin.metadata[0].name
     }
     "spec" = {
@@ -107,7 +54,6 @@ resource "kubernetes_manifest" "httpbin_route_domains" {
         }
       ]
       "hostnames" = [
-        "httpbin.api.frank.sh",
         "httpbin.frank.sh",
       ]
       "rules" = [

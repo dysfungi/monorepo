@@ -1,3 +1,4 @@
+import json
 from functools import partial
 from logging import getLogger
 from pathlib import Path
@@ -24,6 +25,7 @@ class task:
     """
 
     def __init__(self, func: Callable, *, params: Optional[list[dict]] = None):
+        self._params = params
         self.create_doit_tasks = func if params is None else task_params(params)(func)
 
     def __call__(self, *args, **kwargs):
@@ -164,6 +166,8 @@ def logs(
     previous,
     **options,
 ) -> Generator[dict, None, None]:
+    params = logs._params
+
     def _gen_extra(container: Optional[str] = None) -> LogsExtra:
         extra: LogsExtra = {}
         if all_containers:
@@ -183,6 +187,23 @@ def logs(
                 **_gen_extra(container=container or "external-dns"),
             ),
         ],
+        "params": params,
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+    yield {
+        "name": "kubernetes-dashboard",
+        "actions": [
+            _kubectl(
+                "logs",
+                namespace="kubernetes-dashboard",
+                selector="app.kubernetes.io/instance=kubernetes-dashboard",
+                **options,
+                **_gen_extra(container=container),
+            ),
+        ],
+        "params": params,
         "title": tools.title_with_actions,
         "verbosity": 2,
     }
@@ -198,6 +219,7 @@ def logs(
                 **_gen_extra(container=container or "nginx"),
             ),
         ],
+        "params": params,
         "title": tools.title_with_actions,
         "verbosity": 2,
     }
@@ -299,6 +321,32 @@ def test() -> Generator[dict, None, None]:
             break
 
 
+@task
+def token() -> Generator[dict, None, None]:
+    # https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md#getting-a-long-lived-bearer-token-for-serviceaccount
+    yield {
+        "name": "kubernetes-dashboard",
+        "actions": [
+            " | ".join(
+                [
+                    _kubectl(
+                        "get",
+                        "secret",
+                        "admin-user",
+                        namespace="kubernetes-dashboard",
+                        output="jsonpath={.data.token}",
+                    ),
+                    "base64 -D",
+                    "pbcopy",
+                ]
+            ),
+            "pbpaste",
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
 class LogsExtra(TypedDict, total=False):
     all_containers: bool
     container: str
@@ -374,7 +422,7 @@ def _optize(options: dict[str, Any], *, long_prefix="--") -> str:
             return None
         if isinstance(value, bool):
             return str(value).lower()
-        return f'"{value}"'
+        return json.dumps(str(value) if isinstance(value, Path) else value)
 
     optionized = (
         (fix_optname(name), fix_optvalue(value)) for name, value in options.items()

@@ -107,6 +107,7 @@ Owned by [frankenstructure](../frankenstructure).
 **Resources:**
 
 - [Kubernetes Dashboard Docs][k8s-dash-docs]
+- [Kubernetes Dashboard Install][k8s-dash-docs-install]
 
 <!--- REFERENCE LINKS --->
 
@@ -120,6 +121,7 @@ Owned by [frankenstructure](../frankenstructure).
 [ghcr-docs-pkgs]: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
 [httpbingo]: https://httpbingo.org/
 [httpbingo-helm-chart]: https://github.com/matheusfm/httpbin-chart
+[k8s-dash-docs-install]: https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/
 [k8s-dash-docs]: https://artifacthub.io/packages/helm/k8s-dashboard/kubernetes-dashboard
 [k8s-docs-svc-lb]: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
 [k8s-gateway-api]: https://kubernetes.io/docs/concepts/services-networking/gateway/

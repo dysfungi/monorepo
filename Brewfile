@@ -1,6 +1,7 @@
 brew 'helm'
 brew 'jq'
 brew 'kubernetes-cli'
+brew 'k9s'
 brew 'opentofu'
 brew 'pre-commit'
 brew 's3cmd'

@@ -102,12 +102,11 @@ Owned by [frankenstructure](../frankenstructure).
 - [go-httpbin][httpbingo]
 - [go-httpbin Helm Chart][httpbingo-helm-chart]
 
-### Kubernetes Dashboard
+# k9s
 
 **Resources:**
 
-- [Kubernetes Dashboard Docs][k8s-dash-docs]
-- [Kubernetes Dashboard Install][k8s-dash-docs-install]
+- [k9s CLI Docmuentation][k9s-docs]
 
 <!--- REFERENCE LINKS --->
 
@@ -121,10 +120,9 @@ Owned by [frankenstructure](../frankenstructure).
 [ghcr-docs-pkgs]: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
 [httpbingo]: https://httpbingo.org/
 [httpbingo-helm-chart]: https://github.com/matheusfm/httpbin-chart
-[k8s-dash-docs-install]: https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/
-[k8s-dash-docs]: https://artifacthub.io/packages/helm/k8s-dashboard/kubernetes-dashboard
 [k8s-docs-svc-lb]: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
 [k8s-gateway-api]: https://kubernetes.io/docs/concepts/services-networking/gateway/
+[k9s-docs]: https://k9scli.io/
 [ngf-helm-install]: https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/
 [ngf-routing]: https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/routing-traffic-to-your-app/
 [terraform-provider-helm]: https://registry.terraform.io/providers/hashicorp/helm/latest/docs

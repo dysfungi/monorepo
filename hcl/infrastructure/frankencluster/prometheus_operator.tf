@@ -17,6 +17,11 @@ resource "helm_release" "kube_prometheus" {
     name  = "fullnameOverride"
     value = "kube-prometheus"
   }
+
+  set {
+    name  = "grafana.adminPassword"
+    value = var.grafana_admin_password
+  }
 }
 
 resource "kubernetes_manifest" "grafana_route" {

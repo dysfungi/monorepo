@@ -1,5 +1,6 @@
 variable "cloudflare_api_token" {
-  type = string
+  type      = string
+  sensitive = true
 }
 
 variable "email" {
@@ -8,12 +9,17 @@ variable "email" {
 }
 
 variable "github_username" {
-  type    = string
-  default = "derek@frank.sh"
+  type = string
 }
 
 variable "github_token" {
-  type = string
+  type      = string
+  sensitive = true
+}
+
+variable "grafana_admin_password" {
+  type      = string
+  sensitive = true
 }
 
 variable "kubeconfig" {
@@ -21,5 +27,6 @@ variable "kubeconfig" {
 }
 
 variable "vultr_api_key" {
-  type = string
+  type      = string
+  sensitive = true
 }

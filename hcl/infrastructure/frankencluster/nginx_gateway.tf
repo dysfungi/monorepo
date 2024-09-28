@@ -92,12 +92,11 @@ resource "helm_release" "gateway" {
     value = "frank.sh\\,*.frank.sh"
   }
 
-  /*
+  # https://docs.vultr.com/how-to-use-a-vultr-load-balancer-with-vke#7.-using-proxy-protocol
   set {
-    name  = "service.create"
-    value = false
+    name  = "service.annotations.service\\.beta\\.kubernetes\\.io/vultr-loadbalancer-proxy-protocol"
+    value = true
   }
-  */
 
   # https://github.com/nginxinc/nginx-gateway-fabric/blob/main/charts/nginx-gateway-fabric/values.yaml
   # https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#configure-delayed-pod-termination-for-zero-downtime-upgrades

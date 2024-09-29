@@ -266,13 +266,40 @@ resource "kubernetes_manifest" "prod_gateway" {
   }
 }
 
-/* TODO: customize Service LoadBalancer configuration?
-resource "vultr_load_balancer" "gateway" {
-  region = "lax"
-  label = ""
-  balancing_algorithm = "roundrobin"
-  proxy_protocol = true
-  ssl_redirect = false
-  vpc =
+resource "kubernetes_manifest" "gateway_pod_monitor" {
+  manifest = {
+    "apiVersion" = "monitoring.coreos.com/v1"
+    "kind"       = "PodMonitor"
+    "metadata" = {
+      "name"      = helm_release.gateway.name
+      "namespace" = helm_release.gateway.namespace
+      "labels" = {
+        "release" = helm_release.kube_prometheus.name
+      }
+    }
+    "spec" = {
+      "podTargetLabels" = [
+        "app.kubernetes.io/instance",
+        "app.kubernetes.io/name",
+        "pod-template-hash"
+      ]
+      "podMetricsEndpoints" = [
+        {
+          "port" = "metrics"
+        },
+      ]
+      "namespaceSelector" = {
+        "any" = false
+        "matchNames" = [
+          helm_release.gateway.namespace,
+        ]
+      }
+      "selector" = {
+        "matchLabels" = {
+          "app.kubernetes.io/instance" = helm_release.gateway.name,
+          "app.kubernetes.io/name"     = "nginx-gateway-fabric"
+        }
+      }
+    }
+  }
 }
-*/

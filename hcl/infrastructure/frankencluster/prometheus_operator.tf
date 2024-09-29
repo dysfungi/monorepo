@@ -31,6 +31,9 @@ resource "kubernetes_manifest" "grafana_route" {
     "metadata" = {
       "name"      = "grafana"
       "namespace" = kubernetes_namespace.kube_prometheus.metadata[0].name
+      "labels" = {
+        "release" = helm_release.kube_prometheus.name
+      }
     }
     "spec" = {
       "parentRefs" = [

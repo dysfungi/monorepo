@@ -86,18 +86,6 @@ resource "helm_release" "gateway" {
     value = true
   }
 
-  # https://github.com/kubernetes-sigs/external-dns/blob/master/docs/annotations/annotations.md#external-dnsalphakubernetesiohostname
-  set {
-    name  = "service.annotations.external-dns\\.alpha\\.kubernetes\\.io/hostname"
-    value = "frank.sh\\,*.frank.sh"
-  }
-
-  # https://docs.vultr.com/how-to-use-a-vultr-load-balancer-with-vke#7.-using-proxy-protocol
-  set {
-    name  = "service.annotations.service\\.beta\\.kubernetes\\.io/vultr-loadbalancer-proxy-protocol"
-    value = true
-  }
-
   # https://github.com/nginxinc/nginx-gateway-fabric/blob/main/charts/nginx-gateway-fabric/values.yaml
   # https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#configure-delayed-pod-termination-for-zero-downtime-upgrades
   set_list {
@@ -116,10 +104,46 @@ resource "helm_release" "gateway" {
     type  = "auto"
   }
 
+  values = [
+    yamlencode({
+      "service" = {
+        # https://github.com/vultr/vultr-cloud-controller-manager/blob/master/docs/load-balancers.md#annotations
+        "annotations" = {
+          # https://github.com/kubernetes-sigs/external-dns/blob/master/docs/annotations/annotations.md#external-dnsalphakubernetesiohostname
+          "external-dns.alpha.kubernetes.io/hostname" = "frank.sh,*.frank.sh"
+          # https://docs.vultr.com/how-to-use-a-vultr-load-balancer-with-vke#7.-using-proxy-protocol
+          "service.beta.kubernetes.io/vultr-loadbalancer-proxy-protocol" = "false"
+        }
+      }
+    }),
+  ]
+
   depends_on = [
     kustomization_resource.gateway_crds_p2,
   ]
 }
+
+/* TODO: https://github.com/nginxinc/nginx-gateway-fabric/blob/433eba254a328935c9064bd8cbf05d5c457773ce/docs/proposals/rewrite-client-ip.md
+# https://docs.nginx.com/nginx-gateway-fabric/reference/api/#gateway.nginx.org%2fv1alpha1.NginxProxy
+# https://github.com/nginxinc/nginx-gateway-fabric/blob/433eba254a328935c9064bd8cbf05d5c457773ce/deploy/crds.yaml#L650
+resource "kubernetes_manifest" "gateway_config_proxy_protocol" {
+  manifest = {
+    "apiVersion" = "gateway.nginx.org/v1alpha1"
+    "kind"       = "NginxProxy"
+    "metadata" = {
+      "name"      = "${helm_release.gateway.metadata[0].name}-proxy-protocol"
+      "namespace" = kubernetes_namespace.gateway.metadata[0].name
+    }
+    "spec" = {
+      "rewriteClientIP" = {
+        "mode"             = "ProxyProtocol"
+        "setIPRecursively" = true
+        "trustedAddresses" = []
+      }
+    }
+  }
+}
+*/
 
 /* TODO: https://github.com/nginxinc/nginx-gateway-fabric/issues/1443
 resource "kubernetes_manifest" "stage_gateway" {

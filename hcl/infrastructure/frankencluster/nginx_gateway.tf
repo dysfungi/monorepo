@@ -266,6 +266,8 @@ resource "kubernetes_manifest" "prod_gateway" {
   }
 }
 
+# https://docs.nginx.com/nginx-gateway-fabric/how-to/monitoring/prometheus/#available-metrics-in-nginx-gateway-fabric
+# https://github.com/nginxinc/nginx-prometheus-exporter#exported-metrics
 resource "kubernetes_manifest" "gateway_pod_monitor" {
   manifest = {
     "apiVersion" = "monitoring.coreos.com/v1"

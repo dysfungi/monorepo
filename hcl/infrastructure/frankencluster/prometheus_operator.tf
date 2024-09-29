@@ -30,10 +30,7 @@ resource "kubernetes_manifest" "grafana_route" {
     "kind"       = "HTTPRoute"
     "metadata" = {
       "name"      = "grafana"
-      "namespace" = kubernetes_namespace.kube_prometheus.metadata[0].name
-      "labels" = {
-        "release" = helm_release.kube_prometheus.name
-      }
+      "namespace" = helm_release.kube_prometheus.namespace
     }
     "spec" = {
       "parentRefs" = [
@@ -61,7 +58,7 @@ resource "kubernetes_manifest" "grafana_route" {
             {
               "kind"      = "Service"
               "name"      = "${helm_release.kube_prometheus.name}-grafana"
-              "namespace" = kubernetes_namespace.kube_prometheus.metadata[0].name
+              "namespace" = helm_release.kube_prometheus.namespace
               "port"      = 80
             }
           ]
@@ -71,48 +68,34 @@ resource "kubernetes_manifest" "grafana_route" {
   }
 }
 
-/*
-resource "kubernetes_manifest" "prometheus_route" {
-  manifest = {
-    "apiVersion" = "gateway.networking.k8s.io/v1"
-    "kind"       = "HTTPRoute"
-    "metadata" = {
-      "name"      = "prometheus"
-      "namespace" = kubernetes_namespace.kube_prometheus.metadata[0].name
-    }
-    "spec" = {
-      "parentRefs" = [
-        {
-          "kind"        = "Gateway"
-          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
-          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
-          "sectionName" = "https-wildcard.frank.sh"
-        }
-      ]
-      "hostnames" = [
-        "prometheus.frank.sh",
-      ]
-      "rules" = [
-        {
-          "matches" = [
-            {
-              "path" = {
-                "type"  = "PathPrefix"
-                "value" = "/"
-              }
-            }
-          ]
-          "backendRefs" = [
-            {
-              "kind"      = "Service"
-              "name"      = "${helm_release.kube_prometheus.name}-prometheus"
-              "namespace" = kubernetes_namespace.kube_prometheus.metadata[0].name
-              "port"      = 9090
-            }
-          ]
-        }
-      ]
-    }
+# https://artifacthub.io/packages/helm/prometheus-community/prometheus-blackbox-exporter
+# https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-blackbox-exporter/README.md
+resource "helm_release" "blackbox_exporter" {
+  name             = "prometheus-blackbox-exporter"
+  repository       = "https://prometheus-community.github.io/helm-charts"
+  chart            = "prometheus-blackbox-exporter"
+  version          = "9.0.0"
+  namespace        = kubernetes_namespace.kube_prometheus.metadata[0].name
+  create_namespace = false
+
+  # https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-blackbox-exporter/values.yaml#L272
+  set {
+    name  = "serviceMonitor.enabled"
+    value = true
   }
+
+  set {
+    name  = "serviceMonitor.selfMonitor.enabled"
+    value = true
+  }
+
+  values = [
+    yamlencode({
+      "prometheusRule" = {
+        "enabled"   = false
+        "namespace" = helm_release.kube_prometheus.namespace
+        "rules"     = []
+      }
+    }),
+  ]
 }
-*/

@@ -102,7 +102,15 @@ Owned by [frankenstructure](../frankenstructure).
 - [go-httpbin][httpbingo]
 - [go-httpbin Helm Chart][httpbingo-helm-chart]
 
-# k9s
+### Kube Prometheus Operator
+
+**Resources:**
+
+- [Prometheus Operator API Docs][kube-prom-docs-api]
+- [Kube Prometheus Helm Chart][kube-prom-helm-chart]
+- [Prometheus Blackbox Exporter Helm Chart][prom-blackbox-helm-chart]
+
+### k9s
 
 **Resources:**
 
@@ -120,11 +128,14 @@ Owned by [frankenstructure](../frankenstructure).
 [ghcr-docs-pkgs]: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
 [httpbingo]: https://httpbingo.org/
 [httpbingo-helm-chart]: https://github.com/matheusfm/httpbin-chart
+[kube-prom-docs-api]: https://prometheus-operator.dev/docs/api-reference/api/
+[kube-prom-helm-chart]: https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
 [k8s-docs-svc-lb]: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
 [k8s-gateway-api]: https://kubernetes.io/docs/concepts/services-networking/gateway/
 [k9s-docs]: https://k9scli.io/
 [ngf-helm-install]: https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/
 [ngf-routing]: https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/routing-traffic-to-your-app/
+[prom-blackbox-helm-chart]: https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-blackbox-exporter/README.md
 [terraform-provider-helm]: https://registry.terraform.io/providers/hashicorp/helm/latest/docs
 [terraform-provider-k8s]: https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs
 [terraform-provider-kustomization]: https://registry.terraform.io/providers/kbst/kustomization/latest/docs

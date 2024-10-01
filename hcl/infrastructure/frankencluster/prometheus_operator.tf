@@ -22,6 +22,37 @@ resource "helm_release" "kube_prometheus" {
     name  = "grafana.adminPassword"
     value = var.grafana_admin_password
   }
+
+  values = [
+    yamlencode({
+      "prometheus" = {
+        "prometheusSpec" = {
+          "ruleSelector" = {
+            "matchLabels" = null
+          }
+          "serviceMonitorSelector" = {
+            "matchLabels" = null
+          }
+          "podMonitorSelector" = {
+            "matchLabels" = null
+          }
+          "probeSelector" = {
+            "matchLabels" = null
+          }
+          "scrapeConfigSelector" = {
+            "matchLabels" = null
+          }
+        }
+      }
+      "thanosRuler" = {
+        "thanosRulerSpec" = {
+          "ruleSelector" = {
+            "matchLabels" = null
+          }
+        }
+      }
+    }),
+  ]
 }
 
 resource "kubernetes_manifest" "grafana_route" {
@@ -90,6 +121,20 @@ resource "helm_release" "blackbox_exporter" {
   }
 
   values = [
+    yamlencode({
+      "serviceMonitor" = {
+        "enabled" = true
+        "selfMonitor" = {
+          "enabled" = true
+        }
+        "targets" = [
+          {
+            "name" = "httpbin"
+            "url"  = "https://httpbin.frank.sh/ip"
+          },
+        ]
+      }
+    }),
     yamlencode({
       "prometheusRule" = {
         "enabled"   = false

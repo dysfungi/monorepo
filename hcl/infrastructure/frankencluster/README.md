@@ -49,10 +49,10 @@ Owned by [frankenstructure](../frankenstructure).
 
 **Resources:**
 
-- [Cert Manager Docs][cert-manager-docs]
+- [Cert Manager | ArtifactHub][artifacthub-cert-manager]
 - [Install Cert Manager using Helm][cert-manager-helm-install]
 - [Verify Cert Manager install][cert-manager-verify]
-- [Vultr Webhook for Cert Manager][vultr-webhook-cert-manager]
+- [Vultr Webhook for Cert Manager | ArtifactHub][artifacthub-cert-manager-vultr-webhook]
 - [Cert Manager with Cloudflare][cert-manager-cloudflare]
 
 ### Gateway API
@@ -84,7 +84,7 @@ Owned by [frankenstructure](../frankenstructure).
 
 ### External DNS
 
-- [External DNS Docs][external-dns-docs]
+- [External DNS | ArtifactHub][artifacthub-external-dns]
 - [External DNS with Cloudflare][external-dns-cloudflare]
 
 ## Deployed Applications
@@ -106,8 +106,10 @@ Owned by [frankenstructure](../frankenstructure).
 
 **Resources:**
 
+- [Prometheus Operator | ArtifactHub][artifacthub-kube-prom]
 - [Prometheus Operator API Docs][kube-prom-docs-api]
 - [Kube Prometheus Helm Chart][kube-prom-helm-chart]
+- [Prometheus Blackbox Exporter | ArtifactHub][artifacthub-prom-blackbox]
 - [Prometheus Blackbox Exporter Helm Chart][prom-blackbox-helm-chart]
 
 ### k9s
@@ -118,21 +120,24 @@ Owned by [frankenstructure](../frankenstructure).
 
 <!--- REFERENCE LINKS --->
 
+[artifacthub-cert-manager-vultr-webhook]: https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr
+[artifacthub-cert-manager]: https://artifacthub.io/packages/helm/cert-manager/cert-manager
+[artifacthub-external-dns]: https://artifacthub.io/packages/helm/external-dns/external-dns
+[artifacthub-kube-prom]: https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack
+[artifacthub-prom-blackbox]: https://artifacthub.io/packages/helm/prometheus-community/prometheus-blackbox-exporter
 [cert-manager-cloudflare]: https://cert-manager.io/docs/configuration/acme/dns01/cloudflare/#api-tokens
-[cert-manager-docs]: https://artifacthub.io/packages/helm/cert-manager/cert-manager
 [cert-manager-helm-install]: https://cert-manager.io/docs/installation/helm/
 [cert-manager-verify]: https://cert-manager.io/docs/installation/kubectl/#verify
 [external-dns-cloudflare]: https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/cloudflare.md#using-helm
-[external-dns-docs]: https://artifacthub.io/packages/helm/external-dns/external-dns
 [gateway-api-docs]: https://gateway-api.sigs.k8s.io/implementations/#nginx-gateway-fabric
 [ghcr-docs-pkgs]: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
-[httpbingo]: https://httpbingo.org/
 [httpbingo-helm-chart]: https://github.com/matheusfm/httpbin-chart
-[kube-prom-docs-api]: https://prometheus-operator.dev/docs/api-reference/api/
-[kube-prom-helm-chart]: https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+[httpbingo]: https://httpbingo.org/
 [k8s-docs-svc-lb]: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
 [k8s-gateway-api]: https://kubernetes.io/docs/concepts/services-networking/gateway/
 [k9s-docs]: https://k9scli.io/
+[kube-prom-docs-api]: https://prometheus-operator.dev/docs/api-reference/api/
+[kube-prom-helm-chart]: https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
 [ngf-helm-install]: https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/
 [ngf-routing]: https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/routing-traffic-to-your-app/
 [prom-blackbox-helm-chart]: https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-blackbox-exporter/README.md
@@ -140,5 +145,4 @@ Owned by [frankenstructure](../frankenstructure).
 [terraform-provider-k8s]: https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs
 [terraform-provider-kustomization]: https://registry.terraform.io/providers/kbst/kustomization/latest/docs
 [vultr-vke-lb]: https://docs.vultr.com/vultr-kubernetes-engine#vke-load-balancer
-[vultr-webhook-cert-manager]: https://artifacthub.io/packages/helm/vultr/cert-manager-webhook-vultr
 [wiki-deploy-envs]: https://en.wikipedia.org/wiki/Deployment_environment#Environments

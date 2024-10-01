@@ -275,9 +275,6 @@ resource "kubernetes_manifest" "gateway_pod_monitor" {
     "metadata" = {
       "name"      = helm_release.gateway.name
       "namespace" = helm_release.gateway.namespace
-      "labels" = {
-        "release" = helm_release.kube_prometheus.name
-      }
     }
     "spec" = {
       "podTargetLabels" = [

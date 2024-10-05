@@ -129,8 +129,18 @@ resource "helm_release" "blackbox_exporter" {
         }
         "targets" = [
           {
-            "name" = "httpbin"
-            "url"  = "https://httpbin.frank.sh/ip"
+            "name"          = "frank.sh"
+            "url"           = "http://frank.sh"
+            "module"        = "http_2xx"
+            "interval"      = "5s"
+            "scrapeTimeout" = "5s"
+          },
+          {
+            "name"          = "httpbin"
+            "url"           = "http://httpbin.frank.sh/ip"
+            "module"        = "http_2xx"
+            "interval"      = "5s"
+            "scrapeTimeout" = "5s"
           },
         ]
       }

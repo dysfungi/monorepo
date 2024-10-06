@@ -3,6 +3,11 @@ variable "cloudflare_api_token" {
   sensitive = true
 }
 
+variable "discord_webhook_alerts" {
+  type      = string
+  sensitive = true
+}
+
 variable "email" {
   type    = string
   default = "derek@frank.sh"

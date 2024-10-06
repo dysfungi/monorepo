@@ -41,8 +41,9 @@ resource "helm_release" "external_dns" {
           "name" = "CF_API_TOKEN"
           "valueFrom" = {
             "secretKeyRef" = {
-              "key"  = "apiToken"
-              "name" = kubernetes_secret.external_dns_cloudflare_creds.metadata[0].name
+              "key"      = "apiToken"
+              "name"     = kubernetes_secret.external_dns_cloudflare_creds.metadata[0].name
+              "optional" = false
             }
           }
         }
@@ -68,7 +69,6 @@ resource "kubernetes_role" "external_dns_secret_reader" {
     resource_names = [kubernetes_secret.external_dns_cloudflare_creds.metadata[0].name]
     verbs          = ["get", "watch"]
   }
-
 }
 
 # https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/role_binding

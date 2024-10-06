@@ -4,6 +4,16 @@ resource "kubernetes_namespace" "kube_prometheus" {
   }
 }
 
+resource "kubernetes_secret" "discord_webhooks" {
+  metadata {
+    name      = "discord-webhooks"
+    namespace = kubernetes_namespace.kube_prometheus.metadata[0].name
+  }
+  data = {
+    alertsWebhook = var.discord_webhook_alerts
+  }
+}
+
 resource "kubernetes_secret" "smtp_creds" {
   metadata {
     name      = "smtp-credentials"
@@ -131,10 +141,13 @@ resource "kubernetes_role" "kube_prom_operator_secret_reader" {
     namespace = helm_release.kube_prometheus.namespace
   }
   rule {
-    api_groups     = [""]
-    resources      = ["secrets"]
-    resource_names = [kubernetes_secret.smtp_creds.metadata[0].name]
-    verbs          = ["get", "watch"]
+    api_groups = [""]
+    resources  = ["secrets"]
+    resource_names = [
+      kubernetes_secret.discord_webhooks.metadata[0].name,
+      kubernetes_secret.smtp_creds.metadata[0].name,
+    ]
+    verbs = ["get", "watch"]
   }
 }
 
@@ -167,9 +180,8 @@ resource "kubernetes_manifest" "alertmanager_config" {
     }
     "spec" = {
       "route" = {
-        "receiver" = "email"
+        "receiver" = "primary"
         "groupBy" = [
-          "job",
         ]
         "groupWait"      = "30s"
         "groupInterval"  = "5m"
@@ -177,7 +189,18 @@ resource "kubernetes_manifest" "alertmanager_config" {
       }
       "receivers" = [
         {
-          "name" = "email"
+          "name" = "primary"
+          "discordConfigs" = [
+            {
+              "sendResolved" = true
+              "apiURL" = {
+                "key"      = "alertsWebhook"
+                "name"     = kubernetes_secret.discord_webhooks.metadata[0].name
+                "optional" = false
+
+              }
+            },
+          ]
           "emailConfigs" = [
             # https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1alpha1.EmailConfig
             {

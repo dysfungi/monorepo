@@ -4,6 +4,16 @@ resource "kubernetes_namespace" "kube_prometheus" {
   }
 }
 
+resource "kubernetes_secret" "smtp_creds" {
+  metadata {
+    name      = "smtp-credentials"
+    namespace = kubernetes_namespace.kube_prometheus.metadata[0].name
+  }
+  data = {
+    SMTP_TOKEN = var.smtp.password
+  }
+}
+
 # https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack
 resource "helm_release" "kube_prometheus" {
   name             = "kube-prometheus"
@@ -40,6 +50,51 @@ resource "helm_release" "kube_prometheus" {
 
   values = [
     yamlencode({
+      "alertmanager" = {
+        "alertmanagerSpec" = {
+          # https://github.com/prometheus-operator/prometheus-operator/issues/6805#issuecomment-2273008543
+          "containers" = [
+            {
+              "name" = "config-reloader"
+              "envFrom" = [
+                {
+                  "secretRef" = {
+                    "name"     = kubernetes_secret.smtp_creds.metadata[0].name
+                    "optional" = false
+                  }
+                },
+              ]
+            },
+          ]
+          "initContainers" = [
+            {
+              "name" = "init-config-reloader"
+              "envFrom" = [
+                {
+                  "secretRef" = {
+                    "name"     = kubernetes_secret.smtp_creds.metadata[0].name
+                    "optional" = false
+                  }
+                },
+              ]
+            },
+          ]
+        }
+        "config" = {
+          "global" = {
+            # https://prometheus.io/docs/alerting/latest/configuration/#file-layout-and-global-settings
+            # https://proton.me/support/smtp-submission#setup
+            # https://github.com/prometheus-operator/prometheus-operator/issues/6805#issuecomment-2273008543
+            "smtp_from"          = var.smtp.username
+            "smtp_smarthost"     = "${var.smtp.server}:${var.smtp.port}"
+            "smtp_hello"         = "frank.sh"
+            "smtp_auth_username" = var.smtp.username
+            "smtp_auth_password" = "$(SMTP_TOKEN)"
+            "smtp_auth_identity" = var.smtp.username
+            "smtp_require_tls"   = true
+          }
+        }
+      }
       "prometheus" = {
         "prometheusSpec" = {
           "ruleSelector" = {
@@ -70,45 +125,67 @@ resource "helm_release" "kube_prometheus" {
   ]
 }
 
-resource "kubernetes_manifest" "grafana_route" {
+resource "kubernetes_role" "kube_prom_operator_secret_reader" {
+  metadata {
+    name      = "${helm_release.kube_prometheus.name}-operator:secret-reader"
+    namespace = helm_release.kube_prometheus.namespace
+  }
+  rule {
+    api_groups     = [""]
+    resources      = ["secrets"]
+    resource_names = [kubernetes_secret.smtp_creds.metadata[0].name]
+    verbs          = ["get", "watch"]
+  }
+}
+
+# https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/role_binding
+resource "kubernetes_role_binding" "kube_prom_secret_reader" {
+  metadata {
+    name      = kubernetes_role.kube_prom_operator_secret_reader.metadata[0].name
+    namespace = kubernetes_role.kube_prom_operator_secret_reader.metadata[0].namespace
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role.kube_prom_operator_secret_reader.metadata[0].name
+  }
+  subject {
+    api_group = ""
+    kind      = "ServiceAccount"
+    name      = "${helm_release.kube_prometheus.name}-operator"
+    namespace = helm_release.kube_prometheus.namespace
+  }
+}
+
+resource "kubernetes_manifest" "alertmanager_config" {
   manifest = {
-    "apiVersion" = "gateway.networking.k8s.io/v1"
-    "kind"       = "HTTPRoute"
+    "apiVersion" = "monitoring.coreos.com/v1alpha1"
+    "kind"       = "AlertmanagerConfig"
     "metadata" = {
-      "name"      = "grafana"
+      "name"      = "notifications"
       "namespace" = helm_release.kube_prometheus.namespace
     }
     "spec" = {
-      "parentRefs" = [
+      "route" = {
+        "receiver" = "email"
+        "groupBy" = [
+          "job",
+        ]
+        "groupWait"      = "30s"
+        "groupInterval"  = "5m"
+        "repeatInterval" = "12h"
+      }
+      "receivers" = [
         {
-          "kind"        = "Gateway"
-          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
-          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
-          "sectionName" = "https-wildcard.frank.sh"
-        }
-      ]
-      "hostnames" = [
-        "grafana.frank.sh",
-      ]
-      "rules" = [
-        {
-          "matches" = [
+          "name" = "email"
+          "emailConfigs" = [
+            # https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1alpha1.EmailConfig
             {
-              "path" = {
-                "type"  = "PathPrefix"
-                "value" = "/"
-              }
-            }
+              "sendResolved" = true
+              "to"           = "alerts@frank.sh"
+            },
           ]
-          "backendRefs" = [
-            {
-              "kind"      = "Service"
-              "name"      = "${helm_release.kube_prometheus.name}-grafana"
-              "namespace" = helm_release.kube_prometheus.namespace
-              "port"      = 80
-            }
-          ]
-        }
+        },
       ]
     }
   }
@@ -294,6 +371,50 @@ resource "kubernetes_manifest" "alerts" {
             },
           ]
         },
+      ]
+    }
+  }
+}
+
+resource "kubernetes_manifest" "grafana_route" {
+  manifest = {
+    "apiVersion" = "gateway.networking.k8s.io/v1"
+    "kind"       = "HTTPRoute"
+    "metadata" = {
+      "name"      = "grafana"
+      "namespace" = helm_release.kube_prometheus.namespace
+    }
+    "spec" = {
+      "parentRefs" = [
+        {
+          "kind"        = "Gateway"
+          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
+          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "sectionName" = "https-wildcard.frank.sh"
+        }
+      ]
+      "hostnames" = [
+        "grafana.frank.sh",
+      ]
+      "rules" = [
+        {
+          "matches" = [
+            {
+              "path" = {
+                "type"  = "PathPrefix"
+                "value" = "/"
+              }
+            }
+          ]
+          "backendRefs" = [
+            {
+              "kind"      = "Service"
+              "name"      = "${helm_release.kube_prometheus.name}-grafana"
+              "namespace" = helm_release.kube_prometheus.namespace
+              "port"      = 80
+            }
+          ]
+        }
       ]
     }
   }

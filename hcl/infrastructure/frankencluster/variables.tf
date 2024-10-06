@@ -26,6 +26,18 @@ variable "kubeconfig" {
   type = string
 }
 
+variable "smtp" {
+  type = object({
+    server     = string
+    port       = number
+    username   = string
+    password   = string
+    security   = string
+    authMethod = string
+  })
+  sensitive = true
+}
+
 variable "vultr_api_key" {
   type      = string
   sensitive = true

@@ -102,15 +102,54 @@ Owned by [frankenstructure](../frankenstructure).
 - [go-httpbin][httpbingo]
 - [go-httpbin Helm Chart][httpbingo-helm-chart]
 
-### Kube Prometheus Operator
+### Monitoring
+
+#### Logs
+
+##### Loki
+
+_TODO_
+
+**Resources:**
+
+- [Grafana Loki Documentation][loki-docs]
+- [Grafana Loki | Artifacthub][artifacthub-loki]
+
+##### Promtail
+
+_TODO_
+
+**Resources:**
+
+- [Grafana Promtail | Artifacthub][artifacthub-promtail]
+
+#### Metrics
+
+##### Kube Prometheus Operator
 
 **Resources:**
 
 - [Prometheus Operator | ArtifactHub][artifacthub-kube-prom]
 - [Prometheus Operator API Docs][kube-prom-docs-api]
 - [Kube Prometheus Helm Chart][kube-prom-helm-chart]
+
+#### Synthetics
+
+#### Prometheus Blackbox Exporter
+
+**Resources:**
+
 - [Prometheus Blackbox Exporter | ArtifactHub][artifacthub-prom-blackbox]
 - [Prometheus Blackbox Exporter Helm Chart][prom-blackbox-helm-chart]
+
+### Tracing
+
+_TODO_
+
+**Resources:**
+
+- [Grafana Tempo Documentation][tempo-docs]
+- [Grafana Tempo | Artifacthub][artifacthub-tempo]
 
 ### k9s
 
@@ -124,7 +163,10 @@ Owned by [frankenstructure](../frankenstructure).
 [artifacthub-cert-manager]: https://artifacthub.io/packages/helm/cert-manager/cert-manager
 [artifacthub-external-dns]: https://artifacthub.io/packages/helm/external-dns/external-dns
 [artifacthub-kube-prom]: https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack
+[artifacthub-loki]: https://artifacthub.io/packages/helm/grafana/loki
 [artifacthub-prom-blackbox]: https://artifacthub.io/packages/helm/prometheus-community/prometheus-blackbox-exporter
+[artifacthub-promtail]: https://artifacthub.io/packages/helm/grafana/promtail
+[artifacthub-tempo]: https://artifacthub.io/packages/helm/grafana/tempo
 [cert-manager-cloudflare]: https://cert-manager.io/docs/configuration/acme/dns01/cloudflare/#api-tokens
 [cert-manager-helm-install]: https://cert-manager.io/docs/installation/helm/
 [cert-manager-verify]: https://cert-manager.io/docs/installation/kubectl/#verify
@@ -138,9 +180,11 @@ Owned by [frankenstructure](../frankenstructure).
 [k9s-docs]: https://k9scli.io/
 [kube-prom-docs-api]: https://prometheus-operator.dev/docs/api-reference/api/
 [kube-prom-helm-chart]: https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+[loki-docs]: https://grafana.com/docs/loki/latest/
 [ngf-helm-install]: https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/
 [ngf-routing]: https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/routing-traffic-to-your-app/
 [prom-blackbox-helm-chart]: https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-blackbox-exporter/README.md
+[tempo-docs]: https://grafana.com/oss/tempo/
 [terraform-provider-helm]: https://registry.terraform.io/providers/hashicorp/helm/latest/docs
 [terraform-provider-k8s]: https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs
 [terraform-provider-kustomization]: https://registry.terraform.io/providers/kbst/kustomization/latest/docs

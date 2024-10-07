@@ -49,6 +49,11 @@ resource "helm_release" "kube_prometheus" {
   }
 
   set {
+    name  = "prometheus.prometheusSpec.externalUrl"
+    value = "https://prometheus.frank.sh"
+  }
+
+  set {
     name  = "annotations.firing_alerts"
     value = "https://grafana.frank.sh/alerting/list?search=state%3Afiring+type%3Aalerting&view=state"
   }
@@ -441,6 +446,96 @@ resource "kubernetes_manifest" "alerts" {
     }
   }
 }
+
+/*
+resource "kubernetes_manifest" "alertmanager_route" {
+  manifest = {
+    "apiVersion" = "gateway.networking.k8s.io/v1"
+    "kind"       = "HTTPRoute"
+    "metadata" = {
+      "name"      = "alertmanager"
+      "namespace" = helm_release.kube_prometheus.namespace
+    }
+    "spec" = {
+      "parentRefs" = [
+        {
+          "kind"        = "Gateway"
+          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
+          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "sectionName" = "https-wildcard.frank.sh"
+        }
+      ]
+      "hostnames" = [
+        "alertmanager.frank.sh",
+      ]
+      "rules" = [
+        {
+          "matches" = [
+            {
+              "path" = {
+                "type"  = "PathPrefix"
+                "value" = "/"
+              }
+            }
+          ]
+          "backendRefs" = [
+            {
+              "kind"      = "Service"
+              "name"      = "${helm_release.kube_prometheus.name}-alertmanager"
+              "namespace" = helm_release.kube_prometheus.namespace
+              "port"      = 9093
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+
+resource "kubernetes_manifest" "prometheus_route" {
+  manifest = {
+    "apiVersion" = "gateway.networking.k8s.io/v1"
+    "kind"       = "HTTPRoute"
+    "metadata" = {
+      "name"      = "prometheus"
+      "namespace" = helm_release.kube_prometheus.namespace
+    }
+    "spec" = {
+      "parentRefs" = [
+        {
+          "kind"        = "Gateway"
+          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
+          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "sectionName" = "https-wildcard.frank.sh"
+        }
+      ]
+      "hostnames" = [
+        "prometheus.frank.sh",
+      ]
+      "rules" = [
+        {
+          "matches" = [
+            {
+              "path" = {
+                "type"  = "PathPrefix"
+                "value" = "/"
+              }
+            }
+          ]
+          "backendRefs" = [
+            {
+              "kind"      = "Service"
+              "name"      = "${helm_release.kube_prometheus.name}-prometheus"
+              "namespace" = helm_release.kube_prometheus.namespace
+              "port"      = 9090
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+*/
 
 resource "kubernetes_manifest" "grafana_route" {
   manifest = {

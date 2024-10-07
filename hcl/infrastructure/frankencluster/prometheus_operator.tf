@@ -58,6 +58,49 @@ resource "helm_release" "kube_prometheus" {
     value = "https://grafana.frank.sh/alerting/list?search=state%3Afiring+type%3Aalerting&view=state"
   }
 
+  set {
+    name  = "coreDns.enabled"
+    value = true
+  }
+
+  set {
+    name = "kubeControllerManager.enabled"
+    # https://github.com/prometheus-community/helm-charts/issues/3368#issuecomment-1563510980
+    value = false
+  }
+
+  set {
+    name  = "kubeDns.enabled"
+    value = false # conflicts with coreDns
+  }
+
+  set {
+    name  = "kubeEtcd.enabled"
+    value = true
+  }
+
+  set {
+    name = "kubeProxy.enabled"
+    # https://github.com/prometheus-community/helm-charts/issues/3368#issuecomment-1563510980
+    value = false
+  }
+
+  set {
+    name = "kubeScheduler.enabled"
+    # https://github.com/prometheus-community/helm-charts/issues/3368#issuecomment-1563510980
+    value = false
+  }
+
+  set {
+    name  = "kubeStateMetrics.enabled"
+    value = true
+  }
+
+  set {
+    name  = "kubelet.enabled"
+    value = true
+  }
+
   values = [
     yamlencode({
       "alertmanager" = {

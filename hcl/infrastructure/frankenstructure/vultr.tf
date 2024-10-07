@@ -47,11 +47,11 @@ resource "vultr_kubernetes" "k8s" {
   enable_firewall  = true
 
   node_pools {
-    node_quantity = 1
+    node_quantity = 2
     plan          = "vc2-1c-2gb"
     label         = "frankenodes"
     auto_scaler   = true
-    min_nodes     = 1
-    max_nodes     = 2
+    min_nodes     = 2
+    max_nodes     = 4
   }
 }

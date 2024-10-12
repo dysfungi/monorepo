@@ -170,6 +170,24 @@ resource "helm_release" "kube_prometheus" {
           "scrapeConfigSelector" = {
             "matchLabels" = null
           }
+          # https://prometheus-operator.dev/docs/platform/storage/
+          # https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.StorageSpec
+          # https://docs.vultr.com/vultr-kubernetes-engine#features-of-the-managed-control-plane
+          # https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack?modal=values&path=prometheus.prometheusSpec.storageSpec
+          "storageSpec" = {
+            "volumeClaimTemplate" = {
+              "spec" = {
+                "storageClassName" = "vultr-block-storage"
+                "accessModes"      = ["ReadWriteOnce"]
+                "resources" = {
+                  "requests" = {
+                    "storage" = "50Gi"
+                  }
+                }
+                "selector" = {}
+              }
+            }
+          }
         }
       }
       "thanosRuler" = {

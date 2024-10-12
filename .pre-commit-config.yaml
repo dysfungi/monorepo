@@ -103,3 +103,15 @@ repos:
         entry: tofu validate
         types: [terraform]
         pass_filenames: false
+
+  #########
+  # TESTS #
+  #########
+
+  - repo: local
+    hooks:
+      - id: doit-ls
+        name: doit ls
+        language: system
+        entry: doit ls
+        pass_filenames: false

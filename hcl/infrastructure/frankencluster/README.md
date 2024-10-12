@@ -104,6 +104,10 @@ Owned by [frankenstructure](../frankenstructure).
 
 ### Monitoring
 
+**Resources:**
+
+- [Vultr blocks some ports][vultr-blocked-ports]
+
 #### Logs
 
 ##### Loki
@@ -141,6 +145,7 @@ _TODO_
 
 - [Prometheus Blackbox Exporter | ArtifactHub][artifacthub-prom-blackbox]
 - [Prometheus Blackbox Exporter Helm Chart][prom-blackbox-helm-chart]
+- [Prometheus Blackbox Exporter | Grafana Dashboard][grafana-dash-prom-blackbox-exporter]
 
 ### Tracing
 
@@ -173,6 +178,7 @@ _TODO_
 [external-dns-cloudflare]: https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/cloudflare.md#using-helm
 [gateway-api-docs]: https://gateway-api.sigs.k8s.io/implementations/#nginx-gateway-fabric
 [ghcr-docs-pkgs]: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+[grafana-dash-prom-blackbox-exporter]: https://grafana.com/grafana/dashboards/7587-prometheus-blackbox-exporter/
 [httpbingo-helm-chart]: https://github.com/matheusfm/httpbin-chart
 [httpbingo]: https://httpbingo.org/
 [k8s-docs-svc-lb]: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
@@ -188,5 +194,6 @@ _TODO_
 [terraform-provider-helm]: https://registry.terraform.io/providers/hashicorp/helm/latest/docs
 [terraform-provider-k8s]: https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs
 [terraform-provider-kustomization]: https://registry.terraform.io/providers/kbst/kustomization/latest/docs
+[vultr-blocked-ports]: https://docs.vultr.com/what-ports-are-blocked
 [vultr-vke-lb]: https://docs.vultr.com/vultr-kubernetes-engine#vke-load-balancer
 [wiki-deploy-envs]: https://en.wikipedia.org/wiki/Deployment_environment#Environments

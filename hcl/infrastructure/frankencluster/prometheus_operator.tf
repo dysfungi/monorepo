@@ -642,3 +642,16 @@ resource "kubernetes_manifest" "grafana_route" {
     }
   }
 }
+
+resource "kubernetes_config_map" "blackbox_exporter_dashboard" {
+  metadata {
+    name      = "blackbox-exporter-dashboard"
+    namespace = helm_release.blackbox_exporter.namespace
+    labels = {
+      "grafana_dashboard" = "1"
+    }
+  }
+  data = {
+    "prometheus-blackbox-exporter.json" = file("${path.module}/grafana-dashboards/prometheus-blackbox-exporter.json")
+  }
+}

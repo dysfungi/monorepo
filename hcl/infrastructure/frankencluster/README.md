@@ -146,6 +146,7 @@ _TODO_
 - [Prometheus Blackbox Exporter | ArtifactHub][artifacthub-prom-blackbox]
 - [Prometheus Blackbox Exporter Helm Chart][prom-blackbox-helm-chart]
 - [Prometheus Blackbox Exporter | Grafana Dashboard][grafana-dash-prom-blackbox-exporter]
+  (id=`7587`)
 
 ### Tracing
 

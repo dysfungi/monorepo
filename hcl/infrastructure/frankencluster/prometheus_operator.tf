@@ -1,3 +1,10 @@
+locals {
+  probe_interval       = "15s"
+  dashboard_synthetics = "https://grafana.frank.sh/d/adzyuodr7k6bka/synthetics"
+  subannotation_value  = "  VALUE = {{ $value }}"
+  subannotation_labels = "  LABEL = {{ $labels }}"
+}
+
 resource "kubernetes_namespace" "kube_prometheus" {
   metadata {
     name = "kube-prometheus"
@@ -313,15 +320,22 @@ resource "helm_release" "blackbox_exporter" {
             "name"          = "frank.sh"
             "url"           = "http://frank.sh"
             "module"        = "http_2xx"
-            "interval"      = "5s"
-            "scrapeTimeout" = "5s"
+            "interval"      = local.probe_interval
+            "scrapeTimeout" = local.probe_interval
+          },
+          {
+            "name"          = "grafana"
+            "url"           = "http://grafana.frank.sh"
+            "module"        = "http_2xx"
+            "interval"      = local.probe_interval
+            "scrapeTimeout" = local.probe_interval
           },
           {
             "name"          = "httpbin"
             "url"           = "http://httpbin.frank.sh/ip"
             "module"        = "http_2xx"
-            "interval"      = "5s"
-            "scrapeTimeout" = "5s"
+            "interval"      = local.probe_interval
+            "scrapeTimeout" = local.probe_interval
           },
         ]
       }
@@ -334,12 +348,6 @@ resource "helm_release" "blackbox_exporter" {
       }
     }),
   ]
-}
-
-locals {
-  dashboard_synthetics = "https://grafana.frank.sh/d/adzyuodr7k6bka/synthetics"
-  subannotation_value  = "  VALUE = {{ $value }}"
-  subannotation_labels = "  LABEL = {{ $labels }}"
 }
 
 resource "kubernetes_manifest" "alerts" {

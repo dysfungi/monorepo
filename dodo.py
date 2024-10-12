@@ -327,11 +327,11 @@ class Project(NamedTuple):
             "fsharp": "F#",
             "go": "Go",
             "haskell": "Haskell",
-            "hcl": "HCL",
             "ocaml": "OCaml",
             "python": "Python",
             "reasonml": "ReasonML",
             "rust": "Rust",
+            "terraform": "Terraform",  # HCL, TF
         }[self.language]
 
     @property

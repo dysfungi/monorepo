@@ -144,6 +144,19 @@ resource "helm_release" "kube_prometheus" {
               ]
             },
           ]
+          "storage" = {
+            "volumeClaimTemplate" = {
+              "spec" = {
+                "storageClassName" = "vultr-block-storage"
+                "accessModes"      = ["ReadWriteOnce"]
+                "resources" = {
+                  "requests" = {
+                    "storage" = "10Gi"
+                  }
+                }
+              }
+            }
+          }
         }
         "config" = {
           "global" = {
@@ -160,8 +173,19 @@ resource "helm_release" "kube_prometheus" {
           }
         }
       }
+      "grafana" = {
+        "persistence" = {
+          "enabled" = true
+          "type" : "pvc"
+          "storageClassName" = "vultr-block-storage"
+          "accessModes"      = ["ReadWriteOnce"]
+          "size"             = "10Gi"
+          "finalizers"       = ["kubernetes.io/pvc-protection"]
+        }
+      }
       "prometheus" = {
         "prometheusSpec" = {
+          "paused" = false # https://prometheus-operator.dev/docs/platform/storage/#resizing-volumes
           "ruleSelector" = {
             "matchLabels" = null
           }
@@ -191,7 +215,6 @@ resource "helm_release" "kube_prometheus" {
                     "storage" = "50Gi"
                   }
                 }
-                "selector" = {}
               }
             }
           }
@@ -201,6 +224,19 @@ resource "helm_release" "kube_prometheus" {
         "thanosRulerSpec" = {
           "ruleSelector" = {
             "matchLabels" = null
+          }
+          "storage" = {
+            "volumeClaimTemplate" = {
+              "spec" = {
+                "storageClassName" = "vultr-block-storage"
+                "accessModes"      = ["ReadWriteOnce"]
+                "resources" = {
+                  "requests" = {
+                    "storage" = "10Gi"
+                  }
+                }
+              }
+            }
           }
         }
       }

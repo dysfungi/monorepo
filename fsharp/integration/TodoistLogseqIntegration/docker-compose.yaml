@@ -1,0 +1,9 @@
+services:
+  api:
+    platform: linux/amd64
+    image: ${REGISTRY:?}/todoist-integration:${APP_VERSION}
+    build:
+      context: ./
+    ports:
+      - "8080"
+    scale: 1

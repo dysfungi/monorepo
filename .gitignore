@@ -162,7 +162,7 @@ cython_debug/
 #.idea/
 
 # doit
-.doit.db
+.doit.db*
 
 # Secrets
 secrets/

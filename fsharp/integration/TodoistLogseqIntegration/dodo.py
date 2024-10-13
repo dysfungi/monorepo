@@ -32,20 +32,65 @@ class task:
 def build() -> dict:
     return {
         "actions": [
-            "dotnet build",
+            tools.LongRunning("docker compose build"),
         ],
-        "clean": ["dotnet clean"],
         "title": tools.title_with_actions,
         "verbosity": 2,
     }
 
 
 @task
-def start() -> dict:
+def cleandocker() -> dict:
     return {
         "actions": [
-            tools.LongRunning("dotnet watch run"),
+            "docker compose down --remove-orphans --volumes",
         ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def down() -> dict:
+    return {
+        "actions": [
+            "docker compose down --remove-orphans",
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def push() -> dict:
+    return {
+        "actions": [
+            tools.LongRunning("docker compose push"),
+        ],
+        "task_dep": ["build"],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def up() -> dict:
+    return {
+        "actions": [
+            "docker compose up --detach --wait",
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def web() -> dict:
+    return {
+        "actions": [
+            'python -m webbrowser -t "http://$(docker compose port api 8080)"',
+        ],
+        "task_dep": ["up"],
         "title": tools.title_with_actions,
         "verbosity": 2,
     }

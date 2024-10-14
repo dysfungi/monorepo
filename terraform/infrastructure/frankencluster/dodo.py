@@ -33,7 +33,8 @@ class task:
 
     @classmethod
     def with_params(cls, params: list[dict]) -> Callable[[Callable], Self]:
-        return partial(cls, params=params)
+        # TODO: https://github.com/python/mypy/issues/17646#issuecomment-2281182505
+        return partial(cls, params=params)  # type: ignore[misc]
 
 
 @task

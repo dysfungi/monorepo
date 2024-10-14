@@ -1,5 +1,7 @@
 # monorepo
 
+![CI Workflow][build-status-badge]
+
 ## organization
 
 This repository is a [monorepo][awesome-monorepo] (not monolith) of my
@@ -16,3 +18,4 @@ hcl/infrastructure/frankenstructure
 ```
 
 [awesome-monorepo]: https://github.com/korfuri/awesome-monorepo?tab=readme-ov-file
+[build-status-badge]: https://github.com/defrank/monorepo/actions/workflows/ci.yaml/badge.svg

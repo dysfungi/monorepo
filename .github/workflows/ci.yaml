@@ -7,6 +7,9 @@ on:
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
+    env:
+      APP_VERSION: 0.1.0
+      REGISTRY: sjc.vultrcr.com/frankistry
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v3

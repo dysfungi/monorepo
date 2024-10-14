@@ -21,7 +21,7 @@ jobs:
           python-version: 3.12
       - uses: pre-commit/action@v3.0.1
 
-  fsharp-api-AutoMate-build:
+  fsharp-api-automate-build:
     runs-on: ubuntu-latest
     env:
       APP_VERSION: 0.1.0
@@ -29,5 +29,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build the Docker images
-        working-directory: fsharp/api/AutoMate
+        working-directory: fsharp/api/automate
         run: docker compose build

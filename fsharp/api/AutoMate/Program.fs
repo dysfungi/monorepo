@@ -1,4 +1,4 @@
-module TodoistLogseqIntegration.Program
+module AutoMate.Program
 
 open Falco
 open Falco.Routing

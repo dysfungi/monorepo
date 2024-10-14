@@ -1,7 +1,7 @@
 services:
   api:
     platform: linux/amd64
-    image: ${REGISTRY:?}/todoist-integration:${APP_VERSION}
+    image: ${REGISTRY:?}/automate:${APP_VERSION}
     build:
       context: ./
     ports:

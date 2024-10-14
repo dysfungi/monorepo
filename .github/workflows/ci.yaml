@@ -12,12 +12,12 @@ jobs:
       REGISTRY: sjc.vultrcr.com/frankistry
     steps:
       - uses: actions/checkout@v4
-      - uses: xt0rted/setup-dotnet@v1.5.0
+      - uses: xt0rted/setup-dotnet@v1
       - name: Setup Fantomas
         run: dotnet tool install fantomas
-      - uses: opentofu/setup-opentofu@v1.0.4
-      - uses: actions/setup-python@v3
-      - uses: pre-commit/action@v3.0.1
+      - uses: opentofu/setup-opentofu@v1
+      - uses: actions/setup-python@v5
+      - uses: pre-commit/action@v3
 
   fsharp-api-AutoMate-build:
     runs-on: ubuntu-latest

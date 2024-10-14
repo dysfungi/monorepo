@@ -1,0 +1,19 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  fsharp-api-AutoMate-build:
+    runs-on: ubuntu-latest
+    env:
+      APP_VERSION: 0.1.0
+      REGISTRY: sjc.vultrcr.com/frankistry
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Docker images
+        working-directory: fsharp/api/AutoMate
+        run: docker compose build

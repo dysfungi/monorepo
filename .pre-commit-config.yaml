@@ -87,10 +87,6 @@ repos:
   # TERRAFORM #
   #############
 
-  - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.96.1
-    hooks:
-      - id: terraform_trivy
   - repo: local
     hooks:
       - id: tofu-fmt

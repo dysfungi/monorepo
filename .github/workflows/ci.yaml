@@ -12,6 +12,8 @@ jobs:
       REGISTRY: sjc.vultrcr.com/frankistry
     steps:
       - uses: actions/checkout@v4
+      - uses: xt0rted/setup-dotnet@v1.5.0
+      - uses: opentofu/setup-opentofu@v1.0.4
       - uses: actions/setup-python@v3
       - uses: pre-commit/action@v3.0.1
 

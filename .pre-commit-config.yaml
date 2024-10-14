@@ -109,6 +109,9 @@ repos:
     hooks:
       - id: doit-ls
         name: doit ls
-        language: system
+        language: python
+        additional_dependencies:
+          - doit
         entry: doit ls
+        always_run: true
         pass_filenames: false

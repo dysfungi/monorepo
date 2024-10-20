@@ -1,0 +1,28 @@
+name: Continuous Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  lint:
+    uses: ./.github/workflows/lint.yaml
+
+  build:
+    uses: ./.github/workflows/build.yaml
+
+  deploy-prod-n8n:
+    environment: production
+    needs:
+      - lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: opentofu/setup-opentofu@v1
+      - name: Initialize tofu
+        working-directory: terraform/applications/n8n
+        run: tofu init -input=false
+      - name: Deploy n8n
+        working-directory: terraform/applications/n8n
+        run: tofu apply -auto-approve -input=false

@@ -2,32 +2,13 @@ name: Continuous Integration
 
 on:
   push:
+    branches-ignore:
+      - main
   pull_request:
 
 jobs:
-  pre-commit:
-    runs-on: ubuntu-latest
-    env:
-      APP_VERSION: 0.1.0
-      REGISTRY: sjc.vultrcr.com/frankistry
-    steps:
-      - uses: actions/checkout@v4
-      - uses: xt0rted/setup-dotnet@v1
-      - name: Setup Fantomas
-        run: dotnet tool install fantomas
-      - uses: opentofu/setup-opentofu@v1
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.12
-      - uses: pre-commit/action@v3.0.1
+  lint:
+    uses: ./.github/workflows/lint.yaml
 
-  fsharp-api-automate-build:
-    runs-on: ubuntu-latest
-    env:
-      APP_VERSION: 0.1.0
-      REGISTRY: sjc.vultrcr.com/frankistry
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build the Docker images
-        working-directory: fsharp/api/automate
-        run: docker compose build
+  build:
+    uses: ./.github/workflows/build.yaml

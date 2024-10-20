@@ -20,9 +20,43 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: opentofu/setup-opentofu@v1
+      - id: op-secrets
+        uses: 1password/load-secrets-action@v2
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          VULTR_API_KEY: op://Frankenstructure/Vultr API Key/password
+      - uses: defrank/action-vultr@v2024.10.20-1
+        with:
+          token: ${{ steps.op-secrets.outputs.VULTR_API_KEY }}
+      - id: vultr-secrets
+        run: >
+          vultr --outupt=json object-storage list
+          | jq --raw-output >> "$GITHUB_OUTPUT" '
+          .object_storages[]
+          | select(.label == "frankenstorage")
+          | ["S3_ACCESS_KEY=" + .s3_access_key, "S3_SECRET_KEY=" .s3_secret_key]
+          | join("\n")
+          '
+
+          vultr --output=json kubernetes list
+          | jq --raw-output '.vke_clusters[] | select(.label == "frank8s").id'
+          | xargs vultr kubernetes config
+          | base64 --decode > kubeconfig.yaml
+
+          echo "KUBECONFIG_PATH=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
       - name: Initialize tofu
         working-directory: terraform/applications/n8n
         run: tofu init -input=false
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.vultr-secrets.outputs.S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.vultr-secrets.outputs.S3_SECRET_KEY }}
+          TF_VAR_kubeconfig: ${{ steps.vultr-secrets.outputs.KUBECONFIG_PATH }}
       - name: Deploy n8n
         working-directory: terraform/applications/n8n
         run: tofu apply -auto-approve -input=false
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.vultr-secrets.outputs.S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.vultr-secrets.outputs.S3_SECRET_KEY }}
+          TF_VAR_kubeconfig: ${{ steps.vultr-secrets.outputs.KUBECONFIG_PATH }}

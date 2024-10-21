@@ -38,7 +38,7 @@ jobs:
           | jq --raw-output >> "$GITHUB_OUTPUT" '
           .object_storages[]
           | select(.label == "frankenstorage")
-          | ["S3_ACCESS_KEY=" + .s3_access_key, "S3_SECRET_KEY=" .s3_secret_key]
+          | ["S3_ACCESS_KEY=" + .s3_access_key, "S3_SECRET_KEY=" + .s3_secret_key]
           | join("\n")
           '
 

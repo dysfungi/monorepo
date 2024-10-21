@@ -99,8 +99,8 @@ jobs:
           TF_VAR_kubeconfig: ${{ steps.secrets.outputs.KUBECONFIG_PATH }}
           TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_github_token: ${{ github.token }}
-      - name: Deploy n8n
-        working-directory: terraform/applications/n8n
+      - name: Deploy Node-RED
+        working-directory: terraform/applications/node-red
         run: tofu apply -auto-approve -input=false
         env:
           AWS_ACCESS_KEY_ID: ${{ needs.secrets.outputs.S3_ACCESS_KEY }}

@@ -34,7 +34,7 @@ jobs:
         env:
           VULTR_API_KEY: ${{ steps.op-secrets.outputs.VULTR_API_KEY }}
         run: >
-          vultr-cli --outupt=json object-storage list
+          vultr-cli --output=json object-storage list
           | jq --raw-output >> "$GITHUB_OUTPUT" '
           .object_storages[]
           | select(.label == "frankenstorage")

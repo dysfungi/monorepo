@@ -31,8 +31,10 @@ jobs:
         with:
           token: ${{ steps.op-secrets.outputs.VULTR_API_KEY }}
       - id: vultr-secrets
+        env:
+          VULTR_API_KEY: ${{ steps.op-secrets.outputs.VULTR_API_KEY }}
         run: >
-          vultr --outupt=json object-storage list
+          vultr-cli --outupt=json object-storage list
           | jq --raw-output >> "$GITHUB_OUTPUT" '
           .object_storages[]
           | select(.label == "frankenstorage")
@@ -40,9 +42,9 @@ jobs:
           | join("\n")
           '
 
-          vultr --output=json kubernetes list
+          vultr-cli --output=json kubernetes list
           | jq --raw-output '.vke_clusters[] | select(.label == "frank8s").id'
-          | xargs vultr kubernetes config
+          | xargs vultr-cli kubernetes config
           | base64 --decode > kubeconfig.yaml
 
           echo "KUBECONFIG_PATH=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"

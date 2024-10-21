@@ -72,3 +72,31 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ needs.secrets.outputs.S3_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ needs.secrets.outputs.S3_SECRET_KEY }}
           TF_VAR_kubeconfig: ${{ needs.secrets.outputs.KUBECONFIG_PATH }}
+
+  deploy-prod-node-red:
+    environment: production
+    needs:
+      - lint
+      - secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: opentofu/setup-opentofu@v1
+      - name: Initialize tofu
+        working-directory: terraform/applications/node-red
+        run: tofu init -input=false
+        env:
+          AWS_ACCESS_KEY_ID: ${{ needs.secrets.outputs.S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ needs.secrets.outputs.S3_SECRET_KEY }}
+          TF_VAR_kubeconfig: ${{ needs.secrets.outputs.KUBECONFIG_PATH }}
+          TF_VAR_github_username: ${{ github.triggering_actor }}
+          TF_VAR_github_token: ${{ github.token }}
+      - name: Deploy n8n
+        working-directory: terraform/applications/n8n
+        run: tofu apply -auto-approve -input=false
+        env:
+          AWS_ACCESS_KEY_ID: ${{ needs.secrets.outputs.S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ needs.secrets.outputs.S3_SECRET_KEY }}
+          TF_VAR_kubeconfig: ${{ needs.secrets.outputs.KUBECONFIG_PATH }}
+          TF_VAR_github_username: ${{ github.triggering_actor }}
+          TF_VAR_github_token: ${{ github.token }}

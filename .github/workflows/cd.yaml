@@ -46,7 +46,7 @@ jobs:
     outputs:
       S3_ACCESS_KEY: ${{ steps.vultr-secrets.outputs.S3_ACCESS_KEY }}
       S3_SECRET_KEY: ${{ steps.vultr-secrets.outputs.S3_SECRET_KEY }}
-      KUBECONFIG_PATH: ${{ steps.vultr-secrets.outputs.KUBECONFIG_PATH }}
+      KUBECONFIG_BASE64: ${{ steps.vultr-secrets.outputs.KUBECONFIG_BASE64 }}
       VULTR_API_KEY: ${{ steps.op-secrets.outputs.VULTR_API_KEY }}
 
   deploy-prod-n8n:

@@ -12,14 +12,9 @@ jobs:
   build:
     uses: ./.github/workflows/build.yaml
 
-  deploy-prod-n8n:
-    environment: production
-    needs:
-      - lint
+  secrets:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: opentofu/setup-opentofu@v1
       - id: op-secrets
         uses: 1password/load-secrets-action@v2
         with:
@@ -48,17 +43,32 @@ jobs:
           | base64 --decode > kubeconfig.yaml
 
           echo "KUBECONFIG_PATH=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
+    outputs:
+      S3_ACCESS_KEY: ${{ steps.vultr-secrets.outputs.S3_ACCESS_KEY }}
+      S3_SECRET_KEY: ${{ steps.vultr-secrets.outputs.S3_SECRET_KEY }}
+      KUBECONFIG_PATH: ${{ steps.vultr-secrets.outputs.KUBECONFIG_PATH }}
+      VULTR_API_KEY: ${{ steps.op-secrets.outputs.VULTR_API_KEY }}
+
+  deploy-prod-n8n:
+    environment: production
+    needs:
+      - lint
+      - secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: opentofu/setup-opentofu@v1
       - name: Initialize tofu
         working-directory: terraform/applications/n8n
         run: tofu init -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.vultr-secrets.outputs.S3_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.vultr-secrets.outputs.S3_SECRET_KEY }}
-          TF_VAR_kubeconfig: ${{ steps.vultr-secrets.outputs.KUBECONFIG_PATH }}
+          AWS_ACCESS_KEY_ID: ${{ needs.secrets.outputs.S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ needs.secrets.outputs.S3_SECRET_KEY }}
+          TF_VAR_kubeconfig: ${{ needs.secrets.outputs.KUBECONFIG_PATH }}
       - name: Deploy n8n
         working-directory: terraform/applications/n8n
         run: tofu apply -auto-approve -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.vultr-secrets.outputs.S3_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.vultr-secrets.outputs.S3_SECRET_KEY }}
-          TF_VAR_kubeconfig: ${{ steps.vultr-secrets.outputs.KUBECONFIG_PATH }}
+          AWS_ACCESS_KEY_ID: ${{ needs.secrets.outputs.S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ needs.secrets.outputs.S3_SECRET_KEY }}
+          TF_VAR_kubeconfig: ${{ needs.secrets.outputs.KUBECONFIG_PATH }}

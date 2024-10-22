@@ -49,6 +49,30 @@ jobs:
       KUBECONFIG_BASE64: ${{ steps.vultr-secrets.outputs.KUBECONFIG_BASE64 }}
       VULTR_API_KEY: ${{ steps.op-secrets.outputs.VULTR_API_KEY }}
 
+  deploy-prod-frankenstructure:
+    environment: production
+    needs:
+      - lint
+      - secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: opentofu/setup-opentofu@v1
+      - name: Initialize tofu
+        working-directory: terraform/infrastructure/frankenstructure
+        run: tofu init -input=false
+        env:
+          AWS_ACCESS_KEY_ID: ${{ needs.secrets.outputs.S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ needs.secrets.outputs.S3_SECRET_KEY }}
+          TF_VAR_vultr_api_key: ${{ needs.secrets.outputs.VULTR_API_KEY }}
+      - name: Deploy frankenstructure
+        working-directory: terraform/infrastructure/frankenstructure
+        run: tofu apply -auto-approve -input=false
+        env:
+          AWS_ACCESS_KEY_ID: ${{ needs.secrets.outputs.S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ needs.secrets.outputs.S3_SECRET_KEY }}
+          TF_VAR_vultr_api_key: ${{ needs.secrets.outputs.VULTR_API_KEY }}
+
   deploy-prod-n8n:
     environment: production
     needs:

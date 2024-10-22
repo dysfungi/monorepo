@@ -1,5 +1,9 @@
 # https://registry.terraform.io/providers/vultr/vultr/latest/docs
 # https://www.vultr.com/api/#section/Introduction
+variable "vultr_api_key" {
+  type      = string
+  sensitive = true
+}
 
 terraform {
   backend "s3" {
@@ -20,6 +24,7 @@ terraform {
 
 # Configure the Vultr Provider
 provider "vultr" {
+  api_key     = var.vultr_api_key
   rate_limit  = 100
   retry_limit = 3
 }
@@ -45,25 +50,36 @@ resource "vultr_kubernetes" "k8s" {
   version          = "v1.31.0+1"
   ha_controlplanes = false
   enable_firewall  = true
+}
 
-  /*
-  node_pools {
-    node_quantity = 1
-    plan          = "vc2-1c-2gb"
-    label         = "frankenodes1cpu2ram"
-    auto_scaler   = true
-    min_nodes     = 1
-    max_nodes     = 2
-  }
-  */
+resource "vultr_kubernetes_node_pools" "foundation" {
+  cluster_id    = vultr_kubernetes.k8s.id
+  node_quantity = 1
+  plan          = "vc2-1c-2gb"
+  label         = "foundation"
+  tag           = "foundation"
+  auto_scaler   = true
+  min_nodes     = 1
+  max_nodes     = 3
+}
+
+resource "vultr_kubernetes_node_pools" "monitoring" {
+  cluster_id    = vultr_kubernetes.k8s.id
+  node_quantity = 2
+  plan          = "vc2-2c-2gb"
+  label         = "monitoring"
+  tag           = "monitoring"
+  auto_scaler   = true
+  min_nodes     = 2
+  max_nodes     = 3
 }
 
 resource "vultr_kubernetes_node_pools" "np2cpu2mem" {
   cluster_id    = vultr_kubernetes.k8s.id
-  node_quantity = 2
+  node_quantity = 1
   plan          = "vc2-2c-2gb"
   label         = "frankenodes2cpu2ram"
   auto_scaler   = true
-  min_nodes     = 2
-  max_nodes     = 4
+  min_nodes     = 1
+  max_nodes     = 3
 }

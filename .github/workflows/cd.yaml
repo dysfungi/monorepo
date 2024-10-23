@@ -35,19 +35,43 @@ jobs:
           | jq --raw-output >> "$GITHUB_OUTPUT" '
           .object_storages[]
           | select(.label == "frankenstorage")
-          | ["S3_ACCESS_KEY=" + .s3_access_key, "S3_SECRET_KEY=" + .s3_secret_key]
+          | ["s3_access_key=" + .s3_access_key, "s3_secret_key=" + .s3_secret_key]
           | join("\n")
           '
 
-          echo -n "KUBECONFIG_BASE64=" >> "$GITHUB_OUTPUT";
+          echo -n "kubeconfig_base64=" >> "$GITHUB_OUTPUT";
           vultr-cli --output=json kubernetes list
           | jq --raw-output '.vke_clusters[] | select(.label == "frank8s").id'
           | xargs -- vultr-cli kubernetes config >> "$GITHUB_OUTPUT"
+      - id: kubeconfig-base64
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.vultr-secrets.outputs.kubeconfig_base64 }}
+      - id: s3-access-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.vultr-secrets.outputs.s3_access_key }}
+      - id: s3-secret-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.vultr-secrets.outputs.s3_secret_key }}
+      - id: vultr-api-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.VULTR_API_KEY }}
     outputs:
-      S3_ACCESS_KEY: ${{ steps.vultr-secrets.outputs.S3_ACCESS_KEY }}
-      S3_SECRET_KEY: ${{ steps.vultr-secrets.outputs.S3_SECRET_KEY }}
-      KUBECONFIG_BASE64: ${{ steps.vultr-secrets.outputs.KUBECONFIG_BASE64 }}
-      VULTR_API_KEY: ${{ steps.op-secrets.outputs.VULTR_API_KEY }}
+      enc_kubeconfig_base64: ${{ steps.kubeconfig-base64.outputs.out }}
+      enc_s3_access_key: ${{ steps.s3-access-key.outputs.out }}
+      enc_s3_secret_key: ${{ steps.s3-secret-key.outputs.out }}
+      enc_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
 
   deploy-prod-frankenstructure:
     environment: production
@@ -58,20 +82,38 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: opentofu/setup-opentofu@v1
+      - id: s3-access-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_s3_access_key }}
+      - id: s3-secret-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
+      - id: vultr-api-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_vultr_api_key }}
       - name: Initialize tofu
         working-directory: terraform/infrastructure/frankenstructure
         run: tofu init -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ needs.secrets.outputs.S3_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ needs.secrets.outputs.S3_SECRET_KEY }}
-          TF_VAR_vultr_api_key: ${{ needs.secrets.outputs.VULTR_API_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
       - name: Deploy frankenstructure
         working-directory: terraform/infrastructure/frankenstructure
         run: tofu apply -auto-approve -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ needs.secrets.outputs.S3_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ needs.secrets.outputs.S3_SECRET_KEY }}
-          TF_VAR_vultr_api_key: ${{ needs.secrets.outputs.VULTR_API_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
 
   deploy-prod-n8n:
     environment: production
@@ -82,24 +124,42 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: opentofu/setup-opentofu@v1
-      - id: secrets
+      - id: kubeconfig-base64
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_kubeconfig_base64 }}
+      - id: kubeconfig-path
         run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ needs.secrets.outputs.KUBECONFIG_BASE64 }}"
-          echo "KUBECONFIG_PATH=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
+          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
+          echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
+      - id: s3-access-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_s3_access_key }}
+      - id: s3-secret-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
       - name: Initialize tofu
         working-directory: terraform/applications/n8n
         run: tofu init -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ needs.secrets.outputs.S3_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ needs.secrets.outputs.S3_SECRET_KEY }}
-          TF_VAR_kubeconfig: ${{ steps.secrets.outputs.KUBECONFIG_PATH }}
+          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          TF_VAR_kubeconfig: ${{ steps.kubeconfig-path.outputs.out }}
       - name: Deploy n8n
         working-directory: terraform/applications/n8n
         run: tofu apply -auto-approve -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ needs.secrets.outputs.S3_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ needs.secrets.outputs.S3_SECRET_KEY }}
-          TF_VAR_kubeconfig: ${{ steps.secrets.outputs.KUBECONFIG_PATH }}
+          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          TF_VAR_kubeconfig: ${{ steps.kubeconfig-path.outputs.out }}
 
   deploy-prod-node-red:
     environment: production
@@ -110,25 +170,43 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: opentofu/setup-opentofu@v1
-      - id: secrets
+      - id: kubeconfig-base64
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_kubeconfig_base64 }}
+      - id: kubeconfig-path
         run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ needs.secrets.outputs.KUBECONFIG_BASE64 }}"
-          echo "KUBECONFIG_PATH=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
+          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
+          echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
+      - id: s3-access-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_s3_access_key }}
+      - id: s3-secret-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
       - name: Initialize tofu
         working-directory: terraform/applications/node-red
         run: tofu init -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ needs.secrets.outputs.S3_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ needs.secrets.outputs.S3_SECRET_KEY }}
-          TF_VAR_kubeconfig: ${{ steps.secrets.outputs.KUBECONFIG_PATH }}
-          TF_VAR_github_username: ${{ github.triggering_actor }}
+          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
           TF_VAR_github_token: ${{ github.token }}
+          TF_VAR_github_username: ${{ github.triggering_actor }}
+          TF_VAR_kubeconfig: ${{ steps.kubeconfig-path.outputs.out }}
       - name: Deploy Node-RED
         working-directory: terraform/applications/node-red
         run: tofu apply -auto-approve -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ needs.secrets.outputs.S3_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ needs.secrets.outputs.S3_SECRET_KEY }}
-          TF_VAR_kubeconfig: ${{ steps.secrets.outputs.KUBECONFIG_PATH }}
-          TF_VAR_github_username: ${{ github.triggering_actor }}
+          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
           TF_VAR_github_token: ${{ github.token }}
+          TF_VAR_github_username: ${{ github.triggering_actor }}
+          TF_VAR_kubeconfig: ${{ steps.kubeconfig-path.outputs.out }}

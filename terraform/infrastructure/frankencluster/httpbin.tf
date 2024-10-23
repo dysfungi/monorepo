@@ -13,6 +13,11 @@ resource "helm_release" "httpbin" {
   chart      = "httpbin"
   version    = "0.1.1"
   namespace  = kubernetes_namespace.httpbin.metadata[0].name
+
+  set {
+    name  = "replicaCount"
+    value = "2"
+  }
 }
 
 # https://github.com/vultr/cert-manager-webhook-vultr?tab=readme-ov-file#request-a-certificate

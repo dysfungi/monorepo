@@ -25,13 +25,13 @@ terraform {
 
 # https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs
 provider "kubernetes" {
-  config_path = var.kubeconfig
+  config_path = var.kubeconfig_path
 }
 
 # https://registry.terraform.io/providers/hashicorp/helm/latest/docs
 provider "helm" {
   kubernetes {
-    config_path = var.kubeconfig
+    config_path = var.kubeconfig_path
   }
 
   registry {
@@ -43,5 +43,5 @@ provider "helm" {
 
 # https://registry.terraform.io/providers/kbst/kustomization/latest/docs#example-usage
 provider "kustomization" {
-  kubeconfig_path = var.kubeconfig
+  kubeconfig_path = var.kubeconfig_path
 }

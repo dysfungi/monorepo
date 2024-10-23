@@ -1,36 +1,9 @@
-# https://docs.vultr.com/vultr-kubernetes-engine#vke-load-balancer
-# https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/service#example-usage
-
-/*
-# https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
-resource "kubernetes_service" "load_balancer" {
-    metadata {
-        name = "lb-https"
-        annotations = {
-            "service.beta.kubernetes.io/vultr-loadbalancer-protocol" = "http"
-            "service.beta.kubernetes.io/vultr-loadbalancer-https-ports" ="443"
-            # You will need to have created a TLS Secret and pass in the name as the value
-            "service.beta.kubernetes.io/vultr-loadbalancer-ssl" = "ssl-secret" # TODO
-        }
-    }
-    spec {
-        type = "LoadBalancer"
-        selector = {
-            app = "shared" # TODO: apply to container tags
-        }
-        port {
-            name = "http"
-            port = 80
-            target_port = 8080
-        }
-        port {
-            name = "https"
-            port = 443
-            target_port = 4343
-        }
-    }
+locals {
+  foundationNodeSelector = {
+    "kubernetes.io/os"        = "linux"
+    "vke.vultr.com/node-pool" = "foundation"
+  }
 }
-*/
 
 # https://registry.terraform.io/providers/kbst/kustomization/latest/docs/data-sources/build#example-usage
 data "kustomization_build" "gateway_crds" {
@@ -106,7 +79,10 @@ resource "helm_release" "gateway" {
 
   values = [
     yamlencode({
+      "nodeSelector" = local.foundationNodeSelector
       "service" = {
+        # https://docs.vultr.com/vultr-kubernetes-engine#vke-load-balancer
+        # https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/service#example-usage
         # https://github.com/vultr/vultr-cloud-controller-manager/blob/master/docs/load-balancers.md#annotations
         "annotations" = {
           # https://github.com/kubernetes-sigs/external-dns/blob/master/docs/annotations/annotations.md#external-dnsalphakubernetesiohostname

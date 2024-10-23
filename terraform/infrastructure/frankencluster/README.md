@@ -39,13 +39,13 @@ Owned by [frankenstructure](../frankenstructure).
 
 **Requires:**
 
-- Environment variable: `$VAR_TF_kubeconfig`
+- Environment variable: `$VAR_TF_kubeconfig_path`
 
 ### Certificate Manager
 
 **Requires:**
 
-- Environment variable: `$VAR_TF_vultr_api_key`
+- Environment variable: `$VAR_TF_cloudflare_api_token`
 
 **Resources:**
 

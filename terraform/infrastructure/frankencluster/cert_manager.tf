@@ -30,6 +30,20 @@ resource "helm_release" "cert_manager" {
       "--feature-gates=ExperimentalGatewayAPISupport=true",
     ]
   }
+  values = [
+    yamlencode({
+      "nodeSelector" = local.foundationNodeSelector
+      "cainjector" = {
+        "nodeSelector" = local.foundationNodeSelector
+      }
+      "startupapicheck" = {
+        "nodeSelector" = local.foundationNodeSelector
+      }
+      "webhook" = {
+        "nodeSelector" = local.foundationNodeSelector
+      }
+    }),
+  ]
 }
 
 # https://cert-manager.io/docs/configuration/acme/dns01/cloudflare/#api-tokens

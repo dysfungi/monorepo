@@ -1,4 +1,8 @@
 locals {
+  monitoringNodeSelector = {
+    "kubernetes.io/os"        = "linux"
+    "vke.vultr.com/node-pool" = "monitoring"
+  }
   probe_interval       = "15s"
   dashboard_synthetics = "https://grafana.frank.sh/d/adzyuodr7k6bka/synthetics"
   subannotation_value  = "  VALUE = {{ $value }}"
@@ -27,7 +31,7 @@ resource "kubernetes_secret" "smtp_creds" {
     namespace = kubernetes_namespace.kube_prometheus.metadata[0].name
   }
   data = {
-    SMTP_TOKEN = var.smtp.password
+    SMTP_TOKEN = var.smtp_password
   }
 }
 
@@ -144,6 +148,7 @@ resource "helm_release" "kube_prometheus" {
               ]
             },
           ]
+          "nodeSelector" = local.monitoringNodeSelector
           "storage" = {
             "volumeClaimTemplate" = {
               "spec" = {
@@ -163,12 +168,12 @@ resource "helm_release" "kube_prometheus" {
             # https://prometheus.io/docs/alerting/latest/configuration/#file-layout-and-global-settings
             # https://proton.me/support/smtp-submission#setup
             # https://github.com/prometheus-operator/prometheus-operator/issues/6805#issuecomment-2273008543
-            "smtp_from"          = var.smtp.username
-            "smtp_smarthost"     = "${var.smtp.server}:${var.smtp.port}"
+            "smtp_from"          = var.smtp_username
+            "smtp_smarthost"     = "${var.smtp_server}:${var.smtp_port}"
             "smtp_hello"         = "frank.sh"
-            "smtp_auth_username" = var.smtp.username
+            "smtp_auth_username" = var.smtp_username
             "smtp_auth_password" = "$(SMTP_TOKEN)"
-            "smtp_auth_identity" = var.smtp.username
+            "smtp_auth_identity" = var.smtp_username
             "smtp_require_tls"   = true
           }
         }
@@ -185,7 +190,8 @@ resource "helm_release" "kube_prometheus" {
       }
       "prometheus" = {
         "prometheusSpec" = {
-          "paused" = false # https://prometheus-operator.dev/docs/platform/storage/#resizing-volumes
+          "nodeSelector" = local.monitoringNodeSelector
+          "paused"       = false # https://prometheus-operator.dev/docs/platform/storage/#resizing-volumes
           "ruleSelector" = {
             "matchLabels" = null
           }
@@ -220,8 +226,20 @@ resource "helm_release" "kube_prometheus" {
           }
         }
       }
+      "prometheusOperator" = {
+        "admissionWebhooks" = {
+          "deployment" = {
+            "nodeSelector" = local.monitoringNodeSelector
+          }
+          "patch" = {
+            "nodeSelector" = local.monitoringNodeSelector
+          }
+        }
+        "nodeSelector" = local.monitoringNodeSelector
+      }
       "thanosRuler" = {
         "thanosRulerSpec" = {
+          "nodeSelector" = local.monitoringNodeSelector
           "ruleSelector" = {
             "matchLabels" = null
           }
@@ -334,18 +352,9 @@ resource "helm_release" "blackbox_exporter" {
   create_namespace = false
 
   # https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-blackbox-exporter/values.yaml#L272
-  set {
-    name  = "serviceMonitor.enabled"
-    value = true
-  }
-
-  set {
-    name  = "serviceMonitor.selfMonitor.enabled"
-    value = true
-  }
-
   values = [
     yamlencode({
+      "nodeSelector" = local.monitoringNodeSelector
       "serviceMonitor" = {
         "enabled" = true
         "selfMonitor" = {

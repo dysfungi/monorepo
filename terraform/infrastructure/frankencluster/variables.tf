@@ -27,23 +27,23 @@ variable "grafana_admin_password" {
   sensitive = true
 }
 
-variable "kubeconfig" {
+variable "kubeconfig_path" {
   type = string
 }
 
-variable "smtp" {
-  type = object({
-    server     = string
-    port       = number
-    username   = string
-    password   = string
-    security   = string
-    authMethod = string
-  })
+variable "smtp_password" {
+  type      = string
   sensitive = true
 }
 
-variable "vultr_api_key" {
-  type      = string
-  sensitive = true
+variable "smtp_port" {
+  type = number
+}
+
+variable "smtp_server" {
+  type = string
+}
+
+variable "smtp_username" {
+  type = string
 }

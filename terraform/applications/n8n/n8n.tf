@@ -1,4 +1,4 @@
-variable "kubeconfig" {
+variable "kubeconfig_path" {
   type = string
 }
 
@@ -25,13 +25,13 @@ terraform {
 
 # https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs
 provider "kubernetes" {
-  config_path = var.kubeconfig
+  config_path = var.kubeconfig_path
 }
 
 # https://registry.terraform.io/providers/hashicorp/helm/latest/docs
 provider "helm" {
   kubernetes {
-    config_path = var.kubeconfig
+    config_path = var.kubeconfig_path
   }
 }
 

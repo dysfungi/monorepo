@@ -23,13 +23,20 @@ jobs:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          VULTR_API_KEY: op://Frankenstructure/Vultr API Key/password
+          cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
+          discord_webhook_alerts: op://Frankenstructure/Discord Webhook - breaktheloop/url
+          grafana_admin_password: op://Frankenstructure/Grafana - frank.sh/password
+          smtp_password: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/password
+          smtp_port: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/port
+          smtp_server: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/server
+          smtp_username: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/username
+          vultr_api_key: op://Frankenstructure/Vultr API Key/password
       - uses: defrank/action-vultr@v2024.10.20-1
         with:
-          token: ${{ steps.op-secrets.outputs.VULTR_API_KEY }}
+          token: ${{ steps.op-secrets.outputs.vultr_api_key }}
       - id: vultr-secrets
         env:
-          VULTR_API_KEY: ${{ steps.op-secrets.outputs.VULTR_API_KEY }}
+          VULTR_API_KEY: ${{ steps.op-secrets.outputs.vultr_api_key }}
         run: >
           vultr-cli --output=json object-storage list
           | jq --raw-output >> "$GITHUB_OUTPUT" '
@@ -43,6 +50,24 @@ jobs:
           vultr-cli --output=json kubernetes list
           | jq --raw-output '.vke_clusters[] | select(.label == "frank8s").id'
           | xargs -- vultr-cli kubernetes config >> "$GITHUB_OUTPUT"
+      - id: cloudflare-api-token
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
+      - id: discord-webhook-alerts
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.discord_webhook_alerts }}
+      - id: grafana-admin-password
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.grafana_admin_password }}
       - id: kubeconfig-base64
         uses: cloudposse/github-action-secret-outputs@main
         with:
@@ -61,16 +86,47 @@ jobs:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.vultr-secrets.outputs.s3_secret_key }}
+      - id: smtp-password
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.smtp_password }}
+      - id: smtp-port
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.smtp_port }}
+      - id: smtp-server
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.smtp_server }}
+      - id: smtp-username
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.smtp_username }}
       - id: vultr-api-key
         uses: cloudposse/github-action-secret-outputs@main
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
-          in: ${{ steps.op-secrets.outputs.VULTR_API_KEY }}
+          in: ${{ steps.op-secrets.outputs.vultr_api_key }}
     outputs:
+      enc_cloudflare_api_token: ${{ steps.cloudflare-api-token.outputs.out }}
+      enc_discord_webhook_alerts: ${{ steps.discord-webhook-alerts.outputs.out }}
+      enc_grafana_admin_password: ${{ steps.grafana-admin-password.outputs.out }}
       enc_kubeconfig_base64: ${{ steps.kubeconfig-base64.outputs.out }}
       enc_s3_access_key: ${{ steps.s3-access-key.outputs.out }}
       enc_s3_secret_key: ${{ steps.s3-secret-key.outputs.out }}
+      enc_smtp_port: ${{ steps.smtp-port.outputs.out }}
+      enc_smtp_password: ${{ steps.smtp-password.outputs.out }}
+      enc_smtp_server: ${{ steps.smtp-server.outputs.out }}
+      enc_smtp_username: ${{ steps.smtp-username.outputs.out }}
       enc_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
 
   deploy-prod-frankenstructure:
@@ -115,6 +171,112 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
 
+  deploy-prod-frankencluster:
+    environment: production
+    needs:
+      - lint
+      - secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: opentofu/setup-opentofu@v1
+      - id: cloudflare-api-token
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_cloudflare_api_token }}
+      - id: discord-webhook-alerts
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_discord_webhook_alerts }}
+      - id: grafana-admin-password
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_grafana_admin_password }}
+      - id: kubeconfig-base64
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_kubeconfig_base64 }}
+      - id: kubeconfig-path
+        run: |
+          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
+          echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
+      - id: s3-access-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_s3_access_key }}
+      - id: s3-secret-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
+      - id: smtp-password
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_smtp_password }}
+      - id: smtp-port
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_smtp_port }}
+      - id: smtp-server
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_smtp_server }}
+      - id: smtp-username
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_smtp_username }}
+      - name: Initialize tofu
+        working-directory: terraform/infrastructure/frankencluster
+        run: tofu init -input=false
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          TF_VAR_cloudflare_api_token: ${{ steps.cloudflare-api-token.outputs.out }}
+          TF_VAR_discord_webhook_alerts: ${{ steps.discord-webhook-alerts.outputs.out }}
+          TF_VAR_github_token: ${{ github.token }}
+          TF_VAR_github_username: ${{ github.triggering_actor }}
+          TF_VAR_grafana_admin_password: ${{ steps.grafana-admin-password.outputs.out }}
+          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+          TF_VAR_smtp_password: ${{ steps.smtp-password.outputs.out }}
+          TF_VAR_smtp_port: ${{ steps.smtp-port.outputs.out }}
+          TF_VAR_smtp_server: ${{ steps.smtp-server.outputs.out }}
+          TF_VAR_smtp_username: ${{ steps.smtp-username.outputs.out }}
+      - name: Deploy frankencluster
+        working-directory: terraform/infrastructure/frankencluster
+        run: tofu apply -auto-approve -input=false
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          TF_VAR_cloudflare_api_token: ${{ steps.cloudflare-api-token.outputs.out }}
+          TF_VAR_discord_webhook_alerts: ${{ steps.discord-webhook-alerts.outputs.out }}
+          TF_VAR_github_token: ${{ github.token }}
+          TF_VAR_github_username: ${{ github.triggering_actor }}
+          TF_VAR_grafana_admin_password: ${{ steps.grafana-admin-password.outputs.out }}
+          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+          TF_VAR_smtp_password: ${{ steps.smtp-password.outputs.out }}
+          TF_VAR_smtp_port: ${{ steps.smtp-port.outputs.out }}
+          TF_VAR_smtp_server: ${{ steps.smtp-server.outputs.out }}
+          TF_VAR_smtp_username: ${{ steps.smtp-username.outputs.out }}
+
   deploy-prod-n8n:
     environment: production
     needs:
@@ -152,14 +314,14 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
-          TF_VAR_kubeconfig: ${{ steps.kubeconfig-path.outputs.out }}
+          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
       - name: Deploy n8n
         working-directory: terraform/applications/n8n
         run: tofu apply -auto-approve -input=false
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
-          TF_VAR_kubeconfig: ${{ steps.kubeconfig-path.outputs.out }}
+          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
 
   deploy-prod-node-red:
     environment: production
@@ -200,7 +362,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
           TF_VAR_github_token: ${{ github.token }}
           TF_VAR_github_username: ${{ github.triggering_actor }}
-          TF_VAR_kubeconfig: ${{ steps.kubeconfig-path.outputs.out }}
+          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
       - name: Deploy Node-RED
         working-directory: terraform/applications/node-red
         run: tofu apply -auto-approve -input=false
@@ -209,4 +371,4 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
           TF_VAR_github_token: ${{ github.token }}
           TF_VAR_github_username: ${{ github.triggering_actor }}
-          TF_VAR_kubeconfig: ${{ steps.kubeconfig-path.outputs.out }}
+          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}

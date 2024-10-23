@@ -73,13 +73,3 @@ resource "vultr_kubernetes_node_pools" "monitoring" {
   min_nodes     = 2
   max_nodes     = 3
 }
-
-resource "vultr_kubernetes_node_pools" "np2cpu2mem" {
-  cluster_id    = vultr_kubernetes.k8s.id
-  node_quantity = 1
-  plan          = "vc2-2c-2gb"
-  label         = "frankenodes2cpu2ram"
-  auto_scaler   = true
-  min_nodes     = 1
-  max_nodes     = 3
-}

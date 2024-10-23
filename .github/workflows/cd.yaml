@@ -203,7 +203,6 @@ jobs:
   deploy-prod-frankencluster:
     environment: production
     needs:
-      - lint
       - secrets
     runs-on: ubuntu-latest
     steps:
@@ -306,11 +305,57 @@ jobs:
           TF_VAR_smtp_server: ${{ steps.smtp-server.outputs.out }}
           TF_VAR_smtp_username: ${{ steps.smtp-username.outputs.out }}
 
+  deploy-prod-httpbin:
+    environment: production
+    needs:
+      - secrets
+      - deploy-prod-frankencluster
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: opentofu/setup-opentofu@v1
+      - id: kubeconfig-base64
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_kubeconfig_base64 }}
+      - id: kubeconfig-path
+        run: |
+          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
+          echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
+      - id: s3-access-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_s3_access_key }}
+      - id: s3-secret-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
+      - name: Initialize tofu
+        working-directory: terraform/applications/httpbin
+        run: tofu init -input=false
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+      - name: Deploy httpbin
+        working-directory: terraform/applications/httpbin
+        run: tofu apply -auto-approve -input=false
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+
   deploy-prod-n8n:
     environment: production
     needs:
-      - lint
       - secrets
+      - deploy-prod-frankencluster
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -355,8 +400,8 @@ jobs:
   deploy-prod-node-red:
     environment: production
     needs:
-      - lint
       - secrets
+      - deploy-prod-frankencluster
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

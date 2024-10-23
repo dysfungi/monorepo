@@ -1,9 +1,43 @@
+variable "kubeconfig_path" {
+  type = string
+}
+
+terraform {
+  backend "s3" {
+    bucket                      = "frankenstructure"
+    key                         = "httpbin/production/terraform.tfstate"
+    endpoint                    = "sjc1.vultrobjects.com"
+    region                      = "us-west-1"
+    skip_credentials_validation = true
+  }
+  required_version = ">= 1.5.7"
+  required_providers {
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "2.32.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "2.15.0"
+    }
+  }
+}
+
+# https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs
+provider "kubernetes" {
+  config_path = var.kubeconfig_path
+}
+
+# https://registry.terraform.io/providers/hashicorp/helm/latest/docs
+provider "helm" {
+  kubernetes {
+    config_path = var.kubeconfig_path
+  }
+}
+
 resource "kubernetes_namespace" "httpbin" {
   metadata {
     name = "httpbin"
-    labels = {
-      tier = "prod"
-    }
   }
 }
 
@@ -20,27 +54,6 @@ resource "helm_release" "httpbin" {
   }
 }
 
-# https://github.com/vultr/cert-manager-webhook-vultr?tab=readme-ov-file#request-a-certificate
-resource "kubernetes_manifest" "certificate_httpbin_frank_sh" {
-  manifest = {
-    "apiVersion" = "cert-manager.io/v1"
-    "kind"       = "Certificate"
-    "metadata" = {
-      "name"      = "httpbin-frank-sh"
-      "namespace" = kubernetes_namespace.httpbin.metadata[0].name
-    }
-    "spec" = {
-      "commonName" = "httpbin.frank.sh"
-      "dnsNames"   = ["httpbin.frank.sh", "httpbin.api.frank.sh"]
-      "issuerRef" = {
-        "kind" = "ClusterIssuer"
-        "name" = kubernetes_manifest.clusterissuer_letsencrypt_prod.manifest.metadata.name
-      }
-      "secretName" = "httpbin-frank-sh-tls"
-    }
-  }
-}
-
 resource "kubernetes_manifest" "httpbin_route" {
   manifest = {
     "apiVersion" = "gateway.networking.k8s.io/v1"
@@ -53,13 +66,14 @@ resource "kubernetes_manifest" "httpbin_route" {
       "parentRefs" = [
         {
           "kind"        = "Gateway"
-          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
-          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "name"        = "prod-web"
+          "namespace"   = "nginx-gateway"
           "sectionName" = "https-wildcard.frank.sh"
         }
       ]
       "hostnames" = [
         "httpbin.frank.sh",
+        "httpbingo.frank.sh",
       ]
       "rules" = [
         {

@@ -14,29 +14,22 @@ jobs:
   build:
     uses: ./.github/workflows/build.yaml
 
-  secrets:
+  init-secrets:
     runs-on: ubuntu-latest
     steps:
-      - id: op-secrets
+      - id: vultr-api-key
         uses: 1password/load-secrets-action@v2
         with:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
-          discord_webhook_alerts: op://Frankenstructure/Discord Webhook - breaktheloop/url
-          grafana_admin_password: op://Frankenstructure/Grafana - frank.sh/password
-          smtp_password: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/password
-          smtp_port: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/port
-          smtp_server: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/server
-          smtp_username: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/username
-          vultr_api_key: op://Frankenstructure/Vultr API Key/password
+          out: op://Frankenstructure/Vultr API Key/password
       - uses: defrank/action-vultr@v2024.10.20-1
         with:
-          token: ${{ steps.op-secrets.outputs.vultr_api_key }}
-      - id: vultr-secrets
+          token: ${{ steps.vultr-api-key.outputs.out }}
+      - id: s3-keys
         env:
-          VULTR_API_KEY: ${{ steps.op-secrets.outputs.vultr_api_key }}
+          VULTR_API_KEY: ${{ steps.vultr-api-key.outputs.out }}
         run: >
           vultr-cli --output=json object-storage list
           | jq --raw-output >> "$GITHUB_OUTPUT" '
@@ -45,95 +38,34 @@ jobs:
           | ["s3_access_key=" + .s3_access_key, "s3_secret_key=" + .s3_secret_key]
           | join("\n")
           '
-
-          echo -n "kubeconfig_base64=" >> "$GITHUB_OUTPUT";
-          vultr-cli --output=json kubernetes list
-          | jq --raw-output '.vke_clusters[] | select(.label == "frank8s").id'
-          | xargs -- vultr-cli kubernetes config >> "$GITHUB_OUTPUT"
-      - id: cloudflare-api-token
+      - id: enc-s3-access-key
         uses: cloudposse/github-action-secret-outputs@main
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
-          in: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
-      - id: discord-webhook-alerts
+          in: ${{ steps.s3-keys.outputs.s3_access_key }}
+      - id: enc-s3-secret-key
         uses: cloudposse/github-action-secret-outputs@main
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
-          in: ${{ steps.op-secrets.outputs.discord_webhook_alerts }}
-      - id: grafana-admin-password
+          in: ${{ steps.s3-keys.outputs.s3_secret_key }}
+      - id: enc-vultr-api-key
         uses: cloudposse/github-action-secret-outputs@main
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
-          in: ${{ steps.op-secrets.outputs.grafana_admin_password }}
-      - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.vultr-secrets.outputs.kubeconfig_base64 }}
-      - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.vultr-secrets.outputs.s3_access_key }}
-      - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.vultr-secrets.outputs.s3_secret_key }}
-      - id: smtp-password
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.smtp_password }}
-      - id: smtp-port
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.smtp_port }}
-      - id: smtp-server
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.smtp_server }}
-      - id: smtp-username
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.smtp_username }}
-      - id: vultr-api-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.vultr_api_key }}
+          in: ${{ steps.vultr-api-key.outputs.out }}
     outputs:
-      enc_cloudflare_api_token: ${{ steps.cloudflare-api-token.outputs.out }}
-      enc_discord_webhook_alerts: ${{ steps.discord-webhook-alerts.outputs.out }}
-      enc_grafana_admin_password: ${{ steps.grafana-admin-password.outputs.out }}
-      enc_kubeconfig_base64: ${{ steps.kubeconfig-base64.outputs.out }}
-      enc_s3_access_key: ${{ steps.s3-access-key.outputs.out }}
-      enc_s3_secret_key: ${{ steps.s3-secret-key.outputs.out }}
-      enc_smtp_port: ${{ steps.smtp-port.outputs.out }}
-      enc_smtp_password: ${{ steps.smtp-password.outputs.out }}
-      enc_smtp_server: ${{ steps.smtp-server.outputs.out }}
-      enc_smtp_username: ${{ steps.smtp-username.outputs.out }}
-      enc_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
+      enc_s3_access_key: ${{ steps.enc-s3-access-key.outputs.out }}
+      enc_s3_secret_key: ${{ steps.enc-s3-secret-key.outputs.out }}
+      enc_vultr_api_key: ${{ steps.enc-vultr-api-key.outputs.out }}
 
   deploy-prod-frankenstructure:
     environment: production
     needs:
       - lint
-      - secrets
+      - init-secrets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -143,19 +75,19 @@ jobs:
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_access_key }}
+          in: ${{ needs.init-secrets.outputs.enc_s3_access_key }}
       - id: s3-secret-key
         uses: cloudposse/github-action-secret-outputs@main
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
+          in: ${{ needs.init-secrets.outputs.enc_s3_secret_key }}
       - id: vultr-api-key
         uses: cloudposse/github-action-secret-outputs@main
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
-          in: ${{ needs.secrets.outputs.enc_vultr_api_key }}
+          in: ${{ needs.init-secrets.outputs.enc_vultr_api_key }}
       - name: Initialize tofu
         working-directory: terraform/infrastructure/frankenstructure
         run: tofu init -input=false
@@ -170,6 +102,103 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
+
+  secrets:
+    runs-on: ubuntu-latest
+    needs:
+      - init-secrets
+      - deploy-prod-frankenstructure
+    steps:
+      - id: vultr-api-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.init-secrets.outputs.enc_vultr_api_key }}
+      - id: op-secrets
+        uses: 1password/load-secrets-action@v2
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
+          discord_webhook_alerts: op://Frankenstructure/Discord Webhook - breaktheloop/url
+          grafana_admin_password: op://Frankenstructure/Grafana - frank.sh/password
+          smtp_password: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/password
+          smtp_port: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/port
+          smtp_server: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/server
+          smtp_username: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/username
+      - uses: defrank/action-vultr@v2024.10.20-1
+        with:
+          token: ${{ steps.vultr-api-key.outputs.out }}
+      - id: kubeconfig-base64
+        env:
+          VULTR_API_KEY: ${{ steps.vultr-api-key.outputs.out }}
+        run: >
+          echo -n "out=" >> "$GITHUB_OUTPUT";
+          vultr-cli --output=json kubernetes list
+          | jq --raw-output '.vke_clusters[] | select(.label == "frank8s").id'
+          | xargs -- vultr-cli kubernetes config >> "$GITHUB_OUTPUT"
+      - id: enc-cloudflare-api-token
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
+      - id: enc-discord-webhook-alerts
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.discord_webhook_alerts }}
+      - id: enc-grafana-admin-password
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.grafana_admin_password }}
+      - id: enc-kubeconfig-base64
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.kubeconfig-base64.outputs.out }}
+      - id: enc-smtp-password
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.smtp_password }}
+      - id: enc-smtp-port
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.smtp_port }}
+      - id: enc-smtp-server
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.smtp_server }}
+      - id: enc-smtp-username
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.smtp_username }}
+    outputs:
+      enc_cloudflare_api_token: ${{ steps.enc-cloudflare-api-token.outputs.out }}
+      enc_discord_webhook_alerts: ${{ steps.enc-discord-webhook-alerts.outputs.out }}
+      enc_grafana_admin_password: ${{ steps.enc-grafana-admin-password.outputs.out }}
+      enc_kubeconfig_base64: ${{ steps.enc-kubeconfig-base64.outputs.out }}
+      enc_s3_access_key: ${{ needs.init-secrets.outputs.enc_s3_access_key }}
+      enc_s3_secret_key: ${{ needs.init-secrets.outputs.enc_s3_secret_key }}
+      enc_smtp_password: ${{ steps.enc-smtp-password.outputs.out }}
+      enc_smtp_port: ${{ steps.enc-smtp-port.outputs.out }}
+      enc_smtp_server: ${{ steps.enc-smtp-server.outputs.out }}
+      enc_smtp_username: ${{ steps.enc-smtp-username.outputs.out }}
+      enc_vultr_api_key: ${{ needs.init-secrets.outputs.enc_vultr_api_key }}
 
   deploy-prod-frankencluster:
     environment: production

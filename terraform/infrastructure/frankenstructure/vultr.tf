@@ -50,6 +50,15 @@ resource "vultr_kubernetes" "k8s" {
   version          = "v1.31.0+1"
   ha_controlplanes = false
   enable_firewall  = true
+
+  node_pools {
+    node_quantity = 1
+    plan          = "vc2-2c-2gb"
+    label         = "default"
+    auto_scaler   = true
+    min_nodes     = 1
+    max_nodes     = 3
+  }
 }
 
 resource "vultr_kubernetes_node_pools" "foundation" {

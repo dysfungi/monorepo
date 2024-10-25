@@ -328,14 +328,62 @@ resource "kubernetes_manifest" "notifications" {
     }
     "spec" = {
       "route" = {
-        "receiver"       = "primary"
+        "receiver"       = "null"
         "groupWait"      = "30s"
         "groupInterval"  = "5m"
         "repeatInterval" = "12h"
+        "routes" = [
+          {
+            "receiver"       = "deadmans-switch"
+            "groupWait"      = "0s"
+            "groupInterval"  = "30s"
+            "repeatInterval" = "30s"
+            "matchers" = [
+              {
+                "name"      = "severity"
+                "matchType" = "="
+                "value"     = "heartbeat"
+              },
+            ]
+          },
+          {
+            "receiver" = "low-priority"
+            "matchers" = [
+              {
+                "name"      = "severity"
+                "matchType" = "~="
+                "value"     = "error|critical"
+              },
+            ]
+          },
+          {
+            "receiver" = "low-priority"
+            "matchers" = [
+              {
+                "name"      = "severity"
+                "matchType" = "="
+                "value"     = "warning"
+              },
+            ]
+          },
+        ]
       }
       "receivers" = [
         {
-          "name" = "primary"
+          "name" = "deadmans-switch"
+          "webhookConfigs" = [
+            {
+              "sendResolved" = false
+              "urlSecret" = {
+                "key"      = "healthchecksioPingUrl"
+                "name"     = kubernetes_secret.prom_secrets.metadata[0].name
+                "optional" = false
+              }
+            },
+          ]
+        },
+        {
+          "name" = "low-priority"
           "discordConfigs" = [
             {
               "sendResolved" = true
@@ -351,47 +399,6 @@ resource "kubernetes_manifest" "notifications" {
             {
               "sendResolved" = true
               "to"           = "alerts@frank.sh"
-            },
-          ]
-        },
-      ]
-    }
-  }
-}
-
-resource "kubernetes_manifest" "deadmans_switch_alertmanagerconfig" {
-  manifest = {
-    "apiVersion" = "monitoring.coreos.com/v1alpha1"
-    "kind"       = "AlertmanagerConfig"
-    "metadata" = {
-      "name"      = "deadmans-switch"
-      "namespace" = helm_release.kube_prometheus.namespace
-    }
-    "spec" = {
-      "route" = {
-        "receiver"       = "deadmans-switch"
-        "groupWait"      = "0s"
-        "groupInterval"  = "15s"
-        "repeatInterval" = "15s"
-        "matchers" = [
-          {
-            "name"      = "severity"
-            "matchType" = "="
-            "value"     = "heartbeat"
-          },
-        ]
-      }
-      "receivers" = [
-        {
-          "name" = "deadmans-switch"
-          "webhookConfigs" = [
-            {
-              "sendResolved" = false
-              "urlSecret" = {
-                "key"      = "healthchecksioPingUrl"
-                "name"     = kubernetes_secret.prom_secrets.metadata[0].name
-                "optional" = false
-              }
             },
           ]
         },

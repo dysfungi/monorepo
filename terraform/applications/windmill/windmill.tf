@@ -55,11 +55,51 @@ resource "helm_release" "windmill" {
       "hub" = {
         "baseDomain"   = "windmill.frank.sh"
         "baseProtocol" = "https"
+        "resources" = {
+          "limits" = {
+            "cpu"    = "1"
+            "memory" = "512Mi"
+          }
+        }
       }
       "windmill" = {
+        "app" = {
+          "resources" = {
+            "limits" = {
+              "cpu"    = "1"
+              "memory" = "512Mi"
+            }
+          }
+        }
         "baseDomain"   = "windmill.frank.sh"
         "baseProtocol" = "https"
         "cookieDomain" = "windmill.frank.sh"
+        "workerGroups" = [
+          {
+            "name"     = "default"
+            "replicas" = 2
+            "mode"     = "worker"
+            "podSecurityContext" = {
+              "runAsUser"    = 0
+              "runAsNonRoot" = false
+            }
+            "resources" = {
+              "limits" = {
+                "cpu"    = "1"
+                "memory" = "512Mi"
+              }
+            }
+            "terminationGracePeriod" = 300
+          },
+          {
+            "name"     = "native"
+            "replicas" = 0
+          },
+          {
+            "name"     = "gpu"
+            "replicas" = 0
+          },
+        ]
       }
     }),
   ]

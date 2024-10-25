@@ -47,6 +47,31 @@ def build() -> dict:
 
 
 @task
+def get_config() -> Generator[dict, None, None]:
+    yield {
+        "name": "alertmanager",
+        "actions": [
+            " | ".join(
+                [
+                    _kubectl(
+                        "exec",
+                        "svc/kube-prometheus-alertmanager",
+                        "--",
+                        "cat",
+                        "/etc/alertmanager/config_out/alertmanager.env.yaml",
+                        namespace="kube-prometheus",
+                    ),
+                    "tee configs/alertmanager.env.yaml",
+                ]
+            ),
+            "echo",
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
 def debug_staging_cert() -> Generator[dict, None, None]:
     yield {
         "name": "certificate",

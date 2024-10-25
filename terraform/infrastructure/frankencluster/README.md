@@ -108,6 +108,15 @@ Owned by [frankenstructure](../frankenstructure).
 
 - [Vultr blocks some ports][vultr-blocked-ports]
 
+#### Dead Man's Switch
+
+##### Healthcheck.io
+
+**Resources:**
+
+- [Healthchecks.io Documentation][healthchecks-io-docs]
+- [Healthchecks.io | Terraform Provider][terraform-provider-healthchecksio]
+
 #### Logs
 
 ##### Loki
@@ -180,6 +189,7 @@ _TODO_
 [gateway-api-docs]: https://gateway-api.sigs.k8s.io/implementations/#nginx-gateway-fabric
 [ghcr-docs-pkgs]: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
 [grafana-dash-prom-blackbox-exporter]: https://grafana.com/grafana/dashboards/7587-prometheus-blackbox-exporter/
+[heathchecks-io-docs]: https://healthchecks.io/docs/
 [httpbingo-helm-chart]: https://github.com/matheusfm/httpbin-chart
 [httpbingo]: https://httpbingo.org/
 [k8s-docs-svc-lb]: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
@@ -192,6 +202,7 @@ _TODO_
 [ngf-routing]: https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/routing-traffic-to-your-app/
 [prom-blackbox-helm-chart]: https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-blackbox-exporter/README.md
 [tempo-docs]: https://grafana.com/oss/tempo/
+[terraform-provider-healthchecksio]: https://registry.terraform.io/providers/kristofferahl/healthchecksio/latest/docs
 [terraform-provider-helm]: https://registry.terraform.io/providers/hashicorp/helm/latest/docs
 [terraform-provider-k8s]: https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs
 [terraform-provider-kustomization]: https://registry.terraform.io/providers/kbst/kustomization/latest/docs

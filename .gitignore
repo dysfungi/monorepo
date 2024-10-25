@@ -165,4 +165,5 @@ cython_debug/
 .doit.db*
 
 # Secrets
+configs/
 secrets/

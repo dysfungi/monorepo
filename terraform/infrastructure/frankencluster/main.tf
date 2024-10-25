@@ -20,6 +20,10 @@ terraform {
       source  = "kbst/kustomization"
       version = "0.9.6"
     }
+    healthchecksio = {
+      source  = "kristofferahl/healthchecksio"
+      version = "2.0.0"
+    }
   }
 }
 
@@ -44,4 +48,8 @@ provider "helm" {
 # https://registry.terraform.io/providers/kbst/kustomization/latest/docs#example-usage
 provider "kustomization" {
   kubeconfig_path = var.kubeconfig_path
+}
+
+provider "healthchecksio" {
+  api_key = var.healthchecksio_api_key
 }

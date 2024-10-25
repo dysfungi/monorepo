@@ -15,19 +15,36 @@ resource "kubernetes_namespace" "kube_prometheus" {
   }
 }
 
-resource "kubernetes_secret" "discord_webhooks" {
+data "healthchecksio_channel" "email" {
+  kind = "email"
+}
+
+resource "healthchecksio_check" "prom_watchdog" {
+  name = "frankenstructure-prom-operator-watchdog"
+  desc = "Prometheus Operator Watchdog for Frankenstructure"
+
+  grace    = 360 # seconds
+  schedule = "* * * * *"
+  timezone = "America/Los_Angeles"
+  channels = [
+    data.healthchecksio_channel.email.id,
+  ]
+}
+
+resource "kubernetes_secret" "prom_secrets" {
   metadata {
-    name      = "discord-webhooks"
+    name      = "prometheus-secrets"
     namespace = kubernetes_namespace.kube_prometheus.metadata[0].name
   }
   data = {
-    alertsWebhook = var.discord_webhook_alerts
+    discordWebhookAlerts  = var.discord_webhook_alerts
+    healthchecksioPingUrl = healthchecksio_check.prom_watchdog.ping_url
   }
 }
 
-resource "kubernetes_secret" "smtp_creds" {
+resource "kubernetes_secret" "alertmanager_env" {
   metadata {
-    name      = "smtp-credentials"
+    name      = "alertmanager-env"
     namespace = kubernetes_namespace.kube_prometheus.metadata[0].name
   }
   data = {
@@ -128,7 +145,7 @@ resource "helm_release" "kube_prometheus" {
               "envFrom" = [
                 {
                   "secretRef" = {
-                    "name"     = kubernetes_secret.smtp_creds.metadata[0].name
+                    "name"     = kubernetes_secret.alertmanager_env.metadata[0].name
                     "optional" = false
                   }
                 },
@@ -141,7 +158,7 @@ resource "helm_release" "kube_prometheus" {
               "envFrom" = [
                 {
                   "secretRef" = {
-                    "name"     = kubernetes_secret.smtp_creds.metadata[0].name
+                    "name"     = kubernetes_secret.alertmanager_env.metadata[0].name
                     "optional" = false
                   }
                 },
@@ -271,8 +288,8 @@ resource "kubernetes_role" "kube_prom_operator_secret_reader" {
     api_groups = [""]
     resources  = ["secrets"]
     resource_names = [
-      kubernetes_secret.discord_webhooks.metadata[0].name,
-      kubernetes_secret.smtp_creds.metadata[0].name,
+      kubernetes_secret.prom_secrets.metadata[0].name,
+      kubernetes_secret.alertmanager_env.metadata[0].name,
     ]
     verbs = ["get", "watch"]
   }
@@ -297,7 +314,7 @@ resource "kubernetes_role_binding" "kube_prom_secret_reader" {
   }
 }
 
-resource "kubernetes_manifest" "alertmanager_config" {
+resource "kubernetes_manifest" "notifications" {
   manifest = {
     "apiVersion" = "monitoring.coreos.com/v1alpha1"
     "kind"       = "AlertmanagerConfig"
@@ -321,10 +338,9 @@ resource "kubernetes_manifest" "alertmanager_config" {
             {
               "sendResolved" = true
               "apiURL" = {
-                "key"      = "alertsWebhook"
-                "name"     = kubernetes_secret.discord_webhooks.metadata[0].name
+                "key"      = "discordWebhookAlerts"
+                "name"     = kubernetes_secret.prom_secrets.metadata[0].name
                 "optional" = false
-
               }
             },
           ]
@@ -333,6 +349,50 @@ resource "kubernetes_manifest" "alertmanager_config" {
             {
               "sendResolved" = true
               "to"           = "alerts@frank.sh"
+            },
+          ]
+        },
+      ]
+    }
+  }
+}
+
+resource "kubernetes_manifest" "dead_mans_switch" {
+  manifest = {
+    "apiVersion" = "monitoring.coreos.com/v1alpha1"
+    "kind"       = "AlertmanagerConfig"
+    "metadata" = {
+      "name"      = "dead-mans-switch"
+      "namespace" = helm_release.kube_prometheus.namespace
+    }
+    "spec" = {
+      "route" = {
+        "receiver" = "dead-mans-switch"
+        "groupBy" = [
+        ]
+        "groupWait"      = "30s"
+        "groupInterval"  = "1m"
+        "repeatInterval" = "1m"
+        "matchers" = [
+          {
+            "name"      = "alertname"
+            "matchType" = "="
+            "value"     = "Watchdog"
+          },
+        ]
+      }
+      "receivers" = [
+        {
+          "name" = "dead-mans-switch"
+          "webhookConfigs" = [
+            {
+              "sendResolved" = false
+              "urlSecret" = {
+                "key"      = "healthchecksioPingUrl"
+                "name"     = kubernetes_secret.prom_secrets.metadata[0].name
+                "optional" = false
+              }
+              "maxAlerts" = 0
             },
           ]
         },
@@ -518,7 +578,6 @@ resource "kubernetes_manifest" "alerts" {
   }
 }
 
-/*
 resource "kubernetes_manifest" "alertmanager_route" {
   manifest = {
     "apiVersion" = "gateway.networking.k8s.io/v1"
@@ -563,6 +622,7 @@ resource "kubernetes_manifest" "alertmanager_route" {
   }
 }
 
+/*
 resource "kubernetes_manifest" "prometheus_route" {
   manifest = {
     "apiVersion" = "gateway.networking.k8s.io/v1"

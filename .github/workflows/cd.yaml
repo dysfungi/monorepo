@@ -124,6 +124,7 @@ jobs:
           cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
           discord_webhook_alerts: op://Frankenstructure/Discord Webhook - breaktheloop/url
           grafana_admin_password: op://Frankenstructure/Grafana - frank.sh/password
+          healthchecksio_api_key: op://Frankenstructure/Healthchecks.io API Key/credential
           smtp_password: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/password
           smtp_port: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/port
           smtp_server: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/server
@@ -157,6 +158,12 @@ jobs:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.op-secrets.outputs.grafana_admin_password }}
+      - id: enc-healthchecksio-api-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.healthchecksio_api_key }}
       - id: enc-kubeconfig-base64
         uses: cloudposse/github-action-secret-outputs@main
         with:
@@ -191,6 +198,7 @@ jobs:
       enc_cloudflare_api_token: ${{ steps.enc-cloudflare-api-token.outputs.out }}
       enc_discord_webhook_alerts: ${{ steps.enc-discord-webhook-alerts.outputs.out }}
       enc_grafana_admin_password: ${{ steps.enc-grafana-admin-password.outputs.out }}
+      enc_healthchecksio_api_key: ${{ steps.enc-healthchecksio-api-key.outputs.out }}
       enc_kubeconfig_base64: ${{ steps.enc-kubeconfig-base64.outputs.out }}
       enc_s3_access_key: ${{ needs.init-secrets.outputs.enc_s3_access_key }}
       enc_s3_secret_key: ${{ needs.init-secrets.outputs.enc_s3_secret_key }}
@@ -226,6 +234,12 @@ jobs:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_grafana_admin_password }}
+      - id: healthchecksio-api-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_healthchecksio_api_key }}
       - id: kubeconfig-base64
         uses: cloudposse/github-action-secret-outputs@main
         with:
@@ -283,6 +297,7 @@ jobs:
           TF_VAR_github_token: ${{ github.token }}
           TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_grafana_admin_password: ${{ steps.grafana-admin-password.outputs.out }}
+          TF_VAR_healthchecksio_api_key: ${{ steps.healthchecksio-api-key.outputs.out }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
           TF_VAR_smtp_password: ${{ steps.smtp-password.outputs.out }}
           TF_VAR_smtp_port: ${{ steps.smtp-port.outputs.out }}
@@ -299,6 +314,7 @@ jobs:
           TF_VAR_github_token: ${{ github.token }}
           TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_grafana_admin_password: ${{ steps.grafana-admin-password.outputs.out }}
+          TF_VAR_healthchecksio_api_key: ${{ steps.healthchecksio-api-key.outputs.out }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
           TF_VAR_smtp_password: ${{ steps.smtp-password.outputs.out }}
           TF_VAR_smtp_port: ${{ steps.smtp-port.outputs.out }}

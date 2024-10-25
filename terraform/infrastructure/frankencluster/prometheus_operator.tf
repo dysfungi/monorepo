@@ -328,7 +328,7 @@ resource "kubernetes_manifest" "notifications" {
     }
     "spec" = {
       "route" = {
-        "receiver" = "null"
+        "receiver" = "void"
         "groupBy" = [
           "alertname",
         ]
@@ -405,7 +405,7 @@ resource "kubernetes_manifest" "notifications" {
             },
           ]
         },
-        { "name" = "null" },
+        { "name" = "void" },
       ]
     }
   }

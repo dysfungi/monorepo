@@ -1,7 +1,6 @@
 # monorepo
 
-[![CI Workflow][ci-workflow-badge]][ci-workflow]
-[![CD Workflow][ci-workflow-badge]][ci-workflow]
+[![CI/CD Workflow][cicd-workflow-badge]][cicd-workflow]
 ![healthchecks.io](https://healthchecks.io/badge/a6dd6e92-f5bd-4962-9d33-8ee123/9-hlWt7s-2.svg)
 
 ## organization
@@ -29,9 +28,7 @@ terraform/infrastructure/frankenstructure
 ---
 
 [awesome-monorepo]: https://github.com/korfuri/awesome-monorepo?tab=readme-ov-file
-[cd-workflow-badge]: https://github.com/defrank/monorepo/actions/workflows/cd.yaml/badge.svg
-[cd-workflow]: https://github.com/defrank/monorepo/actions/workflows/cd.yaml
-[ci-workflow-badge]: https://github.com/defrank/monorepo/actions/workflows/ci.yaml/badge.svg
-[ci-workflow]: https://github.com/defrank/monorepo/actions/workflows/ci.yaml
+[cicd-workflow-badge]: https://github.com/defrank/monorepo/actions/workflows/cicd.yaml/badge.svg
+[cicd-workflow]: https://github.com/defrank/monorepo/actions/workflows/cicd.yaml
 [github-action-op-load-secrets]: https://github.com/marketplace/actions/load-secrets-from-1password
 [op-github-actions-docs]: https://developer.1password.com/docs/ci-cd/github-actions/

@@ -1,9 +1,10 @@
-name: Continuous Deployment
+name: Continuous Integration & Deployment
 
 on:
   push:
     branches:
       - main
+  pull_request:
 
 permissions: read-all
 
@@ -14,7 +15,18 @@ jobs:
   build:
     uses: ./.github/workflows/build.yaml
 
+  check-deploy-prod:
+    if: github.ref_name == 'main'
+    environment: production
+    needs:
+      - lint
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deploying to production!"
+
   init-secrets:
+    needs:
+      - check-deploy-prod
     runs-on: ubuntu-latest
     steps:
       - id: vultr-api-key
@@ -64,7 +76,7 @@ jobs:
   deploy-prod-frankenstructure:
     environment: production
     needs:
-      - lint
+      - check-deploy-prod
       - init-secrets
     runs-on: ubuntu-latest
     steps:
@@ -211,6 +223,7 @@ jobs:
   deploy-prod-frankencluster:
     environment: production
     needs:
+      - check-deploy-prod
       - secrets
     runs-on: ubuntu-latest
     steps:

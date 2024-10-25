@@ -328,7 +328,10 @@ resource "kubernetes_manifest" "notifications" {
     }
     "spec" = {
       "route" = {
-        "receiver"       = "null"
+        "receiver" = "null"
+        "groupBy" = [
+          "alertname",
+        ]
         "groupWait"      = "30s"
         "groupInterval"  = "5m"
         "repeatInterval" = "12h"
@@ -402,6 +405,7 @@ resource "kubernetes_manifest" "notifications" {
             },
           ]
         },
+        { "name" = "null" },
       ]
     }
   }

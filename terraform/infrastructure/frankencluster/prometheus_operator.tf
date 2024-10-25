@@ -173,6 +173,7 @@ resource "helm_release" "kube_prometheus" {
           "storage" = {
             "volumeClaimTemplate" = {
               "spec" = {
+                # "volumeName" = "alertmanager"
                 "storageClassName" = "vultr-block-storage"
                 "accessModes"      = ["ReadWriteOnce"]
                 "resources" = {
@@ -235,6 +236,7 @@ resource "helm_release" "kube_prometheus" {
           "storageSpec" = {
             "volumeClaimTemplate" = {
               "spec" = {
+                # "volumeName" = "prometheus"
                 "storageClassName" = "vultr-block-storage"
                 "accessModes"      = ["ReadWriteOnce"]
                 "resources" = {
@@ -267,6 +269,7 @@ resource "helm_release" "kube_prometheus" {
           "storage" = {
             "volumeClaimTemplate" = {
               "spec" = {
+                # "volumeName" = "thanos-ruler"
                 "storageClassName" = "vultr-block-storage"
                 "accessModes"      = ["ReadWriteOnce"]
                 "resources" = {

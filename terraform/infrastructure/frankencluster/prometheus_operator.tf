@@ -357,7 +357,7 @@ resource "kubernetes_manifest" "notifications" {
             "matchers" = [
               {
                 "name"      = "severity"
-                "matchType" = "~="
+                "matchType" = "=~"
                 "value"     = "error|critical"
               },
             ]

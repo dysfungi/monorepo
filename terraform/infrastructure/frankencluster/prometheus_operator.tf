@@ -138,6 +138,10 @@ resource "helm_release" "kube_prometheus" {
     yamlencode({
       "alertmanager" = {
         "alertmanagerSpec" = {
+          # https://github.com/prometheus-operator/prometheus-operator/issues/3737#issuecomment-1326667523
+          "alertmanagerConfigMatcherStrategy" = {
+            "type" = "None"
+          }
           # https://github.com/prometheus-operator/prometheus-operator/issues/6805#issuecomment-2273008543
           "containers" = [
             {
@@ -324,9 +328,7 @@ resource "kubernetes_manifest" "notifications" {
     }
     "spec" = {
       "route" = {
-        "receiver" = "primary"
-        "groupBy" = [
-        ]
+        "receiver"       = "primary"
         "groupWait"      = "30s"
         "groupInterval"  = "5m"
         "repeatInterval" = "12h"
@@ -367,9 +369,7 @@ resource "kubernetes_manifest" "deadmans_switch_alertmanagerconfig" {
     }
     "spec" = {
       "route" = {
-        "receiver" = "deadmans-switch"
-        "groupBy" = [
-        ]
+        "receiver"       = "deadmans-switch"
         "groupWait"      = "0s"
         "groupInterval"  = "15s"
         "repeatInterval" = "15s"
@@ -392,7 +392,6 @@ resource "kubernetes_manifest" "deadmans_switch_alertmanagerconfig" {
                 "name"     = kubernetes_secret.prom_secrets.metadata[0].name
                 "optional" = false
               }
-              "maxAlerts" = 0
             },
           ]
         },

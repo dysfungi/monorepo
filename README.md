@@ -1,7 +1,7 @@
 # monorepo
 
 [![CI/CD Workflow][cicd-workflow-badge]][cicd-workflow]
-![healthchecks.io](https://healthchecks.io/badge/a6dd6e92-f5bd-4962-9d33-8ee123/9-hlWt7s-2.svg)
+[![healthchecks.io][healthchecksio-badge]][healthchecksio-check]
 
 ## organization
 
@@ -31,4 +31,6 @@ terraform/infrastructure/frankenstructure
 [cicd-workflow-badge]: https://github.com/defrank/monorepo/actions/workflows/cicd.yaml/badge.svg
 [cicd-workflow]: https://github.com/defrank/monorepo/actions/workflows/cicd.yaml
 [github-action-op-load-secrets]: https://github.com/marketplace/actions/load-secrets-from-1password
+[healthchecksio-badge]: https://healthchecks.io/badge/a6dd6e92-f5bd-4962-9d33-8ee123/9-hlWt7s-2.svg
+[healthchecksio-check]: https://healthchecks.io/checks/831e3ad9-6187-4ba5-9c94-0d3cc764edc0/details/
 [op-github-actions-docs]: https://developer.1password.com/docs/ci-cd/github-actions/

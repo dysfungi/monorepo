@@ -136,6 +136,11 @@ resource "helm_release" "kube_prometheus" {
 
   values = [
     yamlencode({
+      "customRules" = {
+        "Watchdog" = {
+          "severity" = "heartbeat"
+        }
+      }
       "alertmanager" = {
         "alertmanagerSpec" = {
           # https://github.com/prometheus-operator/prometheus-operator/issues/3737#issuecomment-1326667523
@@ -476,45 +481,6 @@ resource "helm_release" "blackbox_exporter" {
       }
     }),
   ]
-}
-
-resource "kubernetes_manifest" "deadmans_switch_promrule" {
-  manifest = {
-    "apiVersion" = "monitoring.coreos.com/v1"
-    "kind"       = "PrometheusRule"
-    "metadata" = {
-      "name"      = "deadmans-switch"
-      "namespace" = helm_release.kube_prometheus.namespace
-    }
-    "spec" = {
-      "groups" = [
-        {
-          "name" = "deadmans-switch"
-          "rules" = [
-            {
-              # https://github.com/gouthamve/deadman
-              # https://blog.devops.dev/prometheus-dead-mans-switch-39cb221840b4
-              "alert" = "DeadMansSwitch"
-              "expr"  = "vector(1)"
-              "labels" = {
-                "severity" = "heartbeat"
-              }
-              "annotations" = {
-                "summary" = "An alert that should always be firing to certify that Alertmanager is working properly."
-                "description" = join("\n", [
-                  "This is an alert meant to ensrue that the entire alerting pipeline",
-                  " is functional. This alert is always firing; therefore, it should",
-                  " always be firing in Alertmanager and always fire against a receiver.",
-                  local.subannotation_value,
-                  local.subannotation_labels,
-                ])
-              }
-            },
-          ]
-        },
-      ]
-    }
-  }
 }
 
 resource "kubernetes_manifest" "alerts" {

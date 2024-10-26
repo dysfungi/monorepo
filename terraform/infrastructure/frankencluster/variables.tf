@@ -1,8 +1,3 @@
-variable "cloudflare_api_token" {
-  type      = string
-  sensitive = true
-}
-
 variable "discord_webhook_alerts" {
   type      = string
   sensitive = true
@@ -12,15 +7,6 @@ variable "email" {
   type      = string
   sensitive = true
   default   = "derek@frank.sh"
-}
-
-variable "github_username" {
-  type = string
-}
-
-variable "github_token" {
-  type      = string
-  sensitive = true
 }
 
 variable "grafana_admin_password" {

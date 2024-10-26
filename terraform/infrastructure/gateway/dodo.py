@@ -12,7 +12,7 @@ logger = getLogger(__name__)
 DOIT_CONFIG: dict = {
     "default_tasks": [],
 }
-NAMESPACE = "kube-prometheus"
+NAMESPACE = "gateway"
 
 
 class task:
@@ -50,22 +50,69 @@ def build() -> dict:
 @task
 def get_config() -> Generator[dict, None, None]:
     yield {
-        "name": "alertmanager",
+        "name": "nginx",
         "actions": [
             "mkdir -p configs",
             " | ".join(
                 [
                     _kubectl(
                         "exec",
-                        "svc/kube-prometheus-alertmanager",
+                        "svc/nginx-gateway",
                         "--",
-                        "cat",
-                        "/etc/alertmanager/config_out/alertmanager.env.yaml",
+                        "nginx",
+                        "-T",
+                        container="nginx",
                         namespace=NAMESPACE,
                     ),
-                    "tee configs/alertmanager.env.yaml",
+                    "tee configs/nginx.conf",
                 ]
             ),
+            "echo",
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def debug_staging_cert() -> Generator[dict, None, None]:
+    yield {
+        "name": "certificate",
+        "actions": [
+            _kubectl("get", "certificate", namespace=NAMESPACE),
+            _kubectl("describe", "certificate", namespace=NAMESPACE),
+            "echo",
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+    yield {
+        "name": "certificaterequest",
+        "actions": [
+            _kubectl("get", "certificaterequest", namespace=NAMESPACE),
+            _kubectl("describe", "certificaterequest", namespace=NAMESPACE),
+            "echo",
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+    yield {
+        "name": "order",
+        "actions": [
+            _kubectl("get", "order", namespace=NAMESPACE),
+            _kubectl("describe", "order", namespace=NAMESPACE),
+            "echo",
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+    yield {
+        # https://cert-manager.io/docs/installation/kubectl/#verify
+        "name": "challenge",
+        "actions": [
+            _kubectl("get", "challenge", namespace=NAMESPACE),
+            _kubectl("describe", "challenge", namespace=NAMESPACE),
+            "dig -t TXT _acme-challenge.letsencrypt-test.staging.api.frank.sh",
             "echo",
         ],
         "title": tools.title_with_actions,
@@ -159,14 +206,30 @@ def logs(
         return extra
 
     yield {
-        "name": "kube-prometheus-prometheus",
+        "name": "external-dns",
         "actions": [
             _kubectl(
                 "logs",
                 namespace=NAMESPACE,
-                selector="app.kubernetes.io/name=kube-prometheus-prometheus",
+                selector="app.kubernetes.io/name=external-dns",
                 **options,
-                **_gen_extra(container=container),
+                **_gen_extra(container=container or "external-dns"),
+            ),
+        ],
+        "params": params,
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+    yield {
+        "name": "nginx",
+        "actions": [
+            _kubectl(
+                "logs",
+                namespace=NAMESPACE,
+                selector="app.kubernetes.io/name=nginx-gateway-fabric",
+                **options,
+                **_gen_extra(container=container or "nginx"),
             ),
         ],
         "params": params,
@@ -209,14 +272,15 @@ def setup() -> dict:
 def shell(command: list[str], shell: str = "/bin/sh") -> Generator[dict, None, None]:
     command = command or [shell, "--interactive", "--login"]
     yield {
-        "name": "prometheus",
+        "name": "nginx",
         "actions": [
             tools.Interactive(
                 _kubectl(
                     "exec",
-                    "deployment/kube-prometheus-prometheus",
+                    "deployment/nginx-gateway",
                     "--",
                     *command,
+                    container="nginx",
                     namespace=NAMESPACE,
                     stdin=True,
                     tty=True,
@@ -226,6 +290,48 @@ def shell(command: list[str], shell: str = "/bin/sh") -> Generator[dict, None, N
         "title": tools.title_with_actions,
         "verbosity": 2,
     }
+
+
+@task
+def test() -> Generator[dict, None, None]:
+    cert_manager_testfile = Path("tests/test-cert-manager.yaml")
+    assert cert_manager_testfile.exists()
+    clean_cert_manager = _kubectl("delete", filename=cert_manager_testfile)
+    yield {
+        # https://cert-manager.io/docs/installation/kubectl/#verify
+        "name": "cert-manager",
+        "actions": [
+            _kubectl("apply", filename=cert_manager_testfile),
+            "sleep 10",
+            _kubectl("describe", "certificate", namespace="cert-manager-test"),
+            clean_cert_manager,
+        ],
+        "clean": [clean_cert_manager],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+    certificate_testfile = Path("tests/test-certificate.yaml")
+    assert certificate_testfile.exists()
+    clean_certificate = _kubectl("delete", filename=certificate_testfile)
+    yield {
+        "name": "certificate",
+        "actions": [
+            _kubectl("apply", filename=certificate_testfile),
+            "sleep 10",
+            _kubectl("describe", filename=certificate_testfile),
+            clean_certificate,
+        ],
+        "clean": [clean_certificate],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+    for subtask in shell(command=["nginx", "-T"]):
+        if subtask.pop("name") == "nginx-gateway":
+            subtask["name"] = "nginx-config"
+            yield subtask
+            break
 
 
 class LogsExtra(TypedDict, total=False):

@@ -136,7 +136,7 @@ resource "kubernetes_manifest" "windmill_route" {
         {
           "kind"        = "Gateway"
           "name"        = "prod-web"
-          "namespace"   = "nginx-gateway"
+          "namespace"   = "gateway"
           "sectionName" = "https-wildcard.frank.sh"
         }
       ]

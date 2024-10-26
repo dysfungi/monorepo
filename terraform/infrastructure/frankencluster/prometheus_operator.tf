@@ -61,88 +61,48 @@ resource "helm_release" "kube_prometheus" {
   namespace        = kubernetes_namespace.kube_prometheus.metadata[0].name
   create_namespace = false
 
-  set {
-    name  = "fullnameOverride"
-    value = "kube-prometheus"
-  }
-
-  set {
-    name  = "grafana.adminPassword"
-    value = var.grafana_admin_password
-  }
-
-  set {
-    name  = "alertmanager.alertmanagerSpec.externalUrl"
-    value = "https://alertmanager.frank.sh"
-  }
-
-  set {
-    name  = "prometheus.prometheusSpec.externalUrl"
-    value = "https://prometheus.frank.sh"
-  }
-
-  set {
-    name  = "annotations.firing_alerts"
-    value = "https://grafana.frank.sh/alerting/list?search=state%3Afiring+type%3Aalerting&view=state"
-  }
-
-  set {
-    name  = "additionalRuleAnnotations.firing_alerts"
-    value = "https://grafana.frank.sh/alerting/list?search=state%3Afiring+type%3Aalerting&view=state"
-  }
-
-  set {
-    name  = "coreDns.enabled"
-    value = true
-  }
-
-  set {
-    name = "kubeControllerManager.enabled"
-    # https://github.com/prometheus-community/helm-charts/issues/3368#issuecomment-1563510980
-    value = false
-  }
-
-  set {
-    name  = "kubeDns.enabled"
-    value = false # conflicts with coreDns
-  }
-
-  set {
-    name  = "kubeEtcd.enabled"
-    value = true
-  }
-
-  set {
-    name = "kubeProxy.enabled"
-    # https://github.com/prometheus-community/helm-charts/issues/3368#issuecomment-1563510980
-    value = false
-  }
-
-  set {
-    name = "kubeScheduler.enabled"
-    # https://github.com/prometheus-community/helm-charts/issues/3368#issuecomment-1563510980
-    value = false
-  }
-
-  set {
-    name  = "kubeStateMetrics.enabled"
-    value = true
-  }
-
-  set {
-    name  = "kubelet.enabled"
-    value = true
-  }
-
   values = [
     yamlencode({
+      "fullnameOverride" = "kube-prometheus"
+      "annotations" = {
+        "firing_alerts" = "https://grafana.frank.sh/alerting/list?search=state%3Afiring+type%3Aalerting&view=state"
+      }
+      "additionalRuleAnnotations" = {
+        "firing_alerts" = "https://grafana.frank.sh/alerting/list?search=state%3Afiring+type%3Aalerting&view=state"
+      }
       "customRules" = {
         "Watchdog" = {
           "severity" = "heartbeat"
         }
       }
+      "coreDns" = { "enabled" = true }
+      "kubeControllerManager" = {
+        # https://github.com/prometheus-community/helm-charts/issues/3368#issuecomment-1563510980
+        "enabled" = false
+      }
+      "kubeDns" = {
+        "enabled" = false # conflicts with coreDns
+      }
+      "kubeEtcd" = {
+        "enabled" = true
+      }
+      "kubeProxy" = {
+        # https://github.com/prometheus-community/helm-charts/issues/3368#issuecomment-1563510980
+        "enabled" = false
+      }
+      "kubeScheduler" = {
+        # https://github.com/prometheus-community/helm-charts/issues/3368#issuecomment-1563510980
+        "enabled" = false
+      }
+      "kubeStateMetrics" = {
+        "enabled" = true
+      }
+      "kubelet" = {
+        "enabled" = true
+      }
       "alertmanager" = {
         "alertmanagerSpec" = {
+          "externalUrl" = "https://alertmanager.frank.sh"
           # https://github.com/prometheus-operator/prometheus-operator/issues/3737#issuecomment-1326667523
           "alertmanagerConfigMatcherStrategy" = {
             "type" = "None"
@@ -206,6 +166,7 @@ resource "helm_release" "kube_prometheus" {
         }
       }
       "grafana" = {
+        "adminPassword" = var.grafana_admin_password
         "persistence" = {
           "enabled" = true
           "type" : "pvc"
@@ -217,6 +178,7 @@ resource "helm_release" "kube_prometheus" {
       }
       "prometheus" = {
         "prometheusSpec" = {
+          "externalUrl"  = "https://prometheus.frank.sh"
           "nodeSelector" = local.monitoringNodeSelector
           "paused"       = false # https://prometheus-operator.dev/docs/platform/storage/#resizing-volumes
           "ruleSelector" = {

@@ -82,3 +82,14 @@ resource "vultr_kubernetes_node_pools" "monitoring" {
   min_nodes     = 2
   max_nodes     = 3
 }
+
+resource "vultr_kubernetes_node_pools" "production" {
+  cluster_id    = vultr_kubernetes.k8s.id
+  node_quantity = 2
+  plan          = "vc2-2c-4gb"
+  label         = "production"
+  tag           = "production"
+  auto_scaler   = true
+  min_nodes     = 2
+  max_nodes     = 3
+}

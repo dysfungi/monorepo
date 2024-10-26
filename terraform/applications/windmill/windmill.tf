@@ -35,6 +35,13 @@ provider "helm" {
   }
 }
 
+locals {
+  nodeSelector = {
+    "kubernetes.io/os"        = "linux"
+    "vke.vultr.com/node-pool" = "production"
+  }
+}
+
 resource "kubernetes_namespace" "windmill" {
   metadata {
     name = "windmill"
@@ -55,49 +62,60 @@ resource "helm_release" "windmill" {
       "hub" = {
         "baseDomain"   = "windmill.frank.sh"
         "baseProtocol" = "https"
+        "nodeSelector" = local.nodeSelector
         "resources" = {
           "limits" = {
-            "cpu"    = "1"
-            "memory" = "512Mi"
+            "cpu"    = "0.5"
+            "memory" = "1Gi"
           }
         }
       }
       "windmill" = {
         "app" = {
+          "nodeSelector" = local.nodeSelector
           "resources" = {
             "limits" = {
-              "cpu"    = "1"
-              "memory" = "512Mi"
+              "cpu"    = "0.5"
+              "memory" = "1Gi"
             }
           }
         }
         "baseDomain"   = "windmill.frank.sh"
         "baseProtocol" = "https"
         "cookieDomain" = "windmill.frank.sh"
+        "lsp" = {
+          "nodeSelector" = local.nodeSelector
+        }
+        "multiplayer" = {
+          "nodeSelector" = local.nodeSelector
+        }
         "workerGroups" = [
           {
-            "name"     = "default"
-            "replicas" = 2
-            "mode"     = "worker"
+            "name"         = "default"
+            "replicas"     = 2
+            "mode"         = "worker"
+            "nodeSelector" = local.nodeSelector
             "podSecurityContext" = {
               "runAsUser"    = 0
               "runAsNonRoot" = false
             }
             "resources" = {
               "limits" = {
-                "cpu"    = "1"
-                "memory" = "512Mi"
+                "cpu"    = "0.5"
+                "memory" = "1Gi"
               }
             }
             "terminationGracePeriod" = 300
           },
           {
-            "name"     = "native"
-            "replicas" = 0
+            "name"         = "native"
+            "replicas"     = 0
+            "nodeSelector" = local.nodeSelector
           },
           {
-            "name"     = "gpu"
-            "replicas" = 0
+            "name"         = "gpu"
+            "replicas"     = 0
+            "nodeSelector" = local.nodeSelector
           },
         ]
       }

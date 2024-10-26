@@ -48,10 +48,15 @@ resource "helm_release" "httpbin" {
   version    = "0.1.1"
   namespace  = kubernetes_namespace.httpbin.metadata[0].name
 
-  set {
-    name  = "replicaCount"
-    value = "2"
-  }
+  values = [
+    yamlencode({
+      "replicaCount" = "2"
+      "nodeSelector" = {
+        "kubernetes.io/os"        = "linux"
+        "vke.vultr.com/node-pool" = "production"
+      }
+    }),
+  ]
 }
 
 resource "kubernetes_manifest" "httpbin_route" {

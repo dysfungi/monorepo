@@ -72,6 +72,10 @@ resource "helm_release" "nodered" {
           "value" = "America/Los_Angeles"
         },
       ]
+      "nodeSelector" = {
+        "kubernetes.io/os"        = "linux"
+        "vke.vultr.com/node-pool" = "default"
+      }
     }),
   ]
 }

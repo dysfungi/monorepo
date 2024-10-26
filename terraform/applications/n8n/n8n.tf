@@ -49,15 +49,20 @@ resource "helm_release" "n8n" {
   version    = "0.25.2"
   namespace  = kubernetes_namespace.n8n.metadata[0].name
 
-  set {
-    name  = "extraEnv.WEBHOOK_TUNNEL_URL"
-    value = "https://n8n.frank.sh/"
-  }
-
-  set {
-    name  = "generic.timezone"
-    value = "America/Los_Angeles"
-  }
+  values = [
+    yamlencode({
+      "nodeSelector" = {
+        "kubernetes.io/os"        = "linux"
+        "vke.vultr.com/node-pool" = "default"
+      }
+      "generic" = {
+        "timezone" = "America/Los_Angeles"
+      }
+      "extraEnv" = {
+        "WEBHOOK_TUNNEL_URL" = "https://n8n.frank.sh/"
+      }
+    }),
+  ]
 }
 
 resource "kubernetes_manifest" "n8n_route" {

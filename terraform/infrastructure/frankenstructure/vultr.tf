@@ -93,3 +93,22 @@ resource "vultr_kubernetes_node_pools" "production" {
   min_nodes     = 2
   max_nodes     = 3
 }
+
+resource "vultr_vpc" "k8s" {
+  # id = "0dcffa14-ac8e-49cb-8710-3dcc46a97f1f"
+  region = "lax"
+}
+
+resource "vultr_database" "pg" {
+  # max connections: 97
+  label                   = "postgres"
+  tag                     = "postgres"
+  plan                    = "vultr-dbaas-startup-cc-hp-amd-1-64-2"
+  region                  = "lax"
+  vpc_id                  = vultr_vpc.k8s.id
+  database_engine         = "pg"
+  database_engine_version = "16"
+  cluster_time_zone       = "UTC"
+  maintenance_dow         = "sunday"
+  maintenance_time        = "03:00"
+}

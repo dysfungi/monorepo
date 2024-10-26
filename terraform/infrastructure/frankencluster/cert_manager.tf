@@ -32,15 +32,15 @@ resource "helm_release" "cert_manager" {
   }
   values = [
     yamlencode({
-      "nodeSelector" = local.foundationNodeSelector
+      "nodeSelector" = local.gatewayNodeSelector
       "cainjector" = {
-        "nodeSelector" = local.foundationNodeSelector
+        "nodeSelector" = local.gatewayNodeSelector
       }
       "startupapicheck" = {
-        "nodeSelector" = local.foundationNodeSelector
+        "nodeSelector" = local.gatewayNodeSelector
       }
       "webhook" = {
-        "nodeSelector" = local.foundationNodeSelector
+        "nodeSelector" = local.gatewayNodeSelector
       }
     }),
   ]

@@ -61,12 +61,12 @@ resource "vultr_kubernetes" "k8s" {
   }
 }
 
-resource "vultr_kubernetes_node_pools" "foundation" {
+resource "vultr_kubernetes_node_pools" "gateway" {
   cluster_id    = vultr_kubernetes.k8s.id
   node_quantity = 1
   plan          = "vc2-1c-2gb"
-  label         = "foundation"
-  tag           = "foundation"
+  label         = "gateway"
+  tag           = "gateway"
   auto_scaler   = true
   min_nodes     = 1
   max_nodes     = 3

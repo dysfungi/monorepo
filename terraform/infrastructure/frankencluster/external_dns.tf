@@ -48,7 +48,7 @@ resource "helm_release" "external_dns" {
           }
         }
       ]
-      "nodeSelector" = local.foundationNodeSelector
+      "nodeSelector" = local.gatewayNodeSelector
     })
   ]
 

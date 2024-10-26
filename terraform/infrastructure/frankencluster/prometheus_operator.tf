@@ -612,7 +612,6 @@ resource "kubernetes_manifest" "alertmanager_route" {
   }
 }
 
-/*
 resource "kubernetes_manifest" "prometheus_route" {
   manifest = {
     "apiVersion" = "gateway.networking.k8s.io/v1"
@@ -656,7 +655,6 @@ resource "kubernetes_manifest" "prometheus_route" {
     }
   }
 }
-*/
 
 resource "kubernetes_manifest" "grafana_route" {
   manifest = {

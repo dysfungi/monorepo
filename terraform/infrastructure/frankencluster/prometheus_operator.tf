@@ -353,7 +353,7 @@ resource "kubernetes_manifest" "notifications" {
             ]
           },
           {
-            "receiver" = "low-priority"
+            "receiver" = "high-priority"
             "matchers" = [
               {
                 "name"      = "severity"
@@ -389,7 +389,7 @@ resource "kubernetes_manifest" "notifications" {
           ]
         },
         {
-          "name" = "low-priority"
+          "name" = "high-priority"
           "discordConfigs" = [
             {
               "sendResolved" = true
@@ -405,6 +405,16 @@ resource "kubernetes_manifest" "notifications" {
             {
               "sendResolved" = true
               "to"           = "alerts@frank.sh"
+            },
+          ]
+        },
+        {
+          "name" = "low-priority"
+          "emailConfigs" = [
+            # https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1alpha1.EmailConfig
+            {
+              "sendResolved" = false
+              "to"           = var.todoist_email
             },
           ]
         },

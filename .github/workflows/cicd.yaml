@@ -141,6 +141,7 @@ jobs:
           smtp_port: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/port
           smtp_server: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/server
           smtp_username: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/username
+          todoist_email: op://Frankenstructure/Todoist Project - Frankenstructure/email
       - uses: defrank/action-vultr@v2024.10.20-1
         with:
           token: ${{ steps.vultr-api-key.outputs.out }}
@@ -206,6 +207,12 @@ jobs:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.op-secrets.outputs.smtp_username }}
+      - id: enc-todoist-email
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.todoist_email }}
     outputs:
       enc_cloudflare_api_token: ${{ steps.enc-cloudflare-api-token.outputs.out }}
       enc_discord_webhook_alerts: ${{ steps.enc-discord-webhook-alerts.outputs.out }}
@@ -218,6 +225,7 @@ jobs:
       enc_smtp_port: ${{ steps.enc-smtp-port.outputs.out }}
       enc_smtp_server: ${{ steps.enc-smtp-server.outputs.out }}
       enc_smtp_username: ${{ steps.enc-smtp-username.outputs.out }}
+      enc_todoist_email: ${{ steps.enc-todoist-email.outputs.out }}
       enc_vultr_api_key: ${{ needs.init-secrets.outputs.enc_vultr_api_key }}
 
   deploy-prod-frankencluster:
@@ -299,6 +307,12 @@ jobs:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_smtp_username }}
+      - id: todoist-email
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_todoist_email }}
       - name: Initialize tofu
         working-directory: terraform/infrastructure/frankencluster
         run: tofu init -input=false
@@ -316,6 +330,7 @@ jobs:
           TF_VAR_smtp_port: ${{ steps.smtp-port.outputs.out }}
           TF_VAR_smtp_server: ${{ steps.smtp-server.outputs.out }}
           TF_VAR_smtp_username: ${{ steps.smtp-username.outputs.out }}
+          TF_VAR_todoist_email: ${{ steps.todoist-email.outputs.out }}
       - name: Deploy frankencluster
         working-directory: terraform/infrastructure/frankencluster
         run: tofu apply -auto-approve -input=false
@@ -333,6 +348,7 @@ jobs:
           TF_VAR_smtp_port: ${{ steps.smtp-port.outputs.out }}
           TF_VAR_smtp_server: ${{ steps.smtp-server.outputs.out }}
           TF_VAR_smtp_username: ${{ steps.smtp-username.outputs.out }}
+          TF_VAR_todoist_email: ${{ steps.todoist-email.outputs.out }}
 
   deploy-prod-httpbin:
     environment: production

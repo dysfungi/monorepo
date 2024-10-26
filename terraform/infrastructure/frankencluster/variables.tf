@@ -9,8 +9,9 @@ variable "discord_webhook_alerts" {
 }
 
 variable "email" {
-  type    = string
-  default = "derek@frank.sh"
+  type      = string
+  sensitive = true
+  default   = "derek@frank.sh"
 }
 
 variable "github_username" {
@@ -51,4 +52,9 @@ variable "smtp_server" {
 
 variable "smtp_username" {
   type = string
+}
+
+variable "todoist_email" {
+  type      = string
+  sensitive = true
 }

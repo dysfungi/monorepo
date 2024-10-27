@@ -156,9 +156,9 @@ resource "kubernetes_manifest" "windmill_route" {
           "backendRefs" = [
             {
               "kind"      = "Service"
-              "name"      = helm_release.windmill.name
+              "name"      = "${helm_release.windmill.name}-app"
               "namespace" = kubernetes_namespace.windmill.metadata[0].name
-              "port"      = 80
+              "port"      = 8000
             }
           ]
         }

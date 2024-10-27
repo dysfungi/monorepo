@@ -93,7 +93,7 @@ resource "kubernetes_manifest" "nodered_route" {
         {
           "kind"        = "Gateway"
           "name"        = "prod-web"
-          "namespace"   = "nginx-gateway"
+          "namespace"   = "gateway"
           "sectionName" = "https-wildcard.frank.sh"
         }
       ]

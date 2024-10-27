@@ -1,9 +1,3 @@
-resource "kubernetes_namespace" "route" {
-  metadata {
-    name = "route"
-  }
-}
-
 # https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/https-termination/#configure-https-termination-and-routing
 resource "kubernetes_manifest" "enforce_https" {
   manifest = {
@@ -11,7 +5,7 @@ resource "kubernetes_manifest" "enforce_https" {
     "kind"       = "HTTPRoute"
     "metadata" = {
       "name"      = "enforce-https"
-      "namespace" = kubernetes_namespace.route.metadata[0].name
+      "namespace" = kubernetes_namespace.gateway.metadata[0].name
     }
     "spec" = {
       "parentRefs" = [
@@ -48,7 +42,7 @@ resource "kubernetes_manifest" "https_redirect_frank_sh" {
     "kind"       = "HTTPRoute"
     "metadata" = {
       "name"      = "https-frank-sh-redirect-https-derekmfrank-com"
-      "namespace" = kubernetes_namespace.route.metadata[0].name
+      "namespace" = kubernetes_namespace.gateway.metadata[0].name
     }
     "spec" = {
       "parentRefs" = [

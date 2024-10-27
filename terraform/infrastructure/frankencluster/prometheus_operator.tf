@@ -580,8 +580,8 @@ resource "kubernetes_manifest" "alertmanager_route" {
       "parentRefs" = [
         {
           "kind"        = "Gateway"
-          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
-          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "name"        = "prod-web"
+          "namespace"   = "gateway"
           "sectionName" = "https-wildcard.frank.sh"
         }
       ]
@@ -624,8 +624,8 @@ resource "kubernetes_manifest" "prometheus_route" {
       "parentRefs" = [
         {
           "kind"        = "Gateway"
-          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
-          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "name"        = "prod-gateway"
+          "namespace"   = "gateway"
           "sectionName" = "https-wildcard.frank.sh"
         }
       ]
@@ -668,8 +668,8 @@ resource "kubernetes_manifest" "grafana_route" {
       "parentRefs" = [
         {
           "kind"        = "Gateway"
-          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
-          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "name"        = "prod-web"
+          "namespace"   = "gateway"
           "sectionName" = "https-wildcard.frank.sh"
         }
       ]

@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
     bucket                      = "frankenstructure"
-    key                         = "frankencluster/production/terraform.tfstate"
+    key                         = "gateway/production/terraform.tfstate"
     endpoint                    = "sjc1.vultrobjects.com"
     region                      = "us-west-1"
     skip_credentials_validation = true
@@ -16,9 +16,9 @@ terraform {
       source  = "hashicorp/helm"
       version = "2.15.0"
     }
-    healthchecksio = {
-      source  = "kristofferahl/healthchecksio"
-      version = "2.0.0"
+    kustomization = {
+      source  = "kbst/kustomization"
+      version = "0.9.6"
     }
   }
 }
@@ -33,8 +33,15 @@ provider "helm" {
   kubernetes {
     config_path = var.kubeconfig_path
   }
+
+  registry {
+    url      = "oci://ghcr.io"
+    username = var.github_username
+    password = var.github_token
+  }
 }
 
-provider "healthchecksio" {
-  api_key = var.healthchecksio_api_key
+# https://registry.terraform.io/providers/kbst/kustomization/latest/docs#example-usage
+provider "kustomization" {
+  kubeconfig_path = var.kubeconfig_path
 }

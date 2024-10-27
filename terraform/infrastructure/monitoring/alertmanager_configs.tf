@@ -79,19 +79,35 @@ resource "kubernetes_manifest" "notifications" {
           ]
           "emailConfigs" = [
             # https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1alpha1.EmailConfig
+            # https://prometheus.io/docs/alerting/latest/configuration/#email_config
             {
               "sendResolved" = true
               "to"           = "alerts@frank.sh"
+            },
+            {
+              "sendResolved" = false
+              "to"           = var.todoist_email
+              "html" = join("\n", [
+                "Priority: P1",
+                "Labels: @alert",
+                "Due: &lt;date today&gt;",
+                "{{ template \"email.default.html\" . }}",
+              ])
             },
           ]
         },
         {
           "name" = "low-priority"
           "emailConfigs" = [
-            # https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1alpha1.EmailConfig
             {
               "sendResolved" = false
               "to"           = var.todoist_email
+              "html" = join("\n", [
+                "Priority: P2",
+                "Labels: @alert",
+                "Due: &lt;date today&gt;",
+                "{{ template \"email.default.html\" . }}",
+              ])
             },
           ]
         },

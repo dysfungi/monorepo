@@ -75,7 +75,7 @@ resource "helm_release" "gateway" {
         # https://github.com/vultr/vultr-cloud-controller-manager/blob/master/docs/load-balancers.md#annotations
         "annotations" = {
           # https://github.com/kubernetes-sigs/external-dns/blob/master/docs/annotations/annotations.md#external-dnsalphakubernetesiohostname
-          "external-dns.alpha.kubernetes.io/hostname" = "frank.sh,*.frank.sh"
+          # "external-dns.alpha.kubernetes.io/hostname" = "frank.sh,*.frank.sh"
           # https://docs.vultr.com/how-to-use-a-vultr-load-balancer-with-vke#7.-using-proxy-protocol
           "service.beta.kubernetes.io/vultr-loadbalancer-proxy-protocol" = "false"
         }

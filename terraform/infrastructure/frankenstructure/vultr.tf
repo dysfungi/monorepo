@@ -1,34 +1,5 @@
 # https://registry.terraform.io/providers/vultr/vultr/latest/docs
 # https://www.vultr.com/api/#section/Introduction
-variable "vultr_api_key" {
-  type      = string
-  sensitive = true
-}
-
-terraform {
-  backend "s3" {
-    bucket                      = "frankenstructure"
-    key                         = "frankenstructure/production/terraform.tfstate"
-    endpoint                    = "sjc1.vultrobjects.com"
-    region                      = "us-west-1"
-    skip_credentials_validation = true
-  }
-  required_version = ">= 1.5.7"
-  required_providers {
-    vultr = {
-      source  = "vultr/vultr"
-      version = "2.21.0"
-    }
-  }
-}
-
-# Configure the Vultr Provider
-provider "vultr" {
-  api_key     = var.vultr_api_key
-  rate_limit  = 100
-  retry_limit = 3
-}
-
 resource "vultr_object_storage" "frankenstorage" {
   cluster_id = 5
   label      = "frankenstorage"

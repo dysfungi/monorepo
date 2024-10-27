@@ -1,3 +1,4 @@
+brew 'cloudflare-cli4'
 brew 'helm'
 brew 'jq'
 brew 'kubernetes-cli'

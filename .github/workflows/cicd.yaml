@@ -29,19 +29,20 @@ jobs:
       - check-deploy-prod
     runs-on: ubuntu-latest
     steps:
-      - id: vultr-api-key
+      - id: op-secrets
         uses: 1password/load-secrets-action@v2
         with:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          out: op://Frankenstructure/Vultr API Key/password
+          cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
+          vultr_api_key: op://Frankenstructure/Vultr API Key/password
       - uses: defrank/action-vultr@v2024.10.20-1
         with:
-          token: ${{ steps.vultr-api-key.outputs.out }}
+          token: ${{ steps.op-secrets.outputs.vultr_api_key }}
       - id: s3-keys
         env:
-          VULTR_API_KEY: ${{ steps.vultr-api-key.outputs.out }}
+          VULTR_API_KEY: ${{ steps.op-secrets.outputs.vultr_api_key }}
         run: >
           vultr-cli --output=json object-storage list
           | jq --raw-output >> "$GITHUB_OUTPUT" '
@@ -50,6 +51,12 @@ jobs:
           | ["s3_access_key=" + .s3_access_key, "s3_secret_key=" + .s3_secret_key]
           | join("\n")
           '
+      - id: enc-cloudflare-api-token
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
       - id: enc-s3-access-key
         uses: cloudposse/github-action-secret-outputs@main
         with:
@@ -67,8 +74,9 @@ jobs:
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
-          in: ${{ steps.vultr-api-key.outputs.out }}
+          in: ${{ steps.op-secrets.outputs.vultr_api_key }}
     outputs:
+      enc_cloudflare_api_token: ${{ steps.enc-cloudflare-api-token.outputs.out }}
       enc_s3_access_key: ${{ steps.enc-s3-access-key.outputs.out }}
       enc_s3_secret_key: ${{ steps.enc-s3-secret-key.outputs.out }}
       enc_vultr_api_key: ${{ steps.enc-vultr-api-key.outputs.out }}
@@ -82,6 +90,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: opentofu/setup-opentofu@v1
+      - id: cloudflare-api-token
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.init-secrets.outputs.enc_cloudflare_api_token }}
       - id: s3-access-key
         uses: cloudposse/github-action-secret-outputs@main
         with:
@@ -106,6 +120,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          TF_VAR_cloudflare_api_token: ${{ steps.cloudflare-api-token.outputs.out }}
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
       - name: Deploy
         working-directory: terraform/infrastructure/frankenstructure
@@ -113,6 +128,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          TF_VAR_cloudflare_api_token: ${{ steps.cloudflare-api-token.outputs.out }}
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
 
   secrets:
@@ -133,7 +149,6 @@ jobs:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
           discord_webhook_alerts: op://Frankenstructure/Discord Webhook - breaktheloop/url
           grafana_admin_password: op://Frankenstructure/Grafana - frank.sh/password
           healthchecksio_api_key: op://Frankenstructure/Healthchecks.io API Key/credential
@@ -153,12 +168,6 @@ jobs:
           vultr-cli --output=json kubernetes list
           | jq --raw-output '.vke_clusters[] | select(.label == "frank8s").id'
           | xargs -- vultr-cli kubernetes config >> "$GITHUB_OUTPUT"
-      - id: enc-cloudflare-api-token
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
       - id: enc-discord-webhook-alerts
         uses: cloudposse/github-action-secret-outputs@main
         with:
@@ -214,7 +223,7 @@ jobs:
           op: encode
           in: ${{ steps.op-secrets.outputs.todoist_email }}
     outputs:
-      enc_cloudflare_api_token: ${{ steps.enc-cloudflare-api-token.outputs.out }}
+      enc_cloudflare_api_token: ${{ needs.init-secrets.outputs.enc_cloudflare_api_token }}
       enc_discord_webhook_alerts: ${{ steps.enc-discord-webhook-alerts.outputs.out }}
       enc_grafana_admin_password: ${{ steps.enc-grafana-admin-password.outputs.out }}
       enc_healthchecksio_api_key: ${{ steps.enc-healthchecksio-api-key.outputs.out }}

@@ -109,6 +109,8 @@ resource "helm_release" "kube_prometheus" {
             "smtp_auth_identity" = var.smtp_username
             "smtp_require_tls"   = true
           }
+          # https://github.com/prometheus/alertmanager/blob/main/docs/notification_examples.md#defining-reusable-templates
+          # TODO: "templates" = []
         }
       }
       "grafana" = {

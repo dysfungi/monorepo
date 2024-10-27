@@ -19,10 +19,10 @@ resource "helm_release" "external_dns" {
       "sources" = [
         "gateway-grpcroute",
         "gateway-httproute",
-        "gateway-tcproute",
-        "gateway-tlsroute",
-        "gateway-udproute",
-        "ingress",
+        # "gateway-tcproute",
+        # "gateway-tlsroute",
+        # "gateway-udproute",
+        # "ingress",
         "service",
       ]
       "env" = [

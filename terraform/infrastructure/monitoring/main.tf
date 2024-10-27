@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
     bucket                      = "frankenstructure"
-    key                         = "frankencluster/production/terraform.tfstate"
+    key                         = "monitoring/production/terraform.tfstate"
     endpoint                    = "sjc1.vultrobjects.com"
     region                      = "us-west-1"
     skip_credentials_validation = true

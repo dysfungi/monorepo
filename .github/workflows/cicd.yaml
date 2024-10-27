@@ -228,7 +228,7 @@ jobs:
       enc_todoist_email: ${{ steps.enc-todoist-email.outputs.out }}
       enc_vultr_api_key: ${{ needs.init-secrets.outputs.enc_vultr_api_key }}
 
-  deploy-prod-frankencluster:
+  deploy-prod-monitoring:
     environment: production
     needs:
       - check-deploy-prod
@@ -314,7 +314,7 @@ jobs:
           op: decode
           in: ${{ needs.secrets.outputs.enc_todoist_email }}
       - name: Initialize tofu
-        working-directory: terraform/infrastructure/frankencluster
+        working-directory: terraform/infrastructure/monitoring
         run: tofu init -input=false
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
@@ -332,7 +332,7 @@ jobs:
           TF_VAR_smtp_username: ${{ steps.smtp-username.outputs.out }}
           TF_VAR_todoist_email: ${{ steps.todoist-email.outputs.out }}
       - name: Deploy
-        working-directory: terraform/infrastructure/frankencluster
+        working-directory: terraform/infrastructure/monitoring
         run: tofu apply -auto-approve -input=false
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
@@ -355,7 +355,6 @@ jobs:
     needs:
       - check-deploy-prod
       - secrets
-      - deploy-prod-frankencluster
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -409,11 +408,20 @@ jobs:
           TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
 
+  deployed-prod-foundation:
+    environment: production
+    needs:
+      - deploy-prod-gateway
+      - deploy-prod-monitoring
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deployed foundational infrastructure!"
+
   deploy-prod-httpbin:
     environment: production
     needs:
       - secrets
-      - deploy-prod-frankencluster
+      - deployed-prod-foundation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -459,7 +467,7 @@ jobs:
     environment: production
     needs:
       - secrets
-      - deploy-prod-frankencluster
+      - deployed-prod-foundation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -505,7 +513,7 @@ jobs:
     environment: production
     needs:
       - secrets
-      - deploy-prod-frankencluster
+      - deployed-prod-foundation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -555,7 +563,7 @@ jobs:
     environment: production
     needs:
       - secrets
-      - deploy-prod-frankencluster
+      - deployed-prod-foundation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

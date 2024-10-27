@@ -76,6 +76,12 @@ resource "helm_release" "nodered" {
         "kubernetes.io/os"        = "linux"
         "vke.vultr.com/node-pool" = "default"
       }
+      "metrics" = {
+        "enabled" = true
+        "serviceMonitor" = {
+          "enabled" = true
+        }
+      }
     }),
   ]
 }

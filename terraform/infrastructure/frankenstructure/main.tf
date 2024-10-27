@@ -6,15 +6,15 @@ terraform {
     region                      = "us-west-1"
     skip_credentials_validation = true
   }
-  required_version = ">= 1.5.7"
+  required_version = "~> 1.5"
   required_providers {
     cloudflare = {
       source  = "cloudflare/cloudflare"
-      version = "~> 4.0"
+      version = "~> 4.44"
     }
     vultr = {
       source  = "vultr/vultr"
-      version = "2.21.0"
+      version = "~> 2.21"
     }
   }
 }

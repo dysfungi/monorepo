@@ -1,3 +1,4 @@
+import json
 import os
 from contextlib import contextmanager
 from importlib.machinery import SourceFileLoader
@@ -5,7 +6,17 @@ from itertools import chain
 from logging import getLogger
 from operator import attrgetter
 from pathlib import Path
-from typing import Callable, Generator, NamedTuple, Optional, Self, TypedDict, Unpack
+from typing import (
+    Any,
+    Callable,
+    Generator,
+    Iterable,
+    NamedTuple,
+    Optional,
+    Self,
+    TypedDict,
+    Unpack,
+)
 
 from doit import tools
 from doit.api import run_tasks
@@ -33,6 +44,23 @@ class task:
 
     def __call__(self, *args, **kwargs):
         return self.create_doit_tasks(*args, **kwargs)
+
+
+@task
+def autoupgrade() -> dict:
+    return {
+        "actions": [
+            tools.LongRunning(
+                _pipe(
+                    _find(".", type="f", name=".terraform.lock.hcl"),
+                    _rp("dirname"),
+                    _rp("pushd {0} && tofu init -upgrade", regex=r"^.*$", shell=None),
+                )
+            ),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
 
 
 @task
@@ -424,6 +452,65 @@ class Project(NamedTuple):
         return projects
 
 
+@contextmanager
+def _chdir(path: Path):
+    cwd = os.getcwd()
+    os.chdir(path)
+    try:
+        yield path
+    finally:
+        os.chdir(cwd)
+
+
+def _find(*paths: str | Path, **options) -> str:
+    pos_params = _positionize(paths)
+    opt_params = _optize(options, long_prefix="-", separator=" ")
+    return f"find {pos_params} {opt_params}"
+
+
+def _pipe(*commands: str) -> str:
+    return " | ".join(commands)
+
+
+def _rp(command: str, *initial_args: str, **options) -> str:
+    pos_params = _positionize(initial_args)
+    opt_params = _optize(options)
+    return f"rust-parallel {opt_params} -- '{command}' {pos_params}"
+
+
+def _optize(options: dict[str, Any], *, long_prefix="--", separator="=") -> str:
+    """Convert a dictionary to a CLI style option parameters string. Single
+    character names are treated as short options while anything else are treated as
+    long options. Also, underscores are converted to dashes.
+    """
+
+    def fix_optname(name: str) -> str:
+        name = name.replace("_", "-").strip("-")
+        return f"-{name}" if len(name) == 1 else f"{long_prefix}{name}"
+
+    def fix_optvalue(value: Any) -> Optional[str]:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return str(value).lower()
+        return json.dumps(str(value) if isinstance(value, Path) else value)
+
+    optionized = (
+        (fix_optname(name), fix_optvalue(value)) for name, value in options.items()
+    )
+    return " ".join(
+        name if value is None else f"{name}{separator}{value}"
+        for name, value in optionized
+    )
+
+
+def _positionize(args: Iterable) -> str:
+    """Convert args to a CLI style positional parameter string where each
+    argument is double quoted.
+    """
+    return " ".join(f'"{arg}"' for arg in args)
+
+
 def _rmtree(path: Path) -> None:
     """Recursively delete a given path by walking and deleting the tree
     bottom-up. Allows for deleting non-empty directories, which is not
@@ -443,13 +530,3 @@ def _rmtree(path: Path) -> None:
         path.rmdir()
     else:
         path.unlink()
-
-
-@contextmanager
-def _chdir(path: Path):
-    cwd = os.getcwd()
-    os.chdir(path)
-    try:
-        yield path
-    finally:
-        os.chdir(cwd)

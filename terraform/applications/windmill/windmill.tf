@@ -10,15 +10,15 @@ terraform {
     region                      = "us-west-1"
     skip_credentials_validation = true
   }
-  required_version = ">= 1.5.7"
+  required_version = "~> 1.5"
   required_providers {
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "2.32.0"
+      version = "~> 2.32"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "2.15.0"
+      version = "~> 2.15"
     }
   }
 }

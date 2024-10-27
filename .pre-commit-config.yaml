@@ -101,6 +101,22 @@ repos:
         types: [terraform]
         pass_filenames: false
 
+  ############
+  # UPGRADES #
+  ############
+
+  - repo: local
+    hooks:
+      - id: doit-autoupgrade
+        name: doit autoupgrade
+        stages: [pre-push, manual]
+        language: python
+        additional_dependencies:
+          - doit
+        entry: doit autoupgrade
+        always_run: true
+        pass_filenames: false
+
   #########
   # TESTS #
   #########

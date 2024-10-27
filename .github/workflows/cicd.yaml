@@ -116,7 +116,7 @@ jobs:
           in: ${{ needs.init-secrets.outputs.enc_vultr_api_key }}
       - name: Initialize tofu
         working-directory: terraform/infrastructure/frankenstructure
-        run: tofu init -input=false
+        run: tofu init -input=false -upgrade
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
@@ -324,7 +324,7 @@ jobs:
           in: ${{ needs.secrets.outputs.enc_todoist_email }}
       - name: Initialize tofu
         working-directory: terraform/infrastructure/monitoring
-        run: tofu init -input=false
+        run: tofu init -input=false -upgrade
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
@@ -398,7 +398,7 @@ jobs:
           in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
       - name: Initialize tofu
         working-directory: terraform/infrastructure/gateway
-        run: tofu init -input=false
+        run: tofu init -input=false -upgrade
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
@@ -459,7 +459,7 @@ jobs:
           in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
       - name: Initialize tofu
         working-directory: terraform/applications/httpbin
-        run: tofu init -input=false
+        run: tofu init -input=false -upgrade
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
@@ -505,7 +505,7 @@ jobs:
           in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
       - name: Initialize tofu
         working-directory: terraform/applications/n8n
-        run: tofu init -input=false
+        run: tofu init -input=false -upgrade
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
@@ -551,7 +551,7 @@ jobs:
           in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
       - name: Initialize tofu
         working-directory: terraform/applications/node-red
-        run: tofu init -input=false
+        run: tofu init -input=false -upgrade
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
@@ -601,7 +601,7 @@ jobs:
           in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
       - name: Initialize tofu
         working-directory: terraform/applications/windmill
-        run: tofu init -input=false
+        run: tofu init -input=false -upgrade
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}

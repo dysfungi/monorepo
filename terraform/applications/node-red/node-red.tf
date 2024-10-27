@@ -76,11 +76,18 @@ resource "helm_release" "nodered" {
         "kubernetes.io/os"        = "linux"
         "vke.vultr.com/node-pool" = "default"
       }
+      # https://github.com/SchwarzIT/node-red-chart/blob/main/charts/node-red/README.md#monitoring-%EF%B8%8F
       "metrics" = {
         "enabled" = true
         "serviceMonitor" = {
           "enabled" = true
         }
+      }
+      "sidecar" = {
+        "enabled" = true
+        "extraNodeModules" = [
+          "node-red-contrib-prometheus-exporter",
+        ]
       }
     }),
   ]

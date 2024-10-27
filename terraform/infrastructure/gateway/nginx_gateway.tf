@@ -47,16 +47,8 @@ resource "helm_release" "gateway" {
       "terminationGracePeriodSeconds" = 50
       # https://github.com/nginxinc/nginx-gateway-fabric/blob/main/charts/nginx-gateway-fabric/values.yaml
       # https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#configure-delayed-pod-termination-for-zero-downtime-upgrades
-      "nginx" = {
-        "lifecycle" = {
-          "preStop" = {
-            "exec" = {
-              "command" = ["/bin/sh", "-c", "/bin/sleep 30"]
-            }
-          }
-        }
-      }
       "nginxGateway" = {
+        "replicaCount" = 2
         "lifecycle" = {
           "preStop" = {
             "exec" = {
@@ -66,6 +58,15 @@ resource "helm_release" "gateway" {
         }
         "securityContext" = {
           "allowPrivilegeEscalation" = true
+        }
+      }
+      "nginx" = {
+        "lifecycle" = {
+          "preStop" = {
+            "exec" = {
+              "command" = ["/bin/sh", "-c", "/bin/sleep 30"]
+            }
+          }
         }
       }
       "service" = {

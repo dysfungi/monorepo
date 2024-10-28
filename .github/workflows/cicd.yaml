@@ -587,6 +587,13 @@ jobs:
         run: |
           base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
+      - id: windmill-postgress-password
+        uses: 1password/load-secrets-action@v2
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          out: op://Frankenstructure/Postgres - Windmill/password
       - id: s3-access-key
         uses: cloudposse/github-action-secret-outputs@main
         with:
@@ -599,6 +606,12 @@ jobs:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
+      - id: vultr-api-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_vultr_api_key }}
       - name: Initialize tofu
         working-directory: terraform/applications/windmill
         run: tofu init -input=false -upgrade
@@ -606,6 +619,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+          TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
+          TF_VAR_windmill_postgres_password: ${{ steps.windmill-postgres-password.outputs.out }}
       - name: Deploy
         working-directory: terraform/applications/windmill
         run: tofu apply -auto-approve -input=false
@@ -613,3 +628,5 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+          TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
+          TF_VAR_windmill_postgres_password: ${{ steps.windmill-postgres-password.outputs.out }}

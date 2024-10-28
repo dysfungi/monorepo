@@ -118,6 +118,38 @@ def cwd() -> dict:
 
 
 @task
+def dbshell() -> dict:
+    return {
+        "actions": [
+            tools.Interactive(
+                _docker_run(
+                    "postgres:16-alpine",
+                    "psql",
+                    _subshell(
+                        _pipe(
+                            _vultr("database", "list"),
+                            _jq(
+                                _pipe(
+                                    ".databases[]",
+                                    'select(.label=="postgres")',
+                                    (
+                                        r'"postgres://\(.user):\(.password)'
+                                        r"@\(.public_host):\(.port)/\(.dbname)"
+                                        '?sslmode=require"'
+                                    ),
+                                )
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
 def lint() -> dict:
     """Run linters using Pre-commit."""
     return {
@@ -462,10 +494,41 @@ def _chdir(path: Path):
         os.chdir(cwd)
 
 
+def _docker_run(image: str, *command: str) -> str:
+    pos_args = _positionize(command)
+    return f"docker run -it --rm {image} {pos_args}"
+
+
 def _find(*paths: str | Path, **options) -> str:
     pos_params = _positionize(paths)
     opt_params = _optize(options, long_prefix="-", separator=" ")
     return f"find {pos_params} {opt_params}"
+
+
+def _helm(command: str, *args, output: str = "json", **options) -> str:
+    """Build a string for calling Helm in the CLI."""
+    output = options.pop("o", output)
+    if command not in {"repo"}:
+        options["output"] = output
+    pos_params = _positionize(args)
+    opt_params = _optize(options)
+    return f"helm {command} {pos_params} {opt_params}"
+
+
+def _jq(script: str, *files, raw_output: bool = True, **options) -> str:
+    """Build a string for calling JQ in the CLI."""
+    if raw_output or raw_output is None:
+        options["raw_output"] = None
+    pos_params = _positionize(files)
+    opt_params = _optize(options)
+    return f"jq {opt_params} '{script}' {pos_params}"
+
+
+def _kubectl(command: str, *args, **options) -> str:
+    """Build a string for calling kubectl in the CLI."""
+    pos_params = _positionize(args)
+    opt_params = _optize(options)
+    return f"kubectl {command} {opt_params} {pos_params}"
 
 
 def _pipe(*commands: str) -> str:
@@ -476,6 +539,25 @@ def _rp(command: str, *initial_args: str, **options) -> str:
     pos_params = _positionize(initial_args)
     opt_params = _optize(options)
     return f"rust-parallel {opt_params} -- '{command}' {pos_params}"
+
+
+def _subshell(command: str) -> str:
+    return f"$({command})"
+
+
+def _tofu(command: str, *args, **options) -> str:
+    """Build a string for calling Tofu in the CLI."""
+    pos_params = _positionize(args)
+    opt_params = _optize(options, long_prefix="-")
+    return f"tofu {command} {opt_params} {pos_params}"
+
+
+def _vultr(resource: str, command: str, *args, output: str = "json", **options) -> str:
+    """Build a string for calling Vultr in the CLI."""
+    output = options.pop("o", output)
+    pos_params = _positionize(args)
+    opt_params = _optize(options)
+    return f"vultr --output={output} {resource} {command} {opt_params} {pos_params}"
 
 
 def _optize(options: dict[str, Any], *, long_prefix="--", separator="=") -> str:

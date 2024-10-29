@@ -13,7 +13,7 @@ resource "kubernetes_manifest" "alertmanager_route" {
           "name"        = "prod-web"
           "namespace"   = "gateway"
           "sectionName" = "https-wildcard.frank.sh"
-        }
+        },
       ]
       "hostnames" = [
         "alertmanager.frank.sh",
@@ -26,7 +26,7 @@ resource "kubernetes_manifest" "alertmanager_route" {
                 "type"  = "PathPrefix"
                 "value" = "/"
               }
-            }
+            },
           ]
           "backendRefs" = [
             {
@@ -34,7 +34,7 @@ resource "kubernetes_manifest" "alertmanager_route" {
               "name"      = "${helm_release.kube_prometheus.name}-alertmanager"
               "namespace" = helm_release.kube_prometheus.namespace
               "port"      = 9093
-            }
+            },
           ]
         }
       ]

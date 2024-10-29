@@ -26,7 +26,6 @@ resource "kubernetes_manifest" "enforce_https" {
               "type" = "RequestRedirect"
               "requestRedirect" = {
                 "scheme" = "https"
-                "port"   = 443
               }
             }
           ]
@@ -70,7 +69,74 @@ resource "kubernetes_manifest" "https_redirect_frank_sh" {
               "requestRedirect" = {
                 "scheme"   = "https"
                 "hostname" = "derekmfrank.com"
-                "port"     = 443
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+
+resource "kubernetes_manifest" "redirect_shortlinks" {
+  manifest = {
+    "apiVersion" = "gateway.networking.k8s.io/v1"
+    "kind"       = "HTTPRoute"
+    "metadata" = {
+      "name"      = "redirect-shortlinks"
+      "namespace" = kubernetes_namespace.gateway.metadata[0].name
+    }
+    "spec" = {
+      "parentRefs" = [
+        {
+          "kind"        = "Gateway"
+          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
+          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "sectionName" = "http-frank.sh"
+        },
+        {
+          "kind"        = "Gateway"
+          "name"        = kubernetes_manifest.prod_gateway.manifest.metadata.name
+          "namespace"   = kubernetes_manifest.prod_gateway.manifest.metadata.namespace
+          "sectionName" = "https-frank.sh"
+        }
+      ]
+      "hostnames" = [
+        "frank.sh",
+        "dee.frank.sh",
+      ]
+      "rules" = [
+        {
+          "matches" = [
+            {
+              "path" = {
+                "type"  = "PathPrefix"
+                "value" = "/events/2024-11-10/bday-5k"
+              }
+            },
+            {
+              "path" = {
+                "type"  = "PathPrefix"
+                "value" = "/2024-11-10-bday-5k"
+              }
+            },
+            {
+              "path" = {
+                "type"  = "PathPrefix"
+                "value" = "/34-bday-5k"
+              }
+            },
+          ]
+          "filters" = [
+            {
+              "type" = "RequestRedirect"
+              "requestRedirect" = {
+                "scheme"   = "https"
+                "hostname" = "partiful.com"
+                "path" = {
+                  "type"            = "ReplaceFullPath"
+                  "replaceFullPath" = "/e/BlUJWezHU3UfJI43dkur"
+                }
               }
             }
           ]

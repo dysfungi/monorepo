@@ -13,7 +13,7 @@ resource "kubernetes_manifest" "windmill_route" {
           "name"        = "prod-web"
           "namespace"   = "gateway"
           "sectionName" = "https-wildcard.frank.sh"
-        }
+        },
       ]
       "hostnames" = [
         "windmill.frank.sh",
@@ -26,7 +26,7 @@ resource "kubernetes_manifest" "windmill_route" {
                 "type"  = "PathPrefix"
                 "value" = "/"
               }
-            }
+            },
           ]
           "backendRefs" = [
             {
@@ -34,7 +34,7 @@ resource "kubernetes_manifest" "windmill_route" {
               "name"      = "${helm_release.windmill.name}-app"
               "namespace" = kubernetes_namespace.windmill.metadata[0].name
               "port"      = 8000
-            }
+            },
           ]
         }
       ]

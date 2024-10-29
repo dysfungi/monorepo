@@ -21,22 +21,22 @@ resource "kubernetes_manifest" "probe" {
           "static" = [
             local.probeTarget,
           ]
+          "relabelingConfigs" = [
+            {
+              "sourceLabels" = ["instance"]
+              "targetLabel"  = "instance"
+              "action"       = "replace"
+              "replacement"  = local.probeTarget
+            },
+            {
+              "sourceLabels" = ["target"]
+              "targetLabel"  = "target"
+              "action"       = "replace"
+              "replacement"  = "windmill"
+            },
+          ]
         }
       }
-      "metricRelabelings" = [
-        {
-          "action"       = "replace"
-          "replacement"  = local.probeTarget
-          "sourceLabels" = ["instance"]
-          "targetLabel"  = "instance"
-        },
-        {
-          "action"       = "replace"
-          "replacement"  = "windmill"
-          "sourceLabels" = ["target"]
-          "targetLabel"  = "target"
-        },
-      ]
     }
   }
 }

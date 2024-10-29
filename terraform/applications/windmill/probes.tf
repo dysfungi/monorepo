@@ -6,7 +6,7 @@ resource "kubernetes_manifest" "probe" {
     "apiVersion" = "monitoring.coreos.com/v1"
     "kind"       = "Probe"
     "metadata" = {
-      "name"      = "${helm_release.windmill.name}-synthetic-test"
+      "name"      = "${helm_release.windmill.name}-probe"
       "namespace" = helm_release.windmill.namespace
     }
     "spec" = {
@@ -19,14 +19,14 @@ resource "kubernetes_manifest" "probe" {
       "targets" = {
         "staticConfig" = {
           "static" = [
-            local.probeTarget,
+            var.windmill_probe_url,
           ]
           "relabelingConfigs" = [
             {
               "sourceLabels" = ["instance"]
               "targetLabel"  = "instance"
               "action"       = "replace"
-              "replacement"  = local.probeTarget
+              "replacement"  = var.windmill_probe_url
             },
             {
               "sourceLabels" = ["target"]
@@ -36,6 +36,11 @@ resource "kubernetes_manifest" "probe" {
             },
           ]
         }
+      }
+      "bearerTokenSecret" = {
+        "name"     = kubernetes_secret.probe.metadata[0].name
+        "key"      = "bearerToken"
+        "optional" = false
       }
     }
   }

@@ -54,13 +54,6 @@ resource "helm_release" "blackbox_exporter" {
             "interval"      = local.probe_interval
             "scrapeTimeout" = local.probe_interval
           },
-          {
-            "name"          = "httpbin"
-            "url"           = "http://httpbin.frank.sh/ip"
-            "module"        = "http_2xx"
-            "interval"      = local.probe_interval
-            "scrapeTimeout" = local.probe_interval
-          },
         ]
       }
     }),

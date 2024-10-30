@@ -1,13 +1,12 @@
 # https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.Probe
 # https://github.com/prometheus-operator/kube-prometheus/blob/main/docs/blackbox-exporter.md#complete-example
-
 resource "kubernetes_manifest" "probes" {
   manifest = {
     "apiVersion" = "monitoring.coreos.com/v1"
     "kind"       = "Probe"
     "metadata" = {
-      "name"      = helm_release.windmill.name
-      "namespace" = helm_release.windmill.namespace
+      "name"      = helm_release.httpbin.name
+      "namespace" = helm_release.httpbin.namespace
     }
     "spec" = {
       "jobName"  = "blackbox"
@@ -19,20 +18,20 @@ resource "kubernetes_manifest" "probes" {
       "targets" = {
         "staticConfig" = {
           "static" = [
-            format("%s?token=%s", var.windmill_probe_url, var.windmill_probe_token),
+            local.probe,
           ]
           "relabelingConfigs" = [
             {
               "sourceLabels" = ["instance"]
               "targetLabel"  = "instance"
               "action"       = "replace"
-              "replacement"  = var.windmill_probe_url
+              "replacement"  = local.probe
             },
             {
               "sourceLabels" = ["target"]
               "targetLabel"  = "target"
               "action"       = "replace"
-              "replacement"  = "windmill"
+              "replacement"  = var.subdomain
             },
           ]
         }

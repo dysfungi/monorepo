@@ -10,7 +10,6 @@ locals {
   probe_interval       = "15s"
   prometheus_hostname  = "${var.prometheus_subdomain}.${var.root_domain}"
   prometheus_probe     = "http://${local.prometheus_hostname}"
-  dashboard_synthetics = "https://grafana.frank.sh/d/adzyuodr7k6bka/synthetics"
   subannotation_value  = "  VALUE = {{ $value }}"
   subannotation_labels = "  LABEL = {{ $labels }}"
 }

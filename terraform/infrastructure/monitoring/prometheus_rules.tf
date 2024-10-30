@@ -18,7 +18,6 @@ resource "kubernetes_manifest" "alerts" {
               "labels" = {
                 "severity" = "critical"
                 "type"     = "http"
-                "action"   = "page"
               }
               "annotations" = {
                 "summary" = "HTTP failure (instance {{ $labels.instance }})"
@@ -27,7 +26,6 @@ resource "kubernetes_manifest" "alerts" {
                   local.subannotation_value,
                   local.subannotation_labels,
                 ])
-                "dashboard" = local.dashboard_synthetics
               }
             },
             {
@@ -37,7 +35,6 @@ resource "kubernetes_manifest" "alerts" {
               "labels" = {
                 "severity" = "warning"
                 "type"     = "http"
-                "action"   = "page"
               }
               "annotations" = {
                 "summary" = "Slow HTTP (instance {{ $labels.instance }})"
@@ -46,7 +43,6 @@ resource "kubernetes_manifest" "alerts" {
                   local.subannotation_value,
                   local.subannotation_labels,
                 ])
-                "dashboard" = local.dashboard_synthetics
               }
             }
           ]
@@ -62,7 +58,6 @@ resource "kubernetes_manifest" "alerts" {
               "labels" = {
                 "severity" = "warning"
                 "type"     = "ssl"
-                "action"   = "page"
               }
               "annotations" = {
                 "summary" = "SSL certificate will expire soon (instance {{ $labels.instance }})"
@@ -71,7 +66,6 @@ resource "kubernetes_manifest" "alerts" {
                   local.subannotation_value,
                   local.subannotation_labels,
                 ])
-                "dashboard" = local.dashboard_synthetics
               }
             },
             {
@@ -82,7 +76,6 @@ resource "kubernetes_manifest" "alerts" {
               "labels" = {
                 "severity" = "critical"
                 "type"     = "ssl"
-                "action"   = "page"
               }
               "annotations" = {
                 "summary" = "SSL certificate will expire soon (instance {{ $labels.instance }})"
@@ -91,7 +84,6 @@ resource "kubernetes_manifest" "alerts" {
                   local.subannotation_value,
                   local.subannotation_labels,
                 ])
-                "dashboard" = local.dashboard_synthetics
               }
             },
             {
@@ -102,7 +94,6 @@ resource "kubernetes_manifest" "alerts" {
               "labels" = {
                 "severity" = "critical"
                 "type"     = "ssl"
-                "action"   = "page"
               }
               "annotations" = {
                 "summary" = "SSL certificate expired (instance {{ $labels.instance }})"
@@ -111,7 +102,6 @@ resource "kubernetes_manifest" "alerts" {
                   local.subannotation_value,
                   local.subannotation_labels,
                 ])
-                "dashboard" = local.dashboard_synthetics
               }
             },
           ]

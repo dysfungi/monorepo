@@ -16,13 +16,3 @@ resource "kubernetes_secret" "db" {
     )
   }
 }
-
-resource "kubernetes_secret" "probe" {
-  metadata {
-    name      = "windmill-probe"
-    namespace = kubernetes_namespace.windmill.metadata[0].name
-  }
-  data = {
-    bearerToken = var.windmill_probe_token
-  }
-}

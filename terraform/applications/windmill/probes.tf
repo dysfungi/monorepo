@@ -19,7 +19,7 @@ resource "kubernetes_manifest" "probe" {
       "targets" = {
         "staticConfig" = {
           "static" = [
-            var.windmill_probe_url,
+            format("%s?token=%s", var.windmill_probe_url, var.windmill_probe_token),
           ]
           "relabelingConfigs" = [
             {
@@ -36,11 +36,6 @@ resource "kubernetes_manifest" "probe" {
             },
           ]
         }
-      }
-      "bearerTokenSecret" = {
-        "name"     = kubernetes_secret.probe.metadata[0].name
-        "key"      = "bearerToken"
-        "optional" = false
       }
     }
   }

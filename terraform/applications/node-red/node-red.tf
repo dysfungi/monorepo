@@ -14,7 +14,7 @@ variable "kubeconfig_path" {
 terraform {
   backend "s3" {
     bucket                      = "frankenstructure"
-    key                         = "node-red/production/terraform.tfstate"
+    key                         = "terraform/node-red.tfstate"
     endpoint                    = "sjc1.vultrobjects.com"
     region                      = "us-west-1"
     skip_credentials_validation = true

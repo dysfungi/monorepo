@@ -47,13 +47,6 @@ resource "helm_release" "blackbox_exporter" {
             "interval"      = local.probe_interval
             "scrapeTimeout" = local.probe_interval
           },
-          {
-            "name"          = "grafana"
-            "url"           = "http://grafana.frank.sh"
-            "module"        = "http_2xx"
-            "interval"      = local.probe_interval
-            "scrapeTimeout" = local.probe_interval
-          },
         ]
       }
     }),

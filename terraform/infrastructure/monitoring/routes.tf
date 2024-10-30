@@ -12,11 +12,11 @@ resource "kubernetes_manifest" "alertmanager_route" {
           "kind"        = "Gateway"
           "name"        = "prod-web"
           "namespace"   = "gateway"
-          "sectionName" = "https-wildcard.frank.sh"
+          "sectionName" = "https-wildcard.${var.root_domain}"
         },
       ]
       "hostnames" = [
-        "alertmanager.frank.sh",
+        local.alertmanager_hostname,
       ]
       "rules" = [
         {
@@ -56,11 +56,11 @@ resource "kubernetes_manifest" "prometheus_route" {
           "kind"        = "Gateway"
           "name"        = "prod-web"
           "namespace"   = "gateway"
-          "sectionName" = "https-wildcard.frank.sh"
+          "sectionName" = "https-wildcard.${var.root_domain}"
         }
       ]
       "hostnames" = [
-        "prometheus.frank.sh",
+        local.prometheus_hostname,
       ]
       "rules" = [
         {
@@ -100,11 +100,11 @@ resource "kubernetes_manifest" "grafana_route" {
           "kind"        = "Gateway"
           "name"        = "prod-web"
           "namespace"   = "gateway"
-          "sectionName" = "https-wildcard.frank.sh"
+          "sectionName" = "https-wildcard.${var.root_domain}"
         }
       ]
       "hostnames" = [
-        "grafana.frank.sh",
+        local.grafana_hostname,
       ]
       "rules" = [
         {

@@ -48,7 +48,7 @@ resource "helm_release" "kube_prometheus" {
       }
       "alertmanager" = {
         "alertmanagerSpec" = {
-          "externalUrl" = "https://alertmanager.frank.sh"
+          "externalUrl" = "https://${local.alertmanager_hostname}"
           # https://github.com/prometheus-operator/prometheus-operator/issues/3737#issuecomment-1326667523
           "alertmanagerConfigMatcherStrategy" = {
             "type" = "None"
@@ -103,7 +103,7 @@ resource "helm_release" "kube_prometheus" {
             # https://github.com/prometheus-operator/prometheus-operator/issues/6805#issuecomment-2273008543
             "smtp_from"          = var.smtp_username
             "smtp_smarthost"     = "${var.smtp_server}:${var.smtp_port}"
-            "smtp_hello"         = "frank.sh"
+            "smtp_hello"         = var.root_domain
             "smtp_auth_username" = var.smtp_username
             "smtp_auth_password" = "$(SMTP_TOKEN)"
             "smtp_auth_identity" = var.smtp_username
@@ -126,7 +126,7 @@ resource "helm_release" "kube_prometheus" {
       }
       "prometheus" = {
         "prometheusSpec" = {
-          "externalUrl"  = "https://prometheus.frank.sh"
+          "externalUrl"  = "https://${local.prometheus_hostname}"
           "nodeSelector" = local.nodeSelector
           "paused"       = false # https://prometheus-operator.dev/docs/platform/storage/#resizing-volumes
           "ruleSelector" = {

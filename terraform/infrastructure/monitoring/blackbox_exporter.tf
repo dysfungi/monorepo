@@ -39,15 +39,6 @@ resource "helm_release" "blackbox_exporter" {
         "selfMonitor" = {
           "enabled" = true
         }
-        "targets" = [
-          {
-            "name"          = "frank.sh"
-            "url"           = "http://frank.sh"
-            "module"        = "http_2xx"
-            "interval"      = local.probe_interval
-            "scrapeTimeout" = local.probe_interval
-          },
-        ]
       }
     }),
   ]

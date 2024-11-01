@@ -24,6 +24,7 @@ resource "helm_release" "windmill" {
         "enabled" = false
       }
       "windmill" = {
+        "appReplicas" = 2
         "app" = {
           "nodeSelector" = local.nodeSelector
           "resources" = {

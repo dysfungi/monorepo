@@ -20,13 +20,16 @@ resource "helm_release" "windmill" {
           }
         }
       }
+      "postgresql" = {
+        "enabled" = false
+      }
       "windmill" = {
         "app" = {
           "nodeSelector" = local.nodeSelector
           "resources" = {
             "limits" = {
-              "cpu"    = "0.5"
-              "memory" = "1Gi"
+              "cpu"    = "1"
+              "memory" = "1.5Gi"
             }
           }
         }
@@ -47,7 +50,7 @@ resource "helm_release" "windmill" {
         "workerGroups" = [
           {
             "name"         = "default"
-            "replicas"     = 2
+            "replicas"     = 3
             "mode"         = "worker"
             "nodeSelector" = local.nodeSelector
             "podSecurityContext" = {
@@ -56,8 +59,8 @@ resource "helm_release" "windmill" {
             }
             "resources" = {
               "limits" = {
-                "cpu"    = "0.5"
-                "memory" = "1Gi"
+                "cpu"    = "1"
+                "memory" = "1.5Gi"
               }
             }
             "terminationGracePeriod" = 300

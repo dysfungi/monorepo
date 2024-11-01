@@ -13,26 +13,19 @@ resource "helm_release" "windmill" {
         "baseDomain"   = "windmill.frank.sh"
         "baseProtocol" = "https"
         "nodeSelector" = local.nodeSelector
-        "resources" = {
-          "limits" = {
-            "cpu"    = "0.5"
-            "memory" = "1Gi"
-          }
-        }
+        "resources"    = local.resources
       }
       "postgresql" = {
         "enabled" = false
       }
       "windmill" = {
         "appReplicas" = 2
+        "lspReplicas" = 2
         "app" = {
+          "replicas"     = 2 # autoscaling-only: https://artifacthub.io/packages/helm/windmill/windmill?modal=template&template=autoscaling.yaml
+          "autoscaling"  = local.autoscaling
           "nodeSelector" = local.nodeSelector
-          "resources" = {
-            "limits" = {
-              "cpu"    = "1"
-              "memory" = "1.5Gi"
-            }
-          }
+          "resources"    = local.resources
         }
         "baseDomain"            = "windmill.frank.sh"
         "baseProtocol"          = "https"
@@ -40,7 +33,10 @@ resource "helm_release" "windmill" {
         "databaseUrlSecretName" = kubernetes_secret.db.metadata[0].name
         "databaseUrlSecretKey"  = "appUrl"
         "lsp" = {
+          "replicas"     = 2 # autoscaling-only: https://artifacthub.io/packages/helm/windmill/windmill?modal=template&template=autoscaling.yaml
+          "autoscaling"  = local.autoscaling
           "nodeSelector" = local.nodeSelector
+          "resources"    = local.resources
         }
         "multiplayer" = {
           "nodeSelector" = local.nodeSelector
@@ -58,23 +54,42 @@ resource "helm_release" "windmill" {
               "runAsUser"    = 0
               "runAsNonRoot" = false
             }
-            "resources" = {
-              "limits" = {
-                "cpu"    = "1"
-                "memory" = "1.5Gi"
-              }
-            }
+            "resources"              = local.resources
             "terminationGracePeriod" = 300
           },
           {
-            "name"         = "native"
-            "replicas"     = 0
-            "nodeSelector" = local.nodeSelector
+            "name"                   = "native"
+            "replicas"               = 2
+            "mode"                   = "worker"
+            "terminationGracePeriod" = 300
+            "nodeSelector"           = local.nodeSelector
+            "podSecurityContext" = {
+              "runAsUser"    = 0
+              "runAsNonRoot" = false
+            }
+            "resources" = local.resources
+            "extraEnv" = [
+              {
+                "name"  = "NUM_WORKERS"
+                "value" = "8"
+              },
+              {
+                "name"  = "SLEEP_QUEUE"
+                "value" = "200"
+              }
+            ]
           },
           {
-            "name"         = "gpu"
-            "replicas"     = 0
-            "nodeSelector" = local.nodeSelector
+            "name"                   = "gpu"
+            "replicas"               = 0
+            "mode"                   = "worker"
+            "terminationGracePeriod" = 300
+            "nodeSelector"           = local.nodeSelector
+            "podSecurityContext" = {
+              "runAsUser"    = 0
+              "runAsNonRoot" = false
+            }
+            "resources" = local.resources
           },
         ]
       }

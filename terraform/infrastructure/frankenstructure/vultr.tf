@@ -22,6 +22,7 @@ resource "vultr_kubernetes" "k8s" {
   ha_controlplanes = false
   enable_firewall  = true
 
+  /*
   node_pools {
     node_quantity = 1
     plan          = "vc2-2c-2gb"
@@ -30,6 +31,7 @@ resource "vultr_kubernetes" "k8s" {
     min_nodes     = 1
     max_nodes     = 3
   }
+  */
 }
 
 resource "vultr_kubernetes_node_pools" "gateway" {
@@ -50,7 +52,7 @@ resource "vultr_kubernetes_node_pools" "monitoring" {
   label         = "monitoring"
   tag           = "monitoring"
   auto_scaler   = true
-  min_nodes     = 2
+  min_nodes     = 1
   max_nodes     = 3
 }
 
@@ -61,8 +63,20 @@ resource "vultr_kubernetes_node_pools" "production" {
   label         = "production"
   tag           = "production"
   auto_scaler   = true
-  min_nodes     = 2
-  max_nodes     = 3
+  min_nodes     = 1
+  max_nodes     = 4
+}
+
+resource "vultr_kubernetes_node_pools" "llm" {
+  cluster_id    = vultr_kubernetes.k8s.id
+  node_quantity = 1
+  # plan          = "vcg-a16-2c-8g-2vram"
+  plan        = "vc2-4c-8gb"
+  label       = "llm"
+  tag         = "llm"
+  auto_scaler = false
+  min_nodes   = 1
+  max_nodes   = 2
 }
 
 resource "vultr_vpc" "k8s" {

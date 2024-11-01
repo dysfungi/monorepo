@@ -48,7 +48,9 @@ resource "helm_release" "kube_prometheus" {
       }
       "alertmanager" = {
         "alertmanagerSpec" = {
-          "externalUrl" = "https://${local.alertmanager_hostname}"
+          "externalUrl"  = "https://${local.alertmanager_hostname}"
+          "nodeSelector" = local.nodeSelector
+          "resources"    = local.resources
           # https://github.com/prometheus-operator/prometheus-operator/issues/3737#issuecomment-1326667523
           "alertmanagerConfigMatcherStrategy" = {
             "type" = "None"
@@ -80,7 +82,6 @@ resource "helm_release" "kube_prometheus" {
               ]
             },
           ]
-          "nodeSelector" = local.nodeSelector
           "storage" = {
             "volumeClaimTemplate" = {
               "spec" = {
@@ -128,6 +129,7 @@ resource "helm_release" "kube_prometheus" {
         "prometheusSpec" = {
           "externalUrl"  = "https://${local.prometheus_hostname}"
           "nodeSelector" = local.nodeSelector
+          "resources"    = local.resources
           "paused"       = false # https://prometheus-operator.dev/docs/platform/storage/#resizing-volumes
           "ruleSelector" = {
             "matchLabels" = null
@@ -175,10 +177,21 @@ resource "helm_release" "kube_prometheus" {
           }
         }
         "nodeSelector" = local.nodeSelector
+        "resources" = {
+          "limits" = {
+            "cpu"    = "200m"
+            "memory" = "200Mi"
+          }
+          "requests" = {
+            "cpu"    = "100m"
+            "memory" = "100Mi"
+          }
+        }
       }
       "thanosRuler" = {
         "thanosRulerSpec" = {
           "nodeSelector" = local.nodeSelector
+          "resources"    = local.resources
           "ruleSelector" = {
             "matchLabels" = null
           }

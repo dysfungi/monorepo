@@ -7,6 +7,16 @@ locals {
     "kubernetes.io/os"        = "linux"
     "vke.vultr.com/node-pool" = "monitoring"
   }
+  resources = {
+    "limits" = {
+      "cpu"    = "0.5"
+      "memory" = "1Gi"
+    }
+    "requests" = {
+      "cpu"    = "0.2"
+      "memory" = "400Mi"
+    }
+  }
   probe_interval       = "15s"
   prometheus_hostname  = "${var.prometheus_subdomain}.${var.root_domain}"
   prometheus_probe     = "http://${local.prometheus_hostname}"

@@ -88,12 +88,12 @@ resource "kubernetes_manifest" "notifications" {
               "sendResolved" = false
               "to"           = var.todoist_email
               "html" = join("\n", [
-                "{{ template \"email.default.html\" . }}",
-                "",
                 "Todoist:",
                 "priority = P1",
-                "labels = @alert",
+                "labels = @critical-alert",
                 "due = &lt;date today&gt;",
+                "",
+                "{{ template \"email.default.html\" . }}",
               ])
             },
           ]
@@ -105,12 +105,12 @@ resource "kubernetes_manifest" "notifications" {
               "sendResolved" = false
               "to"           = var.todoist_email
               "html" = join("\n", [
-                "{{ template \"email.default.html\" . }}",
-                "",
                 "Todoist:",
                 "priority = P2",
-                "labels = @alert",
+                "labels = @warning-alert",
                 "due = &lt;date today&gt;",
+                "",
+                "{{ template \"email.default.html\" . }}",
               ])
             },
           ]

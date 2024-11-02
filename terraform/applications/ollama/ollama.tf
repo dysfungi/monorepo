@@ -30,9 +30,21 @@ resource "helm_release" "ollama" {
         "targetCPUUtilizationPercentage"    = 80
         "targetMemoryUtilizationPercentage" = 80
       }
-      "nodeSelector" = {
-        "kubernetes.io/os"        = "linux"
-        "vke.vultr.com/node-pool" = "llm"
+      "nodeAffinity" = {
+        "requiredDuringSchedulingIgnoredDuringExecution" = {
+          "nodeSelectorTerms" = {
+            "matchExpressions" = [
+              {
+                "key"      = "vke.vultr.com/node-pool"
+                "operator" = "In"
+                "values" = [
+                  "llm",
+                  kubernetes_namespace.ollama.metadata[0].name,
+                ]
+              },
+            ]
+          }
+        }
       }
       "resources" = {
         "requests" = {

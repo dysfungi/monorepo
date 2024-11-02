@@ -50,7 +50,16 @@ resource "helm_release" "kube_prometheus" {
         "alertmanagerSpec" = {
           "externalUrl" = "https://${local.alertmanager_hostname}"
           "affinity"    = local.affinity
-          "resources"   = local.resources
+          "resources" = {
+            "requests" = {
+              "cpu"    = "0.1"
+              "memory" = "400Mi"
+            }
+            "limits" = {
+              "cpu"    = "0.3"
+              "memory" = "500Mi"
+            }
+          }
           # https://github.com/prometheus-operator/prometheus-operator/issues/3737#issuecomment-1326667523
           "alertmanagerConfigMatcherStrategy" = {
             "type" = "None"
@@ -129,8 +138,17 @@ resource "helm_release" "kube_prometheus" {
         "prometheusSpec" = {
           "externalUrl" = "https://${local.prometheus_hostname}"
           "affinity"    = local.affinity
-          "resources"   = local.resources
-          "paused"      = false # https://prometheus-operator.dev/docs/platform/storage/#resizing-volumes
+          "resources" = {
+            "requests" = {
+              "cpu"    = "0.4"
+              "memory" = "400Mi"
+            }
+            "limits" = {
+              "cpu"    = "0.8"
+              "memory" = "1Gi"
+            }
+          }
+          "paused" = false # https://prometheus-operator.dev/docs/platform/storage/#resizing-volumes
           "ruleSelector" = {
             "matchLabels" = null
           }
@@ -190,8 +208,17 @@ resource "helm_release" "kube_prometheus" {
       }
       "thanosRuler" = {
         "thanosRulerSpec" = {
-          "affinity"  = local.affinity
-          "resources" = local.resources
+          "affinity" = local.affinity
+          "resources" = {
+            "requests" = {
+              "cpu"    = "0.2"
+              "memory" = "400Mi"
+            }
+            "limits" = {
+              "cpu"    = "0.5"
+              "memory" = "1Gi"
+            }
+          }
           "ruleSelector" = {
             "matchLabels" = null
           }

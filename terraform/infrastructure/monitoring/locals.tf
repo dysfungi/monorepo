@@ -24,16 +24,6 @@ locals {
       ]
     }
   }
-  resources = {
-    "requests" = {
-      "cpu"    = "0.2"
-      "memory" = "400Mi"
-    }
-    "limits" = {
-      "cpu"    = "0.5"
-      "memory" = "1Gi"
-    }
-  }
   probe_interval       = "15s"
   prometheus_hostname  = "${var.prometheus_subdomain}.${var.root_domain}"
   prometheus_probe     = "http://${local.prometheus_hostname}"

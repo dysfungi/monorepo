@@ -11,6 +11,7 @@ resource "helm_release" "blackbox_exporter" {
   # https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-blackbox-exporter/values.yaml#L272
   values = [
     yamlencode({
+      "replicas"     = 2
       "affinity"     = local.affinity
       "secretConfig" = true
       "config" = {
@@ -32,6 +33,16 @@ resource "helm_release" "blackbox_exporter" {
               }
             }
           }
+        }
+      }
+      "resources" = {
+        "requests" = {
+          "cpu"    = "0.1"
+          "memory" = "50Mi"
+        }
+        "limits" = {
+          "cpu"    = "0.2"
+          "memory" = "300Mi"
         }
       }
       "serviceMonitor" = {

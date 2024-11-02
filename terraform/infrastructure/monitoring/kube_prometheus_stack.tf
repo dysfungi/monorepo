@@ -48,9 +48,9 @@ resource "helm_release" "kube_prometheus" {
       }
       "alertmanager" = {
         "alertmanagerSpec" = {
-          "externalUrl"  = "https://${local.alertmanager_hostname}"
-          "nodeSelector" = local.nodeSelector
-          "resources"    = local.resources
+          "externalUrl" = "https://${local.alertmanager_hostname}"
+          "affinity"    = local.affinity
+          "resources"   = local.resources
           # https://github.com/prometheus-operator/prometheus-operator/issues/3737#issuecomment-1326667523
           "alertmanagerConfigMatcherStrategy" = {
             "type" = "None"
@@ -127,10 +127,10 @@ resource "helm_release" "kube_prometheus" {
       }
       "prometheus" = {
         "prometheusSpec" = {
-          "externalUrl"  = "https://${local.prometheus_hostname}"
-          "nodeSelector" = local.nodeSelector
-          "resources"    = local.resources
-          "paused"       = false # https://prometheus-operator.dev/docs/platform/storage/#resizing-volumes
+          "externalUrl" = "https://${local.prometheus_hostname}"
+          "affinity"    = local.affinity
+          "resources"   = local.resources
+          "paused"      = false # https://prometheus-operator.dev/docs/platform/storage/#resizing-volumes
           "ruleSelector" = {
             "matchLabels" = null
           }
@@ -170,13 +170,13 @@ resource "helm_release" "kube_prometheus" {
         "fullnameOverride" = "prometheus-operator"
         "admissionWebhooks" = {
           "deployment" = {
-            "nodeSelector" = local.nodeSelector
+            "affinity" = local.affinity
           }
           "patch" = {
-            "nodeSelector" = local.nodeSelector
+            "affinity" = local.affinity
           }
         }
-        "nodeSelector" = local.nodeSelector
+        "affinity" = local.affinity
         "resources" = {
           "limits" = {
             "cpu"    = "200m"
@@ -190,8 +190,8 @@ resource "helm_release" "kube_prometheus" {
       }
       "thanosRuler" = {
         "thanosRulerSpec" = {
-          "nodeSelector" = local.nodeSelector
-          "resources"    = local.resources
+          "affinity"  = local.affinity
+          "resources" = local.resources
           "ruleSelector" = {
             "matchLabels" = null
           }

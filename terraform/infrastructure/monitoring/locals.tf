@@ -3,18 +3,35 @@ locals {
   alertmanager_probe    = "http://${local.alertmanager_hostname}"
   grafana_hostname      = "${var.grafana_subdomain}.${var.root_domain}"
   grafana_probe         = "http://${local.grafana_hostname}"
-  nodeSelector = {
-    "kubernetes.io/os"        = "linux"
-    "vke.vultr.com/node-pool" = "monitoring"
+  affinity = {
+    # https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+    "nodeAffinity" = {
+      "preferredDuringSchedulingIgnoredDuringExecution" = [
+        {
+          "weight" = 2
+          "preference" = {
+            "matchExpressions" = [
+              {
+                "key"      = "vke.vultr.com/node-pool"
+                "operator" = "In"
+                "values" = [
+                  kubernetes_namespace.monitoring.metadata[0].name,
+                ]
+              },
+            ]
+          }
+        },
+      ]
+    }
   }
   resources = {
-    "limits" = {
-      "cpu"    = "0.5"
-      "memory" = "1Gi"
-    }
     "requests" = {
       "cpu"    = "0.2"
       "memory" = "400Mi"
+    }
+    "limits" = {
+      "cpu"    = "0.5"
+      "memory" = "1Gi"
     }
   }
   probe_interval       = "15s"

@@ -11,7 +11,7 @@ resource "helm_release" "blackbox_exporter" {
   # https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-blackbox-exporter/values.yaml#L272
   values = [
     yamlencode({
-      "nodeSelector" = local.nodeSelector
+      "affinity"     = local.affinity
       "secretConfig" = true
       "config" = {
         # https://github.com/prometheus/blackbox_exporter/blob/master/example.yml

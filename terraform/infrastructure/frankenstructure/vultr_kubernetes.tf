@@ -28,7 +28,7 @@ resource "vultr_kubernetes_node_pools" "gateway" {
 
 resource "vultr_kubernetes_node_pools" "monitoring" {
   cluster_id    = vultr_kubernetes.k8s.id
-  node_quantity = 2
+  node_quantity = 1
   plan          = "vc2-2c-2gb"
   label         = "monitoring"
   tag           = "monitoring"

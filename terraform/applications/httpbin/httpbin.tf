@@ -10,7 +10,7 @@ resource "helm_release" "httpbin" {
       "replicaCount" = "2"
       "nodeSelector" = {
         "kubernetes.io/os"        = "linux"
-        "vke.vultr.com/node-pool" = "production"
+        "vke.vultr.com/node-pool" = "default"
       }
     }),
   ]

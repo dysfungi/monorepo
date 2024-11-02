@@ -9,19 +9,19 @@ resource "helm_release" "cert_manager" {
 
   values = [
     yamlencode({
-      "nodeSelector" = local.nodeSelector
+      "affinity" = local.affinity
       "crds" = {
         "enabled" = true
         "keep"    = true
       }
       "cainjector" = {
-        "nodeSelector" = local.nodeSelector
+        "affinity" = local.affinity
       }
       "startupapicheck" = {
-        "nodeSelector" = local.nodeSelector
+        "affinity" = local.affinity
       }
       "webhook" = {
-        "nodeSelector" = local.nodeSelector
+        "affinity" = local.affinity
       }
       # https://cert-manager.io/docs/configuration/acme/dns01/#setting-nameservers-for-dns01-self-check
       "extraArgs" = [

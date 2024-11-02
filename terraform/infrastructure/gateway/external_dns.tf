@@ -10,9 +10,9 @@ resource "helm_release" "external_dns" {
 
   values = [
     yamlencode({
-      "namespaced"   = false
-      "provider"     = "cloudflare"
-      "nodeSelector" = local.nodeSelector
+      "namespaced" = false
+      "provider"   = "cloudflare"
+      "affinity"   = local.affinity
       "rbac" = {
         "create" = true
       }

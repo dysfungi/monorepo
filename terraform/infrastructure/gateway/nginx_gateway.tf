@@ -43,7 +43,7 @@ resource "helm_release" "gateway" {
   values = [
     yamlencode({
       "fullnameOverride"              = "nginx-gateway"
-      "nodeSelector"                  = local.nodeSelector
+      "affinity"                      = local.affinity
       "terminationGracePeriodSeconds" = 50
       # https://github.com/nginxinc/nginx-gateway-fabric/blob/main/charts/nginx-gateway-fabric/values.yaml
       # https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#configure-delayed-pod-termination-for-zero-downtime-upgrades

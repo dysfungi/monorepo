@@ -1,5 +1,7 @@
+import json
 from logging import getLogger
-from typing import Callable
+from pathlib import Path
+from typing import Any, Callable, Iterable, Optional
 
 from doit import tools
 
@@ -51,10 +53,32 @@ def cleandocker() -> dict:
 
 
 @task
+def deploy() -> dict:
+    return {
+        "actions": [
+            tofu("apply", auto_approve=None),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
 def down() -> dict:
     return {
         "actions": [
             "docker compose down --remove-orphans",
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def plan() -> dict:
+    return {
+        "actions": [
+            tofu("plan"),
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,
@@ -68,6 +92,17 @@ def push() -> dict:
             tools.LongRunning("docker compose push"),
         ],
         "task_dep": ["build"],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def setup() -> dict:
+    return {
+        "actions": [
+            tofu("init"),
+        ],
         "title": tools.title_with_actions,
         "verbosity": 2,
     }
@@ -94,3 +129,42 @@ def web() -> dict:
         "title": tools.title_with_actions,
         "verbosity": 2,
     }
+
+
+def tofu(command, *args, **options) -> str:
+    posargs = _positionize(args)
+    optargs = _optize(options, long_prefix="-")
+    return f"tofu -chdir=terraform {command} {optargs} {posargs}"
+
+
+def _optize(options: dict[str, Any], *, long_prefix="--", separator="=") -> str:
+    """Convert a dictionary to a CLI style option parameters string. Single
+    character names are treated as short options while anything else are treated as
+    long options. Also, underscores are converted to dashes.
+    """
+
+    def fix_optname(name: str) -> str:
+        name = name.replace("_", "-").strip("-")
+        return f"-{name}" if len(name) == 1 else f"{long_prefix}{name}"
+
+    def fix_optvalue(value: Any) -> Optional[str]:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return str(value).lower()
+        return json.dumps(str(value) if isinstance(value, Path) else value)
+
+    optionized = (
+        (fix_optname(name), fix_optvalue(value)) for name, value in options.items()
+    )
+    return " ".join(
+        name if value is None else f"{name}{separator}{value}"
+        for name, value in optionized
+    )
+
+
+def _positionize(args: Iterable) -> str:
+    """Convert args to a CLI style positional parameter string where each
+    argument is double quoted.
+    """
+    return " ".join(f'"{arg}"' for arg in args)

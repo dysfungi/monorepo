@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
     bucket                      = "frankenstructure"
-    key                         = "terraform/windmill.tfstate"
+    key                         = "terraform/automate.tfstate"
     endpoint                    = "sjc1.vultrobjects.com"
     region                      = "us-west-1"
     skip_credentials_validation = true
@@ -11,10 +11,6 @@ terraform {
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "~> 2.32"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.15"
     }
     vultr = {
       source  = "vultr/vultr"
@@ -26,13 +22,6 @@ terraform {
 # https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs
 provider "kubernetes" {
   config_path = var.kubeconfig_path
-}
-
-# https://registry.terraform.io/providers/hashicorp/helm/latest/docs
-provider "helm" {
-  kubernetes {
-    config_path = var.kubeconfig_path
-  }
 }
 
 provider "vultr" {

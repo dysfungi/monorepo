@@ -31,7 +31,7 @@ resource "kubernetes_manifest" "probes" {
               "sourceLabels" = ["target"]
               "targetLabel"  = "target"
               "action"       = "replace"
-              "replacement"  = var.subdomain
+              "replacement"  = kubernetes_namespace.automate.metadata[0].name
             },
           ]
         }

@@ -1,3 +1,7 @@
+variable "app_version" {
+  type = string
+}
+
 variable "kubeconfig_path" {
   type = string
 }
@@ -9,7 +13,7 @@ variable "root_domain" {
 
 variable "subdomain" {
   type    = string
-  default = "automate"
+  default = "api"
 }
 
 variable "vultr_api_key" {

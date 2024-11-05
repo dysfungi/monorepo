@@ -25,7 +25,7 @@ resource "kubernetes_deployment" "api" {
           image = format(
             "%s/automate/api:%s",
             data.vultr_container_registry.frankistry.urn,
-            "0.1.0",
+            var.app_version,
           )
 
           port {
@@ -36,12 +36,29 @@ resource "kubernetes_deployment" "api" {
 
           liveness_probe {
             http_get {
-              # path = "/api/-/health"
-              path = "/"
+              path = "/-/alive"
               port = 8080
             }
-            initial_delay_seconds = 5
-            period_seconds        = 5
+            # initial_delay_seconds = 5
+            # period_seconds        = 5
+          }
+
+          readiness_probe {
+            http_get {
+              path = "/-/ready"
+              port = 8080
+            }
+            # initial_delay_seconds = 5
+            # period_seconds        = 5
+          }
+
+          startup_probe {
+            http_get {
+              path = "/-/startup"
+              port = 8080
+            }
+            # initial_delay_seconds = 5
+            # period_seconds        = 5
           }
 
           resources {

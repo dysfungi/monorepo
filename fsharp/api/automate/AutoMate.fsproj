@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <Compile Include="Program.fs" />
+    <Compile Include="Todoist.fs" />
   </ItemGroup>
 
   <ItemGroup>

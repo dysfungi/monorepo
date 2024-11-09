@@ -80,7 +80,7 @@ resource "helm_release" "nodered" {
       "metrics" = {
         "enabled" = true
         "serviceMonitor" = {
-          "enabled" = true
+          "enabled" = false
         }
       }
       "sidecar" = {

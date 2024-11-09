@@ -1,4 +1,4 @@
-module Todoist
+module AutoMate.Todoist
 
 open System
 
@@ -150,14 +150,23 @@ type Initiator = {
 }
 
 // https://developer.todoist.com/sync/v9/#webhooks
-type EventName = EventName of string
+type EventName =
+  | CommentAdded
+  | CommentUpdated
+  | CommentDeleted
 
-let EventName str =
-  match str with
-  | "note:added" -> EventName str
-  | "note:updated" -> EventName str
-  | "note:deleted" -> EventName str
-  | _ -> None
+  member this.AsString() =
+    match this with
+    | CommentAdded -> "note:added"
+    | CommentUpdated -> "note:updated"
+    | CommentDeleted -> "note:deleted"
+
+  static member FromString(s) =
+    match s with
+    | "note:added" -> Some CommentAdded
+    | "note:updated" -> Some CommentUpdated
+    | "note:deleted" -> Some CommentDeleted
+    | _ -> None
 
 type Task = {
   Id: string
@@ -203,9 +212,9 @@ module WebhookEvent =
       let handleOk event : HttpHandler =
         let result =
           match event with
-          | { EventName = "note:added" } -> success
-          | { EventName = "note:updated" } -> success
-          | { EventName = "note:deleted" } -> unsupported
+          | { EventName = EventName.CommentAdded } -> success
+          | { EventName = EventName.CommentUpdated } -> success
+          | { EventName = EventName.CommentDeleted } -> unsupported
           | _ -> failure
 
         // Response.ofJson {}

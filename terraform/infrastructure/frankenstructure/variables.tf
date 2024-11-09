@@ -5,7 +5,7 @@ variable "cloudflare_api_token" {
 
 variable "home_ip" {
   type    = string
-  default = "146.70.183.149"
+  default = "98.147.146.93"
 }
 
 variable "vultr_api_key" {

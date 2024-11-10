@@ -1,7 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
+    <AssemblyName>AutoMate</AssemblyName>
     <Version>0.2.0</Version>
+
+    <!-- General Info -->
+    <Authors>Derek M Frank</Authors>
+
+    <!-- Build config -->
     <TargetFramework>net8.0</TargetFramework>
+
+    <!-- NuGet config -->
+    <PackageId>AutoMate</PackageId>
+
+    <!-- SourceLink Settings  -->
   </PropertyGroup>
 
   <ItemGroup>

@@ -27,6 +27,7 @@ module Program =
           "/-/ready"
           (Response.ofJson { Status = "OK" })
         get "/-/startup" (Response.ofJson { Status = "OK" })
+        any "/-/debug" (Response.debugRequest)
       ]
     }
 

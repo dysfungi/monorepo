@@ -58,6 +58,7 @@ def deploy() -> dict:
     return {
         "task_dep": ["build", "push"],
         "actions": [
+            tools.LongRunning(tofu("init", migrate_state=None)),
             tools.LongRunning(tofu("apply", auto_approve=None)),
         ],
         "title": tools.title_with_actions,

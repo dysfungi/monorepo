@@ -12,21 +12,7 @@ jobs:
   lint:
     uses: ./.github/workflows/lint.yaml
 
-  build:
-    uses: ./.github/workflows/build.yaml
-
-  check-deploy-prod:
-    if: github.ref_name == 'main'
-    environment: production
-    needs:
-      - lint
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Deploying to production!"
-
   init-secrets:
-    needs:
-      - check-deploy-prod
     runs-on: ubuntu-latest
     steps:
       - id: op-secrets
@@ -40,7 +26,7 @@ jobs:
       - uses: defrank/action-vultr@v2024.10.20-1
         with:
           token: ${{ steps.op-secrets.outputs.vultr_api_key }}
-      - id: s3-keys
+      - id: vultr-s3-keys
         env:
           VULTR_API_KEY: ${{ steps.op-secrets.outputs.vultr_api_key }}
         run: >
@@ -49,6 +35,20 @@ jobs:
           .object_storages[]
           | select(.label == "frankenstorage")
           | ["s3_access_key=" + .s3_access_key, "s3_secret_key=" + .s3_secret_key]
+          | join("\n")
+          '
+      - id: vultr-registry
+        env:
+          VULTR_API_KEY: ${{ steps.op-secrets.outputs.vultr_api_key }}
+        run: >
+          vultr-cli --output=json container-registry list
+          | jq --raw-output >> "$GITHUB_OUTPUT" '
+          .registries[]
+          | select(.name == "frankistry")
+          | [ "registry_urn=" + .urn
+            , "registry_username=" + .root_user.username
+            , "registry_password=" + .root_user.password
+            ]
           | join("\n")
           '
       - id: enc-cloudflare-api-token
@@ -62,24 +62,107 @@ jobs:
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
-          in: ${{ steps.s3-keys.outputs.s3_access_key }}
+          in: ${{ steps.vultr-s3-keys.outputs.s3_access_key }}
       - id: enc-s3-secret-key
         uses: cloudposse/github-action-secret-outputs@main
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
-          in: ${{ steps.s3-keys.outputs.s3_secret_key }}
+          in: ${{ steps.vultr-s3-keys.outputs.s3_secret_key }}
       - id: enc-vultr-api-key
         uses: cloudposse/github-action-secret-outputs@main
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.op-secrets.outputs.vultr_api_key }}
+      - id: enc-vultr-registry-password
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.vultr-registry.outputs.registry_password }}
+      - id: enc-vultr-registry-urn
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.vultr-registry.outputs.registry_urn }}
+      - id: enc-vultr-registry-username
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.vultr-registry.outputs.registry_username }}
     outputs:
       enc_cloudflare_api_token: ${{ steps.enc-cloudflare-api-token.outputs.out }}
       enc_s3_access_key: ${{ steps.enc-s3-access-key.outputs.out }}
       enc_s3_secret_key: ${{ steps.enc-s3-secret-key.outputs.out }}
       enc_vultr_api_key: ${{ steps.enc-vultr-api-key.outputs.out }}
+      enc_vultr_registry_password: ${{ steps.enc-vultr-registry-password.outputs.out }}
+      enc_vultr_registry_urn: ${{ steps.enc-vultr-registry-urn.outputs.out }}
+      enc_vultr_registry_username: ${{ steps.enc-vultr-registry-username.outputs.out }}
+
+  build-fsharp-api-automate:
+    needs:
+      - lint
+      - init-secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: app-version
+        working-directory: fsharp/api/automate
+        run: >
+          grep --ignore-case --max-count=1 '<version>' *.fsproj
+          | sed -e 's|.*<version>\(.*\)</version>.*|out=\1|i'
+          >> "$GITHUB_OUTPUT"
+      - name: Build
+        working-directory: fsharp/api/automate
+        run: docker compose build
+        env:
+          APP_VERSION: ${{ steps.app-version.outputs.out }}
+      - id: vultr-registry-password
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.init-secrets.outputs.enc_vultr_registry_password }}
+      - id: vultr-registry-urn
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.init-secrets.outputs.enc_vultr_registry_urn }}
+      - id: vultr-registry-username
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.init-secrets.outputs.enc_vultr_registry_username }}
+      - name: Docker login
+        run: >
+          docker login
+          --username "$REGISTRY_USERNAME"
+          --password-stdin <<< "$REGISTRY_PASSWORD"
+          "$REGISTRY_URN"
+        env:
+          REGISTRY_PASSWORD: ${{ steps.vultr-registry-password.outputs.out }}
+          REGISTRY_URN: ${{ steps.vultr-registry-urn.outputs.out }}
+          REGISTRY_USERNAME: ${{ steps.vultr-registry-username.outputs.out }}
+      - name: Push
+        if: github.ref_name == 'main'
+        working-directory: fsharp/api/automate
+        run: docker compose push
+        env:
+          APP_VERSION: ${{ steps.app-version.outputs.out }}
+
+  check-deploy-prod:
+    if: github.ref_name == 'main'
+    environment: production
+    needs:
+      - lint
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Deploying to production!"
 
   deploy-prod-frankenstructure:
     environment: production
@@ -150,6 +233,7 @@ jobs:
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           discord_webhook_alerts: op://Frankenstructure/Discord Webhook - breaktheloop/url
+          dockerconfigjson: op://Frankenstructure/Vultr Container Registry - Frankistry/credential
           grafana_admin_password: op://Frankenstructure/Grafana - frank.sh/password
           healthchecksio_api_key: op://Frankenstructure/Healthchecks.io API Key/credential
           smtp_password: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/password
@@ -174,6 +258,12 @@ jobs:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.op-secrets.outputs.discord_webhook_alerts }}
+      - id: enc-dockerconfigjson
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: encode
+          in: ${{ steps.op-secrets.outputs.dockerconfigjson }}
       - id: enc-grafana-admin-password
         uses: cloudposse/github-action-secret-outputs@main
         with:
@@ -225,6 +315,7 @@ jobs:
     outputs:
       enc_cloudflare_api_token: ${{ needs.init-secrets.outputs.enc_cloudflare_api_token }}
       enc_discord_webhook_alerts: ${{ steps.enc-discord-webhook-alerts.outputs.out }}
+      enc_dockerconfigjson: ${{ steps.enc-dockerconfigjson.outputs.out }}
       enc_grafana_admin_password: ${{ steps.enc-grafana-admin-password.outputs.out }}
       enc_healthchecksio_api_key: ${{ steps.enc-healthchecksio-api-key.outputs.out }}
       enc_kubeconfig_base64: ${{ steps.enc-kubeconfig-base64.outputs.out }}
@@ -236,6 +327,9 @@ jobs:
       enc_smtp_username: ${{ steps.enc-smtp-username.outputs.out }}
       enc_todoist_email: ${{ steps.enc-todoist-email.outputs.out }}
       enc_vultr_api_key: ${{ needs.init-secrets.outputs.enc_vultr_api_key }}
+      enc_vultr_registry_password: ${{ needs.init-secrets.outputs.enc_vultr_registry_password }}
+      enc_vultr_registry_urn: ${{ needs.init-secrets.outputs.enc_vultr_registry_urn }}
+      enc_vultr_registry_username: ${{ needs.init-secrets.outputs.enc_vultr_registry_username }}
 
   deploy-prod-monitoring:
     environment: production
@@ -636,3 +730,74 @@ jobs:
           TF_VAR_windmill_postgres_password: ${{ steps.op-secrets.outputs.windmill_postgres_password }}
           TF_VAR_windmill_probe_token: ${{ steps.op-secrets.outputs.windmill_probe_token }}
           TF_VAR_windmill_probe_url: ${{ steps.op-secrets.outputs.windmill_probe_url }}
+
+  deploy-prod-automate-api:
+    environment: production
+    needs:
+      - secrets
+      - deployed-prod-foundation
+      - build-fsharp-api-automate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: opentofu/setup-opentofu@v1
+      - id: kubeconfig-base64
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_kubeconfig_base64 }}
+      - id: dockerconfigjson
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_dockerconfigjson }}
+      - id: kubeconfig-path
+        run: |
+          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
+          echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
+      - id: s3-access-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_s3_access_key }}
+      - id: s3-secret-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
+      - id: vultr-api-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_vultr_api_key }}
+      - id: app-version
+        working-directory: fsharp/api/automate
+        run: >
+          grep --ignore-case --max-count=1 '<version>' *.fsproj
+          | sed -e 's|.*<version>\(.*\)</version>.*|out=\1|i'
+          >> "$GITHUB_OUTPUT"
+      - name: Initialize tofu
+        working-directory: fsharp/api/automate/terraform
+        run: tofu init -input=false -upgrade
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          TF_VAR_app_version: ${{ steps.app-version.outputs.out }}
+          TF_VAR_dockerconfigjson: ${{ steps.dockerconfigjson.outputs.out }}
+          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+          TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
+      - name: Deploy
+        working-directory: fsharp/api/automate/terraform
+        run: tofu apply -auto-approve -input=false
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          TF_VAR_app_version: ${{ steps.app-version.outputs.out }}
+          TF_VAR_dockerconfigjson: ${{ steps.dockerconfigjson.outputs.out }}
+          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+          TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}

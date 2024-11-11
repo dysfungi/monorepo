@@ -2,6 +2,11 @@ variable "app_version" {
   type = string
 }
 
+variable "dockerconfigjson" {
+  type      = string
+  sensitive = true
+}
+
 variable "kubeconfig_path" {
   type = string
 }

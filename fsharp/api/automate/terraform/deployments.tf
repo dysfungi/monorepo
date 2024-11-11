@@ -20,6 +20,9 @@ resource "kubernetes_deployment" "api" {
       }
       spec {
         node_selector = local.node_selector
+        image_pull_secrets {
+          name = kubernetes_secret.cr.metadata[0].name
+        }
         container {
           name = "automate-api"
           image = format(

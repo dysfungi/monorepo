@@ -199,8 +199,6 @@ module WebhookEvent =
           | { EventName = "note:deleted" } -> unsupported
           | _ -> unsupported
 
-        // Response.ofJson {}
-        // Response.ofJson Seq.empty
         Response.ofJson result
 
       Request.mapJsonOption jsonOptions handleOk ctx

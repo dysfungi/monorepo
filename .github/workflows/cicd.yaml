@@ -345,6 +345,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: opentofu/setup-opentofu@v1
+      - id: op-secrets
+        uses: 1password/load-secrets-action@v2
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          exporter_postgres_password: op://Frankenstructure/Postgres - Exporter/password
       - id: cloudflare-api-token
         uses: cloudposse/github-action-secret-outputs@main
         with:
@@ -421,6 +428,12 @@ jobs:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_todoist_email }}
+      - id: vultr-api-key
+        uses: cloudposse/github-action-secret-outputs@main
+        with:
+          secret: ${{ secrets.GPG_PASSPHRASE }}
+          op: decode
+          in: ${{ needs.secrets.outputs.enc_vultr_api_key }}
       - name: Initialize tofu
         working-directory: terraform/infrastructure/monitoring
         run: tofu init -input=false -upgrade
@@ -429,6 +442,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
           TF_VAR_cloudflare_api_token: ${{ steps.cloudflare-api-token.outputs.out }}
           TF_VAR_discord_webhook_alerts: ${{ steps.discord-webhook-alerts.outputs.out }}
+          TF_VAR_exporter_postgres_password: ${{ steps.op-secrets.outputs.exporter_postgres_password }}
           TF_VAR_github_token: ${{ github.token }}
           TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_grafana_admin_password: ${{ steps.grafana-admin-password.outputs.out }}
@@ -439,6 +453,7 @@ jobs:
           TF_VAR_smtp_server: ${{ steps.smtp-server.outputs.out }}
           TF_VAR_smtp_username: ${{ steps.smtp-username.outputs.out }}
           TF_VAR_todoist_email: ${{ steps.todoist-email.outputs.out }}
+          TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
       - name: Deploy
         working-directory: terraform/infrastructure/monitoring
         run: tofu apply -auto-approve -input=false
@@ -447,6 +462,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
           TF_VAR_cloudflare_api_token: ${{ steps.cloudflare-api-token.outputs.out }}
           TF_VAR_discord_webhook_alerts: ${{ steps.discord-webhook-alerts.outputs.out }}
+          TF_VAR_exporter_postgres_password: ${{ steps.op-secrets.outputs.exporter_postgres_password }}
           TF_VAR_github_token: ${{ github.token }}
           TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_grafana_admin_password: ${{ steps.grafana-admin-password.outputs.out }}
@@ -457,6 +473,7 @@ jobs:
           TF_VAR_smtp_server: ${{ steps.smtp-server.outputs.out }}
           TF_VAR_smtp_username: ${{ steps.smtp-username.outputs.out }}
           TF_VAR_todoist_email: ${{ steps.todoist-email.outputs.out }}
+          TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
 
   deploy-gateway:
     environment: production

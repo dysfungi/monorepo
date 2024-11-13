@@ -14,6 +14,11 @@ variable "email" {
   default   = "derek@frank.sh"
 }
 
+variable "exporter_postgres_password" {
+  type      = string
+  sensitive = true
+}
+
 variable "grafana_admin_password" {
   type      = string
   sensitive = true
@@ -61,6 +66,11 @@ variable "smtp_username" {
 }
 
 variable "todoist_email" {
+  type      = string
+  sensitive = true
+}
+
+variable "vultr_api_key" {
   type      = string
   sensitive = true
 }

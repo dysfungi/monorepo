@@ -20,6 +20,10 @@ terraform {
       source  = "kristofferahl/healthchecksio"
       version = "~> 2.0"
     }
+    vultr = {
+      source  = "vultr/vultr"
+      version = "~> 2.21"
+    }
   }
 }
 
@@ -37,4 +41,10 @@ provider "helm" {
 
 provider "healthchecksio" {
   api_key = var.healthchecksio_api_key
+}
+
+provider "vultr" {
+  api_key     = var.vultr_api_key
+  rate_limit  = 100
+  retry_limit = 3
 }

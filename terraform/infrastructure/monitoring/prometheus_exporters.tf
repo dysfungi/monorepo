@@ -54,3 +54,56 @@ resource "helm_release" "blackbox_exporter" {
     }),
   ]
 }
+
+# https://artifacthub.io/packages/helm/prometheus-community/prometheus-postgres-exporter
+resource "helm_release" "postgres_exporter" {
+  name             = "prometheus-postgres-exporter"
+  repository       = "https://prometheus-community.github.io/helm-charts"
+  chart            = "prometheus-postgres-exporter"
+  version          = "6.4.0"
+  namespace        = kubernetes_namespace.monitoring.metadata[0].name
+  create_namespace = false
+
+  # https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-blackbox-exporter/values.yaml#L272
+  values = [
+    yamlencode({
+      "replicaCount" = 2
+      "affinity"     = local.affinity
+      "image" = {
+        // https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-postgres-exporter/Chart.yaml#L2
+        "tag" = "v0.16.0"
+      }
+      "serviceMonitor" = {
+        "enabled"   = true
+        "namespace" = kubernetes_namespace.monitoring.metadata[0].name
+      }
+      "config" = {
+        "datasource" = {
+          "host" = data.vultr_database.pg.host
+          "userSecret" = {
+            "name" = kubernetes_secret.pg_exporter.metadata[0].name
+            "key"  = "pgUsername"
+          }
+          "passwordSecret" = {
+            "name" = kubernetes_secret.pg_exporter.metadata[0].name
+            "key"  = "pgPassword"
+          }
+          "port"        = tostring(data.vultr_database.pg.port)
+          "database"    = data.vultr_database.pg.dbname
+          "sslmode"     = "require"
+          "extraparams" = ""
+        }
+      }
+      "resources" = {
+        "requests" = {
+          "cpu"    = "0.1"
+          "memory" = "50Mi"
+        }
+        "limits" = {
+          "cpu"    = "0.2"
+          "memory" = "300Mi"
+        }
+      }
+    }),
+  ]
+}

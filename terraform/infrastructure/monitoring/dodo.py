@@ -41,7 +41,9 @@ class task:
 @task
 def build() -> dict:
     return {
-        "actions": [_tofu("plan")],
+        "actions": [
+            tools.LongRunning(tofu("plan")),
+        ],
         "title": tools.title_with_actions,
         "verbosity": 2,
     }
@@ -76,7 +78,12 @@ def get_config() -> Generator[dict, None, None]:
 @task
 def deploy() -> dict:
     return {
-        "actions": [_tofu("apply", auto_approve=None)],
+        "actions": [
+            tools.LongRunning(tofu("apply", auto_approve=None)),
+        ],
+        "task_dep": [
+            "setup",
+        ],
         "title": tools.title_with_actions,
         "verbosity": 2,
     }
@@ -179,7 +186,7 @@ def logs(
 def setup() -> dict:
     return {
         "actions": [
-            _tofu("init"),
+            tools.LongRunning(tofu("init", migrate_state=None, upgrade=None)),
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,
@@ -259,7 +266,7 @@ def _kubectl(command: str, *args, **options) -> str:
     return f"kubectl {command} {opt_params} {pos_params}"
 
 
-def _tofu(command: str, *args, **options) -> str:
+def tofu(command: str, *args, **options) -> str:
     """Build a string for calling Tofu in the CLI."""
     pos_params = _positionize(args)
     opt_params = _optize(options, long_prefix="-")

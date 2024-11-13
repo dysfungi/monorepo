@@ -18,3 +18,14 @@ resource "kubernetes_secret" "alertmanager_env" {
     SMTP_TOKEN = var.smtp_password
   }
 }
+
+resource "kubernetes_secret" "pg_exporter" {
+  metadata {
+    name      = "postgres-exporter-creds"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
+  }
+  data = {
+    pgUsername = vultr_database_user.pg_exporter.username
+    pgPassword = vultr_database_user.pg_exporter.password
+  }
+}

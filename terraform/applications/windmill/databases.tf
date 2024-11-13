@@ -19,7 +19,7 @@ resource "vultr_database_user" "windmill_app" {
 # https://docs.vultr.com/postgresql-managed-database-guide#connection-pools-tab
 resource "vultr_database_connection_pool" "windmill_app" {
   database_id = data.vultr_database.pg.id
-  name        = "windmill_app"
+  name        = vultr_database_user.windmill_app.username
   database    = vultr_database_db.windmill_app.name
   username    = vultr_database_user.windmill_app.username
   mode        = "transaction"

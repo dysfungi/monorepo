@@ -7,3 +7,16 @@ services:
     ports:
       - "8080"
     scale: 1
+
+  postgres:
+    # https://hub.docker.com/_/postgres
+    image: postgres:16
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

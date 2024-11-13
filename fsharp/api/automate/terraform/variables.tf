@@ -2,6 +2,11 @@ variable "app_version" {
   type = string
 }
 
+variable "automate_postgres_password" {
+  type      = string
+  sensitive = true
+}
+
 variable "dockerconfigjson" {
   type      = string
   sensitive = true

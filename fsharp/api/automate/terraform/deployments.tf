@@ -156,6 +156,7 @@ resource "kubernetes_deployment" "api" {
             name  = "DOTNETMONITOR_Metrics__Providers__0__ProviderName"
             value = "Microsoft-AspNetCore-Server-Kestrel"
           }
+          /* Default to all by not specifying any counter names.
           env {
             name  = "DOTNETMONITOR_Metrics__Providers__0__CounterNames__0"
             value = "connections-per-second"
@@ -164,6 +165,7 @@ resource "kubernetes_deployment" "api" {
             name  = "DOTNETMONITOR_Metrics__Providers__0__CounterNames__1"
             value = "total-connections"
           }
+          */
         }
 
         volume {

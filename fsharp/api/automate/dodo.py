@@ -1,8 +1,12 @@
+import datetime as dt
 import json
+import os
 import platform
+import re
+from functools import partial
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Generator, Iterable, Optional
 
 from doit import tools
 
@@ -56,10 +60,14 @@ def cleandocker() -> dict:
 @task
 def deploy() -> dict:
     return {
-        "task_dep": ["build", "push"],
         "actions": [
+            tools.LongRunning(compose("build")),
+            tools.LongRunning(compose("push")),
             tools.LongRunning(tofu("init", migrate_state=None)),
             tools.LongRunning(tofu("apply", auto_approve=None)),
+        ],
+        "setup": [
+            "_setup:app_version",
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,
@@ -71,6 +79,20 @@ def down() -> dict:
     return {
         "actions": [
             tools.LongRunning(compose("down", remove_orphans=None)),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def gen_version() -> dict:
+    return {
+        "actions": [
+            'echo "$APP_VERSION"',
+        ],
+        "setup": [
+            "_setup:app_version",
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,
@@ -148,6 +170,29 @@ def web() -> dict:
     }
 
 
+@task
+def _setup() -> Generator[dict, None, None]:
+    app_version = _app_version()
+    branch_name = _git_branch_name(safe=True)
+    epoch = dt.datetime.utcnow().strftime("%s")
+    version_suffix = f"{branch_name}.{epoch}"
+    old_app_version = os.environ.get("APP_VERSION", app_version)
+    new_app_version = f"{app_version}-{version_suffix}"
+
+    yield {
+        "name": "app_version",
+        "actions": [
+            partial(os.environ.__setitem__, "APP_VERSION", new_app_version),
+            partial(os.environ.__setitem__, "TF_VAR_app_version", new_app_version),
+        ],
+        "teardown": [
+            partial(os.environ.__setitem__, "APP_VERSION", old_app_version),
+            partial(os.environ.__setitem__, "TF_VAR_app_version", old_app_version),
+        ],
+        "title": tools.title_with_actions,
+    }
+
+
 def compose(command, *args, **options) -> str:
     posargs = _positionize(args)
     optargs = _optize(options)
@@ -211,3 +256,18 @@ def _app_version() -> str:
             return line.strip().removeprefix("<Version>").removesuffix("</Version>")
         else:
             raise RuntimeError("Could not find version")
+
+
+def _git_branch_name(*, safe: bool = False) -> str:
+    cwd = Path.cwd()
+    git_head = next(
+        git_head for parent in cwd.parents for git_head in parent.glob(".git/HEAD")
+    )
+    with git_head.open("rt") as fp:
+        name = next(
+            line.strip().partition("refs/heads/")[-1]
+            for line in fp
+            if line.startswith("ref:")
+        )
+
+    return re.sub(r"[^a-zA-Z0-9_.-]+", "-", name) if safe else name

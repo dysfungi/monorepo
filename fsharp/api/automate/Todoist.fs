@@ -10,10 +10,6 @@ let jsonOptions =
   // https://learn.microsoft.com/en-us/dotnet/api/system.text.json.jsonserializeroptions
   let options = JsonFSharpOptions.Default().ToJsonSerializerOptions()
   options.AllowTrailingCommas <- true
-  // https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/customize-properties?pivots=dotnet-8-0#enums-as-strings
-  JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower)
-  |> options.Converters.Add
-
   options.PropertyNameCaseInsensitive <- true
   // https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/customize-properties?pivots=dotnet-8-0#use-a-custom-json-property-naming-policy
   options.PropertyNamingPolicy <- JsonNamingPolicy.SnakeCaseLower
@@ -192,6 +188,7 @@ module WebhookEvent =
       let handleOk (event: WebhookEvent) : HttpHandler =
         printfn "%A" event
 
+        // TODO: https://fsharpforfunandprofit.com/posts/serializing-your-domain-model/
         let result =
           match event with
           | { EventName = "note:added" } -> success

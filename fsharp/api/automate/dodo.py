@@ -270,4 +270,4 @@ def _git_branch_name(*, safe: bool = False) -> str:
             if line.startswith("ref:")
         )
 
-    return re.sub(r"[^a-zA-Z0-9_.-]+", "-", name) if safe else name
+    return re.sub(r"[^a-z0-9_.-]+", "-", name, flags=re.IGNORECASE) if safe else name

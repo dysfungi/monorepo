@@ -1,7 +1,7 @@
 services:
   api:
     platform: linux/amd64
-    image: sjc.vultrcr.com/frankistry/automate/api:${APP_VERSION}
+    image: sjc.vultrcr.com/frankistry/automate/api:${APP_VERSION:-local}
     build:
       context: ./
     ports:

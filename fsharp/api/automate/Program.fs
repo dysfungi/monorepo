@@ -23,12 +23,11 @@ module Program =
   open Microsoft.Extensions.Logging
   //open Serilog
 
+  [<AutoOpen>]
   module Health =
     type Alive = { Status: string }
     type Ready = { Status: string }
     type Startup = { Status: string }
-
-  open Health
 
   [<EntryPoint>]
   let main args =
@@ -57,7 +56,9 @@ module Program =
 
       endpoints [
         get "/" (Response.ofPlainText "Hello world")
-        post "/v1/todoist/webhook-events" (Todoist.WebhookEvent.handler)
+        post
+          "/v1/todoist/webhook-events"
+          Integrations.Todoist.SyncApiV9.WebhookEvent.handler
         // https://learn.microsoft.com/en-us/azure/architecture/patterns/health-endpoint-monitoring
         // https://andrewlock.net/deploying-asp-net-core-applications-to-kubernetes-part-6-adding-health-checks-with-liveness-readiness-and-startup-probes/#the-three-kinds-of-probe-liveness-readiness-and-startup-probes
         get "/-/alive" (Response.ofJson { Status = "OK" })

@@ -16,13 +16,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Todoist.fs" />
+    <Compile Include="Integrations.fs" />
+    <Compile Include="Integrations.Todoist.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Falco" Version="4.0.6" />
+    <PackageReference Include="FSharp.Json" Version="0.4.1" />
     <PackageReference Include="FSharp.SystemTextJson" Version="1.3.13" />
     <PackageReference Include="prometheus-net" Version="8.2.1" />
+    <PackageReference Include="Validus" Version="4.1.4" />
   </ItemGroup>
 </Project>

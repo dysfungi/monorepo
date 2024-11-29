@@ -21,10 +21,12 @@ let deserializeValidator<'T> : Validator<string, 'T> =
   fun (field: string) (input: string) ->
     input
     |> Check.String.notEmpty field
-    |> Result.bind (fun v ->
-      match deserialize<'T> v with
-      | Ok v -> Ok v
-      | Error e -> Error <| ValidationErrors.create field [ e.Message ])
+    |> Result.bind (
+      deserialize<'T>
+      >> function
+        | Ok v -> Ok v
+        | Error e -> Error <| ValidationErrors.create field [ e.Message ]
+    )
 
 [<RequireQualifiedAccess>]
 module RestApiV2 =
@@ -161,22 +163,26 @@ module SyncApiV9 =
 
     static member Validate: Validator<string, WebhookEvent> =
       fun field input ->
+        let v9 eventName body =
+          match eventName with
+          | "note:added"
+          | "note:updated" ->
+            body |> (deserializeValidator<NoteWebhookEventDto> *|* NoteEvent) "body"
+          | "item:added"
+          | "item:updated" ->
+            body |> (deserializeValidator<ItemWebhookEventDto> *|* ItemEvent) "body"
+          | _ ->
+            Error
+            <| ValidationErrors.create "event_name" [
+              $"unsupported event_name: {eventName}"
+            ]
+
         validate {
           let! eventPeek = deserializeValidator<WebhookEventPeek> "body" input
 
           let! event =
             match eventPeek.Version with
-            | "9" ->
-              match eventPeek.EventName with
-              | "note:added"
-              | "note:updated" ->
-                deserializeValidator<NoteWebhookEventDto> "body" input
-                |> Result.map (fun v -> NoteEvent v)
-              | _ ->
-                Error
-                <| ValidationErrors.create "event_name" [
-                  $"unsupported event_name: {eventPeek.EventName}"
-                ]
+            | "9" -> v9 eventPeek.EventName input
             | _ ->
               Error
               <| ValidationErrors.create "version" [

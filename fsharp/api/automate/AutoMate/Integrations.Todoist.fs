@@ -11,7 +11,16 @@ let jsonConfig = JsonConfig.create (jsonFieldNaming = Json.snakeCase)
 
 let serialize data = Json.serializeEx jsonConfig data
 
-let deserialize<'T> json = Json.deserializeEx<'T> jsonConfig json
+let deserialize<'T> json =
+  try
+    Json.deserializeEx<'T> jsonConfig json |> Ok
+  with ex ->
+    Error ex
+
+let deserializeValidator<'T> field input =
+  input
+  |> deserialize<'T>
+  |> Result.mapError (fun e -> ValidationErrors.create field [ e.Message ])
 
 [<RequireQualifiedAccess>]
 module RestApiV2 =
@@ -142,6 +151,35 @@ module SyncApiV9 =
     EventData: NoteDto
   }
 
+  type WebhookEvent =
+    | ItemEvent of ItemWebhookEventDto
+    | NoteEvent of NoteWebhookEventDto
+
+    static member Validate: Validator<string, WebhookEvent> =
+      fun field input ->
+        validate {
+          let! eventPeek = deserializeValidator<WebhookEventPeek> "body" input
+
+          return!
+            match eventPeek.Version with
+            | "9" ->
+              match eventPeek.EventName with
+              | "note:added"
+              | "note:updated" ->
+                deserializeValidator<NoteWebhookEventDto> "body" input
+                |> Result.map (NoteEvent)
+              | _ ->
+                Error
+                <| ValidationErrors.create "event_name" [
+                  $"unsupported event_name: {eventPeek.EventName}"
+                ]
+            | _ ->
+              Error
+              <| ValidationErrors.create "version" [
+                $"unsupported version: {eventPeek.Version}"
+              ]
+        }
+
   module WebhookEvent =
     // https://developer.todoist.com/sync/v9/#request-format
     (*
@@ -210,27 +248,7 @@ module SyncApiV9 =
       fun ctx ->
         let handleBody (body: string) : HttpHandler =
           printfn "%A" body
-          let eventPeek = deserialize<WebhookEventPeek> body
-
-          let result =
-            validate {
-              return!
-                match eventPeek.Version with
-                | "9" ->
-                  match eventPeek.EventName with
-                  | "note:added"
-                  | "note:updated" -> Ok <| deserialize<NoteWebhookEventDto> body
-                  | _ ->
-                    Error
-                    <| ValidationErrors.create "event_name" [
-                      $"unsupported event_name: {eventPeek.EventName}"
-                    ]
-                | _ ->
-                  Error
-                  <| ValidationErrors.create "version" [
-                    $"unsupported version: {eventPeek.Version}"
-                  ]
-            }
+          let result = WebhookEvent.Validate "body" body
 
           match result with
           | Error _ -> Response.withStatusCode 400 >> Response.ofPlainText "Bad Request"

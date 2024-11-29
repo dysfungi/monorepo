@@ -2,6 +2,14 @@ module AutoMate.Tests.Todoist
 
 open Expecto
 
+type TDeserialize = {
+  Nested: {|
+    String: string
+    Number: int
+  |}
+  SnakeCase: bool option
+}
+
 [<Tests>]
 let todoistTests =
   testList "Todoist" [
@@ -27,6 +35,21 @@ let todoistTests =
 
       Expect.equal output expected "Bad serialize")
 
+    testCase "JSON deserialize" (fun _ ->
+      let input = """{"nested":{"string":"foo","number":2},"snake_case": null}"""
+
+      let output = AutoMate.Integrations.Todoist.deserialize<TDeserialize> input
+
+      let expected = {
+        Nested = {|
+          String = "foo"
+          Number = 2
+        |}
+        SnakeCase = None
+      }
+
+      let output' = Expect.wantOk output "Bad deserialize"
+      Expect.equal output' expected "Bad deserialize")
 
     testCase "WebhookEvent.Validate note:added" (fun _ ->
       let input =

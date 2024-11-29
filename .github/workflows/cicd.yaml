@@ -112,7 +112,7 @@ jobs:
       - id: app-version
         working-directory: fsharp/api/automate
         run: >
-          grep --ignore-case --max-count=1 '<version>' *.fsproj
+          grep --ignore-case --max-count=1 '<version>' AutoMate/AutoMate.fsproj
           | sed -E
           -e 's|.*<version>(.*)</version>.*|\1-${{ github.ref_name }}.${{ github.run_number }}|i'
           -e 's|[^a-z0-9_.-]+|-|gi'

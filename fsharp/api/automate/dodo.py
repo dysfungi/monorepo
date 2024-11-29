@@ -17,6 +17,8 @@ DOIT_CONFIG: dict = {
     "default_tasks": [],
 }
 
+APP_FSPROJ = Path("./AutoMate/AutoMate.fsproj").absolute()
+
 
 class task:
     """Decorate tasks with a special attribute to be found by Doit.
@@ -246,10 +248,7 @@ def _positionize(args: Iterable) -> str:
 
 
 def _app_version() -> str:
-    cwd = Path.cwd()
-    fsproj, *more = cwd.glob("*.fsproj")
-    assert not more, more
-    with open(fsproj) as fp:
+    with open(APP_FSPROJ) as fp:
         for line in fp:
             if "<Version>" not in line:
                 continue

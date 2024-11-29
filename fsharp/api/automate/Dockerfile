@@ -7,11 +7,11 @@ ARG TARGETARCH
 WORKDIR /source
 
 # Copy project file and restore as distinct layers
-COPY --link *.fsproj .
-RUN dotnet restore --arch $TARGETARCH
+COPY --link AutoMate/AutoMate.fsproj AutoMate/
+RUN dotnet restore --arch $TARGETARCH ./AutoMate/AutoMate.fsproj
 
 COPY --link . .
-RUN dotnet publish --arch $TARGETARCH --no-restore --output /app
+RUN dotnet publish --arch $TARGETARCH --no-restore --output /app ./AutoMate
 
 ####################### FINAL #######################
 

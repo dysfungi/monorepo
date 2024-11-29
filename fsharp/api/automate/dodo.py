@@ -18,6 +18,7 @@ DOIT_CONFIG: dict = {
 }
 
 APP_FSPROJ = Path("./AutoMate/AutoMate.fsproj").absolute()
+TESTS_FSPROJ = Path("./AutoMate.Tests/AutoMate.Tests.fsproj").absolute()
 
 
 class task:
@@ -136,6 +137,20 @@ def setup() -> dict:
 
 
 @task
+def test() -> dict:
+    return {
+        "actions": [
+            tools.LongRunning(dotnet("test", TESTS_FSPROJ)),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+tests = test
+
+
+@task
 def up() -> dict:
     return {
         "actions": [
@@ -198,7 +213,7 @@ def _setup() -> Generator[dict, None, None]:
 def compose(command, *args, **options) -> str:
     posargs = _positionize(args)
     optargs = _optize(options)
-    return f"docker compose {optargs} {command} {posargs}"
+    return f"docker compose {command} {optargs} {posargs}"
 
 
 def date(*args, **options) -> str:
@@ -206,6 +221,12 @@ def date(*args, **options) -> str:
     optargs = _optize(options)
     gnudate = "gdate" if platform.system() == "Darwin" else "date"
     return f"{gnudate} {optargs} {posargs}"
+
+
+def dotnet(command, *args, **options) -> str:
+    posargs = _positionize(args)
+    optargs = _optize(options)
+    return f"dotnet {command} {posargs} {optargs}"
 
 
 def tofu(command, *args, **options) -> str:

@@ -102,9 +102,22 @@ jobs:
       enc_vultr_registry_urn: ${{ steps.enc-vultr-registry-urn.outputs.out }}
       enc_vultr_registry_username: ${{ steps.enc-vultr-registry-username.outputs.out }}
 
-  build-automate-api:
+  test-automate-api:
     needs:
       - lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.403
+      - name: Test
+        working-directory: fsharp/api/automate
+        run: dotnet test ./AutoMate.Tests
+
+  build-automate-api:
+    needs:
+      - test-automate-api
       - init-secrets
     runs-on: ubuntu-latest
     steps:

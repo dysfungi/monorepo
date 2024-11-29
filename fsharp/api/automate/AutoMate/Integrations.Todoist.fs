@@ -17,10 +17,14 @@ let deserialize<'T> json =
   with ex ->
     Error ex
 
-let deserializeValidator<'T> field input =
-  input
-  |> deserialize<'T>
-  |> Result.mapError (fun e -> ValidationErrors.create field [ e.Message ])
+let deserializeValidator<'T> : Validator<string, 'T> =
+  fun (field: string) (input: string) ->
+    input
+    |> Check.String.notEmpty field
+    |> Result.bind (fun v ->
+      match deserialize<'T> v with
+      | Ok v -> Ok v
+      | Error e -> Error <| ValidationErrors.create field [ e.Message ])
 
 [<RequireQualifiedAccess>]
 module RestApiV2 =
@@ -160,14 +164,14 @@ module SyncApiV9 =
         validate {
           let! eventPeek = deserializeValidator<WebhookEventPeek> "body" input
 
-          return!
+          let! event =
             match eventPeek.Version with
             | "9" ->
               match eventPeek.EventName with
               | "note:added"
               | "note:updated" ->
                 deserializeValidator<NoteWebhookEventDto> "body" input
-                |> Result.map (NoteEvent)
+                |> Result.map (fun v -> NoteEvent v)
               | _ ->
                 Error
                 <| ValidationErrors.create "event_name" [
@@ -178,70 +182,12 @@ module SyncApiV9 =
               <| ValidationErrors.create "version" [
                 $"unsupported version: {eventPeek.Version}"
               ]
+
+          return event
         }
 
   module WebhookEvent =
     // https://developer.todoist.com/sync/v9/#request-format
-    (*
-      {
-        "triggered_at": "2024-10-30T13:56:25.601532Z",
-        "initiator": {
-          "id": "40102343",
-          "email": "derek+todoist@frank.sh",
-          "image_id": "86d065186f7a4073af86a5b4921e97b4",
-          "full_name": "Derek",
-          "is_premium": true
-        },
-        "event_name": "note:added",
-        "event_data": {
-          "id": "3651431408",
-          "url": "https://app.todoist.com/app/task/8283578355",
-          "item": {
-            "id": "8283578355",
-            "due": null,
-            "v2_id": "6Vx3G2XJcJPxfvcG",
-            "labels": [],
-            "checked": false,
-            "content": "Sync new comments from Todoist to Logseq",
-            "sync_id": null,
-            "user_id": "40102343",
-            "added_at": "2024-08-10T17:12:50.068600Z",
-            "deadline": null,
-            "duration": null,
-            "priority": 4,
-            "collapsed": false,
-            "parent_id": null,
-            "is_deleted": false,
-            "project_id": "2337670886",
-            "section_id": "163355751",
-            "updated_at": "2024-10-19T13:38:58Z",
-            "child_order": 2,
-            "description": "TBD: where are comments stored in Logseq?\n\nBlocked: on infrastructure setup",
-            "added_by_uid": "40102343",
-            "completed_at": null,
-            "v2_parent_id": null,
-            "v2_project_id": "6Vx3Cf3QvmqjR7vG",
-            "v2_section_id": "6Vx3FmfM9xJQwqrp",
-            "assigned_by_uid": null,
-            "responsible_uid": null
-          },
-          "v2_id": "6WVxFjgm4pPpPMGG",
-          "content": "test 6",
-          "item_id": "8283578355",
-          "posted_at": "2024-10-30T13:56:24.766000Z",
-          "reactions": null,
-          "is_deleted": false,
-          "posted_uid": "40102343",
-          "v2_item_id": "6Vx3G2XJcJPxfvcG",
-          "v2_project_id": "6Vx3Cf3QvmqjR7vG",
-          "uids_to_notify": null,
-          "file_attachment": null
-        },
-        "user_id": "40102343",
-        "version": "9"
-      }
-    *)
-
     let versionValidator = Check.String.equals "9" *|* int
 
     let handler: HttpHandler =

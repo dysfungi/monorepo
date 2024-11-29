@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>AutoMate.Tests</AssemblyName>
+    <TargetFramework>net8.0</TargetFramework>
+    <GenerateProgramFile>false</GenerateProgramFile>
+
+    <Authors>Derek M Frank</Authors>
+    <PackageId>AutoMate.Tests</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="TodoistTests.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Expecto" Version="10.2.1" />
+    <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.14.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Update="FSharp.Core" Version="8.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../AutoMate/AutoMate.fsproj" />
+  </ItemGroup>
+</Project>

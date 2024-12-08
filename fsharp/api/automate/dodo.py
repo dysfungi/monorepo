@@ -93,7 +93,9 @@ def dockerwatch() -> Generator[dict, None, None]:
         "name": "test",
         "actions": [
             tools.LongRunning(
-                compose("run", "api-tests", build=None, rm=None, remove_orphans=None)
+                compose(
+                    "run", "api-unit-tests", build=None, rm=None, remove_orphans=None
+                )
             ),
         ],
         "title": tools.title_with_actions,
@@ -120,6 +122,35 @@ def gen_version() -> dict:
         ],
         "setup": [
             "_setup:app_version",
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def iterate() -> dict:
+    return {
+        "actions": [
+            tools.LongRunning(
+                compose(
+                    "up",
+                    "api-debug",
+                    "api-functional-tests",
+                    "api-unit-tests",
+                    build=None,
+                    detach=None,
+                    remove_orphans=None,
+                    wait=None,
+                )
+            ),
+            tools.LongRunning(
+                compose(
+                    "logs",
+                    follow=None,
+                    timestamps=None,
+                ),
+            ),
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,

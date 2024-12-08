@@ -13,10 +13,10 @@ RUN dotnet restore --arch $TARGETARCH ./AutoMate/AutoMate.fsproj
 COPY --link . .
 RUN dotnet publish --arch $TARGETARCH --no-restore --output /app ./AutoMate
 
-####################### TEST #######################
+####################### TESTS #######################
 # https://github.com/dotnet/dotnet-docker/blob/main/samples/run-tests-in-sdk-container.md#running-tests-in-an-executable-stage
 
-FROM build AS test-build
+FROM build AS unit-test-build
 
 COPY --link AutoMate.Tests/*.fsproj AutoMate.Tests/
 WORKDIR /source/AutoMate.Tests
@@ -25,7 +25,7 @@ RUN dotnet restore
 COPY --link AutoMate.Tests/ .
 RUN dotnet build --no-restore
 
-FROM test-build AS test
+FROM unit-test-build AS unit-test
 
 ENTRYPOINT ["dotnet", "test", "--no-build", "--logger:trx"]
 
@@ -37,12 +37,19 @@ WORKDIR /source/AutoMate
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "run", "--no-build", "--logger:trx"]
 
+HEALTHCHECK \
+  CMD curl --fail http://localhost:8080/-/alive || exit 1
+
 ####################### FINAL #######################
 # https://hub.docker.com/r/microsoft/dotnet-aspnet/
 # https://github.com/dotnet/dotnet-docker/blob/main/samples/aspnetapp/README.md
 # https://github.com/dotnet/dotnet-docker/blob/main/samples/aspnetapp/Dockerfile
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
+
+RUN apk add curl
+HEALTHCHECK \
+  CMD curl --fail http://localhost:8080/-/alive || exit 1
 
 EXPOSE 8080
 WORKDIR /app

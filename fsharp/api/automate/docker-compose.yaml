@@ -23,12 +23,22 @@ services:
     volumes:
       - ./AutoMate:/source/AutoMate
 
-  api-tests:
+  api-functional-tests:
     platform: linux/amd64
-    image: automate.api-tests
+    image: alpine/httpie
+    restart: unless-stopped
+    entrypoint: [/tests/functional.sh, http://api-debug:8080]
+    depends_on:
+      - api-debug
+    volumes:
+      - ./tests:/tests
+
+  api-unit-tests:
+    platform: linux/amd64
+    image: automate.api-unit-tests
     build:
       context: .
-      target: test
+      target: unit-test
     entrypoint: [dotnet, watch, test]
     volumes:
       - ./AutoMate:/source/AutoMate

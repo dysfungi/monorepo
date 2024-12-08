@@ -3,10 +3,36 @@ services:
     platform: linux/amd64
     image: sjc.vultrcr.com/frankistry/automate/api:${APP_VERSION:-local}
     build:
-      context: ./
+      context: .
+      target: final
     ports:
       - "8080"
     scale: 1
+    depends_on:
+      - postgres
+
+  api-debug:
+    platform: linux/amd64
+    image: automate.api-debug
+    build:
+      context: .
+      target: debug
+    entrypoint: [dotnet, watch, run]
+    depends_on:
+      - postgres
+    volumes:
+      - ./AutoMate:/source/AutoMate
+
+  api-tests:
+    platform: linux/amd64
+    image: automate.api-tests
+    build:
+      context: .
+      target: test
+    entrypoint: [dotnet, watch, test]
+    volumes:
+      - ./AutoMate:/source/AutoMate
+      - ./AutoMate.Tests:/source/AutoMate.Tests
 
   postgres:
     # https://hub.docker.com/_/postgres

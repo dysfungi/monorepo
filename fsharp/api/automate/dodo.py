@@ -78,6 +78,30 @@ def deploy() -> dict:
 
 
 @task
+def dockerwatch() -> Generator[dict, None, None]:
+    yield {
+        "name": "run",
+        "actions": [
+            tools.LongRunning(
+                compose("run", "api-debug", build=None, rm=None, remove_orphans=None)
+            ),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+    yield {
+        "name": "test",
+        "actions": [
+            tools.LongRunning(
+                compose("run", "api-tests", build=None, rm=None, remove_orphans=None)
+            ),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
 def down() -> dict:
     return {
         "actions": [
@@ -169,6 +193,26 @@ def version() -> dict:
     return {
         "actions": [
             _show_version,
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def watch() -> Generator[dict, None, None]:
+    yield {
+        "name": "run",
+        "actions": [
+            tools.LongRunning(dotnet("watch", "run", project=APP_FSPROJ)),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+    yield {
+        "name": "test",
+        "actions": [
+            tools.LongRunning(dotnet("watch", "test", project=TESTS_FSPROJ)),
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,

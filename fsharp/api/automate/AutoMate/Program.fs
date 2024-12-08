@@ -10,8 +10,6 @@ open Microsoft.Extensions.Logging
 //open Serilog
 
 module ErrorController =
-  open Falco
-
   let notFound: HttpHandler =
     Response.withStatusCode 404 >> Response.ofPlainText "Not Found"
 
@@ -20,12 +18,6 @@ module ErrorController =
 
   let unauthorized: HttpHandler =
     Response.withStatusCode 403 >> Response.ofPlainText "Forbidden"
-
-[<AutoOpen>]
-module Health =
-  type Alive = { Status: string }
-  type Ready = { Status: string }
-  type Startup = { Status: string }
 
 [<EntryPoint>]
 let main args =
@@ -59,12 +51,12 @@ let main args =
         Integrations.Todoist.SyncApi.WebhookEvent.handler
       // https://learn.microsoft.com/en-us/azure/architecture/patterns/health-endpoint-monitoring
       // https://andrewlock.net/deploying-asp-net-core-applications-to-kubernetes-part-6-adding-health-checks-with-liveness-readiness-and-startup-probes/#the-three-kinds-of-probe-liveness-readiness-and-startup-probes
-      get "/-/alive" (Response.ofJson { Status = "OK" })
+      get "/-/alive" Alive.handle
       get // TODO: latency for readiness checks?
         "/-/ready"
-        (Response.ofJson { Status = "OK" })
-      get "/-/startup" (Response.ofJson { Status = "OK" })
-      any "/-/debug" (Response.debugRequest)
+        Ready.handle
+      get "/-/startup" Startup.handle
+      any "/-/debug" Response.debugRequest
     ]
   }
 

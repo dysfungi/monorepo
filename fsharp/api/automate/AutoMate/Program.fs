@@ -45,16 +45,12 @@ let main args =
     not_found ErrorController.notFound
 
     endpoints [
-      get "/" (Response.ofPlainText "Hello world")
+      get "/" <| Response.ofPlainText "Hello world"
       post
         "/v1/todoist/webhook-events"
         Integrations.Todoist.SyncApi.WebhookEvent.handler
-      // https://learn.microsoft.com/en-us/azure/architecture/patterns/health-endpoint-monitoring
-      // https://andrewlock.net/deploying-asp-net-core-applications-to-kubernetes-part-6-adding-health-checks-with-liveness-readiness-and-startup-probes/#the-three-kinds-of-probe-liveness-readiness-and-startup-probes
       get "/-/alive" Alive.handle
-      get // TODO: latency for readiness checks?
-        "/-/ready"
-        Ready.handle
+      get "/-/ready" Ready.handle
       get "/-/startup" Startup.handle
       any "/-/debug" Response.debugRequest
     ]

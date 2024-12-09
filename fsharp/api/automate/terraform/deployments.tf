@@ -90,6 +90,12 @@ resource "kubernetes_deployment" "api" {
             name  = "DOTNET_DiagnosticPorts"
             value = "/diag/dotnet-monitor.sock"
           }
+          env_from {
+            secret_ref {
+              name     = kubernetes_secret.db.metadata[0].name
+              optional = false
+            }
+          }
         }
 
         container {

@@ -10,14 +10,30 @@ module AutoMate.Database
 open Dapper.FSharp
 open Dapper.FSharp.PostgreSQL
 open Npgsql.FSharp
+open AutoMate.Utilities
 
 OptionTypes.register ()
 
+let database: string = Env.getDefault "automate_app" "DATABASE_NAME"
+let host: string = Env.getDefault "localhost" "DATABASE_HOST"
+let password: string = Env.want "DATABASE_PASSWORD"
+let port: int = int <| Env.getDefault "5432" "DATABASE_PORT"
+let username: string = Env.getDefault "postgres" "DATABASE_USERNAME"
+
+let sslmode: SslMode =
+  match Env.getDefault "require" "DATABASE_SSLMODE" with
+  | "disable" -> SslMode.Disable
+  | "prefer" -> SslMode.Prefer
+  | "require" -> SslMode.Require
+  | _ -> failwith "Valid $DATABASE_SSLMODE required"
+
 let connectionString =
-  Sql.host "postgres" // |> Sql.database "automate_api"
-  |> Sql.username "postgres"
-  |> Sql.password "postgres"
-  |> Sql.port 5432
+  Sql.host host
+  |> Sql.database database
+  |> Sql.password password
+  |> Sql.port port
+  |> Sql.sslMode sslmode
+  |> Sql.username username
   |> Sql.formatConnectionString
 
 module OAuth =

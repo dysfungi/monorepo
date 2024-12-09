@@ -16,6 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Utilities.fs" />
     <Compile Include="Integrations.fs" />
     <Compile Include="Integrations.Todoist.fs" />
     <Compile Include="Database.fs" />

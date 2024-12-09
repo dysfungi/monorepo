@@ -5,6 +5,9 @@ services:
     build:
       context: .
       target: final
+    environment: &api_env
+      DATABASE_HOST: postgres
+      DATABASE_PASSWORD: postgres
     ports:
       - "8080"
     scale: 1
@@ -18,6 +21,7 @@ services:
       context: .
       target: debug
     entrypoint: [dotnet, watch, run]
+    environment: *api_env
     ports:
       - "8080"
     depends_on:

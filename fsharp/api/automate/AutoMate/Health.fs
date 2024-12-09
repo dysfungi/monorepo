@@ -43,6 +43,8 @@ module Startup =
     let handler: HttpHandler =
       fun ctx ->
         let dbResult =
+          printfn "Database URL: %s" Database.connectionString
+
           try
             Database.connectionString
             |> Sql.connect

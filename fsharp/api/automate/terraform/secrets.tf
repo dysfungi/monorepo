@@ -9,3 +9,18 @@ resource "kubernetes_secret" "cr" {
     ".dockerconfigjson" = var.dockerconfigjson
   }
 }
+
+resource "kubernetes_secret" "db" {
+  metadata {
+    name      = "automate-database"
+    namespace = kubernetes_namespace.automate.metadata[0].name
+  }
+  data = {
+    DATABASE_HOST     = data.vultr_database.pg.host
+    DATABASE_NAME     = vultr_database_db.automate_app.name
+    DATABASE_PASSWORD = vultr_database_user.automate_api.password
+    DATABASE_PORT     = data.vultr_database.pg.port
+    DATABASE_SSLMODE  = "require"
+    DATABASE_USERNAME = vultr_database_user.automate_api.username
+  }
+}

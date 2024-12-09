@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+set -e
 
 API_ROOT="${1:-http://api-debug:8080}"
 
@@ -21,8 +22,8 @@ test() {
 }
 
 test "/-/startup"
-test "/-/ready"
-test "/-/alive"
+test "/-/readiness"
+test "/-/liveness"
 test "/-/debug"
 test "/-/debug" POST foo=bar
 

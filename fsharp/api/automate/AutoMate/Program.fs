@@ -49,11 +49,58 @@ let main args =
       post
         "/v1/todoist/webhook-events"
         Integrations.Todoist.SyncApi.WebhookEvent.handler
-      get "/-/alive" Alive.handle
-      get "/-/ready" Ready.handle
       get "/-/startup" Startup.handle
+      get "/-/readiness" Readiness.handle
+      get "/-/liveness" Liveness.handle
       any "/-/debug" Response.debugRequest
     ]
   }
 
   0
+
+(*
+  Todoist Webhook Event -> Create Dropbox File / Add Logseq Page
+
+  Todoist:
+    Decode JSON
+    Route event back to App
+
+  App:
+    Subscribe to Todoist events
+    | Comment -> Comment handler; Enrich handler; Logger handler
+    | _ -> ignore
+    Comment * Handler:
+      Transform event
+      Logseq handle comment
+    Enrich Handler:
+      Setup Todoist client
+        Get OAuth credentials
+      Fetch related data
+      | Task -> Task fetched handler
+      | Section -> Section fetched handler
+      | Project -> Project fetched handler
+    Task Fetched Handler:
+      Transform task for Logseq
+      Logseq handle task
+    Section Fetched Handler:
+      Transform section for Logseq
+      Logseq handle section
+    Project Fetched Handler:
+      Transform project for Logseq
+      Logseq handle project
+
+  Transform:
+    Match event
+    | Comment -> Map Markdown to Logseq bullets
+    | _ -> ignore
+
+  Logseq:
+    Provider = Dropbox
+    Setup Logseq client
+      Setup Provider client
+        Get OAuth credentials
+    Handle event
+    | Comment -> Create page
+    | _ -> ignore
+
+*)

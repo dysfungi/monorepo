@@ -13,11 +13,13 @@ services:
 
   api-debug:
     platform: linux/amd64
-    image: automate.api-debug
+    image: sjc.vultrcr.com/frankistry/automate/api-debug:local
     build:
       context: .
       target: debug
     entrypoint: [dotnet, watch, run]
+    ports:
+      - "8080"
     depends_on:
       - postgres
     volumes:
@@ -35,7 +37,7 @@ services:
 
   api-unit-tests:
     platform: linux/amd64
-    image: automate.api-unit-tests
+    image: sjc.vultrcr.com/frankistry/automate/api-unit-tests:local
     build:
       context: .
       target: unit-test

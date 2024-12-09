@@ -61,6 +61,28 @@ def cleandocker() -> dict:
 
 
 @task
+def dbshell() -> dict:
+    return {
+        "actions": [
+            compose("up", "postgres", detach=None),
+            tools.Interactive(
+                compose(
+                    "exec",
+                    "postgres",
+                    "psql",
+                    # "postgres://postgres:postgres@localhost:5432/automate_api?sslmode=require",
+                    "--username=postgres",
+                    interactive=None,
+                    tty=None,
+                ),
+            ),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
 def deploy() -> dict:
     return {
         "actions": [
@@ -83,7 +105,7 @@ def dockerwatch() -> Generator[dict, None, None]:
         "name": "run",
         "actions": [
             tools.LongRunning(
-                compose("run", "api-debug", build=None, rm=None, remove_orphans=None)
+                compose("up", "api-debug", build=None, remove_orphans=None)
             ),
         ],
         "title": tools.title_with_actions,
@@ -136,7 +158,7 @@ def iterate() -> dict:
                 compose(
                     "up",
                     "api-debug",
-                    "api-functional-tests",
+                    # "api-functional-tests",
                     "api-unit-tests",
                     build=None,
                     detach=None,
@@ -148,7 +170,7 @@ def iterate() -> dict:
                 compose(
                     "logs",
                     follow=None,
-                    timestamps=None,
+                    # timestamps=None,
                 ),
             ),
         ],

@@ -41,7 +41,7 @@ resource "kubernetes_deployment" "api" {
 
           liveness_probe {
             http_get {
-              path = "/-/alive"
+              path = "/-/liveness"
               port = 8080
             }
             # initial_delay_seconds = 5
@@ -50,7 +50,7 @@ resource "kubernetes_deployment" "api" {
 
           readiness_probe {
             http_get {
-              path = "/-/ready"
+              path = "/-/readiness"
               port = 8080
             }
             # initial_delay_seconds = 5

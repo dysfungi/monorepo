@@ -38,7 +38,7 @@ EXPOSE 8080
 ENTRYPOINT ["dotnet", "run", "--no-build", "--logger:trx"]
 
 HEALTHCHECK \
-  CMD curl --fail http://localhost:8080/-/alive || exit 1
+  CMD curl --fail http://localhost:8080/-/liveness || exit 1
 
 ####################### FINAL #######################
 # https://hub.docker.com/r/microsoft/dotnet-aspnet/
@@ -49,7 +49,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
 
 RUN apk add curl
 HEALTHCHECK \
-  CMD curl --fail http://localhost:8080/-/alive || exit 1
+  CMD curl --fail http://localhost:8080/-/liveness || exit 1
 
 EXPOSE 8080
 WORKDIR /app

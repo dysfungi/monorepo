@@ -10,58 +10,28 @@ resource "kubernetes_config_map" "general_grafana_dashboards" {
     }
   }
   data = {
-    for filename in fileset("${path.module}/grafana-dashboards", "*.json") :
-    filename => file("${path.module}/grafana-dashboards/${filename}")
+    for filename in fileset("${path.module}/grafana-dashboards", "*.json")
+    : filename => file("${path.module}/grafana-dashboards/${filename}")
   }
 }
 
-resource "kubernetes_config_map" "blackbox_grafana_dashboards" {
+resource "kubernetes_config_map" "folder_grafana_dashboards" {
+  for_each = toset([
+    for filename in fileset("${path.module}/grafana-dashboards", "**/*.json") : dirname(filename)
+  ])
+
   metadata {
-    name      = "blackbox-grafana-dashboards"
+    name      = "${lower(each.key)}-grafana-dashboards"
     namespace = helm_release.kube_prometheus.namespace
     labels = {
       "grafana_dashboard" = "1"
     }
     annotations = {
-      "grafana_folder" = "BB"
+      "grafana_folder" = each.key
     }
   }
   data = {
-    for filename in fileset("${path.module}/grafana-dashboards/BB", "*.json") :
-    filename => file("${path.module}/grafana-dashboards/BB/${filename}")
-  }
-}
-
-resource "kubernetes_config_map" "database_grafana_dashboards" {
-  metadata {
-    name      = "database-grafana-dashboards"
-    namespace = helm_release.kube_prometheus.namespace
-    labels = {
-      "grafana_dashboard" = "1"
-    }
-    annotations = {
-      "grafana_folder" = "DB"
-    }
-  }
-  data = {
-    for filename in fileset("${path.module}/grafana-dashboards/DB", "*.json") :
-    filename => file("${path.module}/grafana-dashboards/DB/${filename}")
-  }
-}
-
-resource "kubernetes_config_map" "gateway_grafana_dashboards" {
-  metadata {
-    name      = "gateway-grafana-dashboards"
-    namespace = helm_release.kube_prometheus.namespace
-    labels = {
-      "grafana_dashboard" = "1"
-    }
-    annotations = {
-      "grafana_folder" = "GW"
-    }
-  }
-  data = {
-    for filename in fileset("${path.module}/grafana-dashboards/GW", "*.json") :
-    filename => file("${path.module}/grafana-dashboards/GW/${filename}")
+    for filename in fileset("${path.module}/grafana-dashboards/${each.key}", "*.json")
+    : filename => file("${path.module}/grafana-dashboards/${each.key}/${filename}")
   }
 }

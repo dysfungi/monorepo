@@ -127,11 +127,20 @@ resource "helm_release" "kube_prometheus" {
         "adminPassword" = var.grafana_admin_password
         "persistence" = {
           "enabled" = true
-          "type" : "pvc"
+          "type" : "sts"
           "storageClassName" = "vultr-block-storage"
           "accessModes"      = ["ReadWriteOnce"]
           "size"             = "10Gi"
           "finalizers"       = ["kubernetes.io/pvc-protection"]
+        }
+        "sidecar" = {
+          "dashboards" = {
+            # https://github.com/grafana/helm-charts/issues/526#issuecomment-878534071
+            "folderAnnotation" = "grafana_folder"
+            "provider" = {
+              "foldersFromFilesStructure" = true
+            }
+          }
         }
       }
       "prometheus" = {

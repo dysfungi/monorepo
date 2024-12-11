@@ -135,6 +135,9 @@ resource "helm_release" "kube_prometheus" {
         }
         "sidecar" = {
           "dashboards" = {
+            "annotations" = {
+              "grafana_folder" = "K8"
+            }
             # https://github.com/grafana/helm-charts/issues/526#issuecomment-878534071
             "folderAnnotation" = "grafana_folder"
             "provider" = {

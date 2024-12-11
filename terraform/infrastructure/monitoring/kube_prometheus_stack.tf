@@ -3,7 +3,7 @@ resource "helm_release" "kube_prometheus" {
   name             = "kube-prometheus-stack"
   repository       = "https://prometheus-community.github.io/helm-charts"
   chart            = "kube-prometheus-stack"
-  version          = "65.5.0"
+  version          = "66.3.1"
   namespace        = kubernetes_namespace.monitoring.metadata[0].name
   create_namespace = false
 

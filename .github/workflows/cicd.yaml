@@ -167,7 +167,7 @@ jobs:
       - name: Push
         if: github.ref_name == 'main'
         working-directory: fsharp/api/automate
-        run: docker compose push
+        run: docker compose push api
         env:
           APP_VERSION: ${{ steps.app-version.outputs.out }}
     outputs:

@@ -87,7 +87,7 @@ def deploy() -> dict:
     return {
         "actions": [
             tools.LongRunning(compose("build")),
-            tools.LongRunning(compose("push")),
+            tools.LongRunning(compose("push", "api")),
             tools.LongRunning(tofu("init", migrate_state=None)),
             tools.LongRunning(tofu("apply", auto_approve=None)),
         ],

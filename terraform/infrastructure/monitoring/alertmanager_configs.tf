@@ -10,7 +10,7 @@ resource "kubernetes_manifest" "notifications" {
       "route" = {
         "receiver" = "void"
         "groupBy" = [
-          "alertname",
+          "namespace",
         ]
         "groupWait"      = "30s"
         "groupInterval"  = "5m"

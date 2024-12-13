@@ -125,6 +125,14 @@ resource "helm_release" "kube_prometheus" {
       }
       "grafana" = {
         "adminPassword" = var.grafana_admin_password
+        "grafana.ini" = {
+          "server" = {
+            # "domain"    = local.grafana_hostname
+            # "http_port" = 443
+            # "protocol"  = "https"
+            "root_url" = "https://${local.grafana_hostname}/"
+          }
+        }
         "persistence" = {
           "enabled" = true
           "type" : "sts"

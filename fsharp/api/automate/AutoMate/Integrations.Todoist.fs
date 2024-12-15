@@ -1,32 +1,11 @@
 [<RequireQualifiedAccess>]
 module AutoMate.Integrations.Todoist
 
+open AutoMate.Utilities
 open Falco
-open FSharp.Json
 open System
 open Validus
 open Validus.Operators
-
-let jsonConfig = JsonConfig.create (jsonFieldNaming = Json.snakeCase)
-
-let serialize data = Json.serializeEx jsonConfig data
-
-let deserialize<'T> json =
-  try
-    Json.deserializeEx<'T> jsonConfig json |> Ok
-  with ex ->
-    Error ex
-
-let deserializeValidator<'T> : Validator<string, 'T> =
-  fun (field: string) (input: string) ->
-    input
-    |> Check.String.notEmpty field
-    |> Result.bind (
-      deserialize<'T>
-      >> function
-        | Ok v -> Ok v
-        | Error e -> Error <| ValidationErrors.create field [ e.Message ]
-    )
 
 [<RequireQualifiedAccess>]
 module RestApi =
@@ -78,16 +57,16 @@ module SyncApi =
       // https://developer.todoist.com/sync/v9/#items
       {
         Id: string
-        [<JsonField("v2_id")>]
+        [<Json.Field("v2_id")>]
         V2Id: string
         ParentId: string option
-        [<JsonField("v2_parent_id")>]
+        [<Json.Field("v2_parent_id")>]
         V2ParentId: string option
         SectionId: string option
-        [<JsonField("v2_section_id")>]
+        [<Json.Field("v2_section_id")>]
         V2SectionId: string option
         ProjectId: string
-        [<JsonField("v2_project_id")>]
+        [<Json.Field("v2_project_id")>]
         V2ProjectId: string option
         UserId: string
         ChildOrder: int
@@ -182,10 +161,12 @@ module SyncApi =
           match eventName with
           | "note:added"
           | "note:updated" ->
-            body |> (deserializeValidator<V9.NoteWebhookEventDto> *|* NoteEvent) "body"
+            body
+            |> (Json.deserializeValidator<V9.NoteWebhookEventDto> *|* NoteEvent) "body"
           | "item:added"
           | "item:updated" ->
-            body |> (deserializeValidator<V9.ItemWebhookEventDto> *|* ItemEvent) "body"
+            body
+            |> (Json.deserializeValidator<V9.ItemWebhookEventDto> *|* ItemEvent) "body"
           | _ ->
             Error
             <| ValidationErrors.create "event_name" [
@@ -193,7 +174,7 @@ module SyncApi =
             ]
 
         validate {
-          let! eventPeek = deserializeValidator<WebhookEventPeek> "body" input
+          let! eventPeek = Json.deserializeValidator<WebhookEventPeek> "body" input
 
           let! event =
             match eventPeek.Version with

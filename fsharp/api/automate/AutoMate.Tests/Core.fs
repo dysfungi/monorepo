@@ -15,3 +15,8 @@ module Want =
   let throws f =
     let message = "Wanted a thrown exception"
     Expect.throws f message
+
+  /// Want Ok.
+  let isOk actual =
+    let message = "Wanted Ok"
+    Expect.isOk actual message

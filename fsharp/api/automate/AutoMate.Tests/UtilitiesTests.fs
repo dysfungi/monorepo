@@ -144,3 +144,59 @@ let optTests =
         Want.throws outputf
     ]
   ]
+
+type TDeserialize = {
+  Nested: {|
+    String: string
+    Number: int
+  |}
+  SnakeCase: bool option
+}
+
+[<Tests>]
+let jsonTests =
+  testList "Json" [
+    testList "serialize" [
+      testCase "pass"
+      <| fun _ ->
+        let input = {|
+          Nested = {|
+            String = "foo"
+            Number = 2
+          |}
+          SnakeCase = "foo bar"
+        |}
+
+        let output = Json.serialize input
+
+        let expected =
+          """{
+  "nested": {
+    "number": 2,
+    "string": "foo"
+  },
+  "snake_case": "foo bar"
+}"""
+
+        Expect.equal output expected "Bad serialize"
+    ]
+
+    testList "deserialize" [
+      testCase "pass" (fun _ ->
+        let input = """{"nested":{"string":"foo","number":2},"snake_case": null}"""
+
+        let output = Json.deserialize<TDeserialize> input
+
+        let expected = {
+          Nested = {|
+            String = "foo"
+            Number = 2
+          |}
+          SnakeCase = None
+        }
+
+        let output' = Expect.wantOk output "Bad deserialize"
+        Expect.equal output' expected "Bad deserialize")
+
+    ]
+  ]

@@ -37,6 +37,34 @@ module Opt =
     | None -> failwith errorMessage
 
 [<RequireQualifiedAccess>]
+module Json =
+  open FSharp.Json
+  open Validus
+
+  type Field = JsonField
+
+  let config = JsonConfig.create (jsonFieldNaming = Json.snakeCase)
+
+  let serialize data = Json.serializeEx config data
+
+  let deserialize<'T> json =
+    try
+      Json.deserializeEx<'T> config json |> Ok
+    with ex ->
+      Error ex
+
+  let deserializeValidator<'T> : Validator<string, 'T> =
+    fun (field: string) (input: string) ->
+      input
+      |> Check.String.notEmpty field
+      |> Result.bind (
+        deserialize<'T>
+        >> function
+          | Ok v -> Ok v
+          | Error e -> Error <| ValidationErrors.create field [ e.Message ]
+      )
+
+[<RequireQualifiedAccess>]
 module Env =
 
   let get name =

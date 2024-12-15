@@ -30,22 +30,26 @@ module Str =
   let join = String.concat
 
 [<RequireQualifiedAccess>]
-module Want =
-  let someMsg errorMsg =
+module Unwrap =
+  /// Unwrap Some option or throw exception with error message.
+  let someWith errorMessage =
     function
     | Some value -> value
-    | None -> failwith errorMsg
+    | None -> failwith errorMessage
 
+  /// Unwrap Some option or throw exception.
   let some opt =
-    someMsg "Wanted Some option, got None" opt
+    someWith "Wanted Some option, got None" opt
 
-  let okMsg errorMsg =
+  /// Unwrap Ok result or throw exception with error message.
+  let okWith errorMessage =
     function
     | Ok value -> value
-    | Error _ -> failwith errorMsg
+    | Error _ -> failwith errorMessage
 
+  /// Unwrap Ok result or throw exception.
   let ok result =
-    okMsg "Wanted Ok result, got Error" result
+    okWith "Wanted Ok result, got Error" result
 
 [<RequireQualifiedAccess>]
 module Url =
@@ -104,7 +108,7 @@ module Env =
     | None -> fallback
 
   let want name =
-    get name |> Want.someMsg $"Missing environment variable - ${name}"
+    get name |> Unwrap.someWith $"Missing environment variable - ${name}"
 
   let set name value =
     Environment.SetEnvironmentVariable(name, value)

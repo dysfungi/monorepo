@@ -140,20 +140,20 @@ let strTests =
   ]
 
 [<Tests>]
-let wantTests =
-  testList "Want" [
+let unwrapTests =
+  testList "Unwrap" [
     testList "some" [
       testCase "pass"
       <| fun _ ->
         let expected = "foo"
         let input = Some expected
-        let output = Want.some input
+        let output = Unwrap.some input
         Want.equal expected output
 
       testCase "fail when None option does not raise exception"
       <| fun _ ->
         let input = None
-        let outputf = (fun _ -> Want.some input)
+        let outputf = (fun _ -> Unwrap.some input)
         Want.throws outputf
     ]
 
@@ -162,13 +162,13 @@ let wantTests =
       <| fun _ ->
         let expected = "foo"
         let input = Ok expected
-        let output = Want.ok input
+        let output = Unwrap.ok input
         Want.equal expected output
 
       testCase "fail when Error result does not raise exception"
       <| fun _ ->
         let input = Error "foo"
-        let outputf = (fun _ -> Want.ok input)
+        let outputf = (fun _ -> Unwrap.ok input)
         Want.throws outputf
     ]
 

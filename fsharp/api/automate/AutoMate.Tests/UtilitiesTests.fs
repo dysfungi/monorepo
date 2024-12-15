@@ -185,6 +185,12 @@ let urlTests =
         let output': Uri = Want.ok output
         let output'' = string output'
         Want.equal input output''
+
+      testCase "fail when URL is relative"
+      <| fun _ ->
+        let input = "baz"
+        let output = Url.parseAbsolute input
+        Want.isError output
     ]
 
     testList "parseRelative" [

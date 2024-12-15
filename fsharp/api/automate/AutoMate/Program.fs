@@ -49,7 +49,6 @@ let main args =
       get "/-/liveness" Liveness.handle
       get "/-/readiness" Readiness.handle
       get "/-/startup" Startup.handle
-      get "/v1/oauth/register/dropbox" OAuth.Dropbox.handleRegister
       post "/v1/todoist/webhook-events" Todoist.SyncApi.WebhookEvent.handler
       get "/" <| Response.ofPlainText "Hello, world!"
     ]

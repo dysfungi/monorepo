@@ -37,6 +37,20 @@ module Opt =
     | None -> failwith errorMessage
 
 [<RequireQualifiedAccess>]
+module Url =
+  open System
+
+  let parse (kind: UriKind) s =
+    try
+      Ok <| Uri(s, kind)
+    with ex ->
+      Error ex.Message
+
+  let parseAny s = parse UriKind.RelativeOrAbsolute
+  let parseAbsolute s = parse UriKind.Absolute
+  let parseRelative s = parse UriKind.Relative
+
+[<RequireQualifiedAccess>]
 module Json =
   open FSharp.Json
   open Validus

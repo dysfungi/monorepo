@@ -157,6 +157,28 @@ let optTests =
     ]
   ]
 
+[<Tests>]
+let urlTests =
+  testList "Url" [
+    testList "parseAbsolute" [
+      testCase "pass"
+      <| fun _ ->
+        let input = "https://foo.bar/baz"
+        let output = Url.parseAbsolute input
+        let output': Uri = Want.wantOk output
+        Want.equal input <| string output'
+    ]
+
+    testList "parseRelative" [
+      testCase "pass"
+      <| fun _ ->
+        let input = "https://foo.bar/baz"
+        let output = Url.parseRelative input
+        let output' = Want.wantOk output
+        Want.equal input <| string output'
+    ]
+  ]
+
 type TDeserialize = {
   Nested: {|
     String: string

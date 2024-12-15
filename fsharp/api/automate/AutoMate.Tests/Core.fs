@@ -15,15 +15,19 @@ module Want =
     Expect.throws f "Wanted a thrown exception"
 
   /// Want Some option and return wrapped value.
-  let wantSome opt =
+  let some opt =
     Expect.wantSome opt "Wanted Some option"
 
   /// Want Some option.
   let isSome opt = Expect.isSome opt "Wanted Some option"
   /// Want Ok result and return wrapped value.
-  let wantOk result = Expect.wantOk result "Wanted Ok result"
+  let ok result = Expect.wantOk result "Wanted Ok result"
   /// Want Ok result.
   let isOk result = Expect.isOk result "Wanted Ok result"
+
+  /// Want Error result and return wrapped value.
+  let error result =
+    Expect.wantError result "Wanted Error result"
 
   /// Want Error result.
   let isError result =

@@ -182,7 +182,7 @@ let urlTests =
       <| fun _ ->
         let input = "https://foo.bar/baz"
         let output = Url.parseAbsolute input
-        let output': Uri = Want.wantOk output
+        let output': Uri = Want.ok output
         let output'' = string output'
         Want.equal input output''
     ]
@@ -192,7 +192,7 @@ let urlTests =
       <| fun _ ->
         let input = "baz"
         let output = Url.parseRelative input
-        let output' = Want.wantOk output
+        let output' = Want.ok output
         Want.equal input <| string output'
 
       testCase "fail when URL is absolute"
@@ -253,7 +253,7 @@ let jsonTests =
           SnakeCase = None
         }
 
-        let output' = Want.wantOk output
+        let output' = Want.ok output
         Want.equal expected output'
     ]
   ]
@@ -275,7 +275,7 @@ let fsHttpTests =
           let input = Json.serialize expected
           (* TODO
           let output = FsHttp.Response.toJson input
-          let output' = Want.wantOk output
+          let output' = Want.ok output
           Want.equal expected output'
           *)
           Want.equal "foo" "foo"

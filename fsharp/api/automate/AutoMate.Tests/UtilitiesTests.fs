@@ -5,7 +5,6 @@ open Expecto
 
 [<Tests>]
 let strTests =
-
   testList "Str" [
     testList "toLower" [
       testCase "happy case" (fun _ ->
@@ -134,5 +133,24 @@ let strTests =
               "bazbarfoo"
             ]
             "Failed to split")
+    ]
+  ]
+
+[<Tests>]
+let optTests =
+  testList "Opt" [
+    testList "wantSome" [
+      testCase "pass"
+      <| fun _ ->
+        let expected = "foo"
+        let input = Some expected
+        let output = Opt.wantSome "expect Some" input
+        Want.equal expected output
+
+      testCase "fail when exception is not raised"
+      <| fun _ ->
+        let input = None
+        let outputf = (fun _ -> Opt.wantSome "expect None" input)
+        Want.throws outputf
     ]
   ]

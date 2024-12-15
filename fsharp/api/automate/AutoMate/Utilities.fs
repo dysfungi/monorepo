@@ -2,12 +2,6 @@ module AutoMate.Utilities
 
 open System
 
-let wantSome errorMsg =
-  function
-  | Some value -> value
-  | None -> failwith errorMsg
-
-
 [<RequireQualifiedAccess>]
 module Str =
   let whitespace = "\t\n\v\f\r "
@@ -36,6 +30,13 @@ module Str =
   let join = String.concat
 
 [<RequireQualifiedAccess>]
+module Opt =
+  let wantSome errorMessage =
+    function
+    | Some value -> value
+    | None -> failwith errorMessage
+
+[<RequireQualifiedAccess>]
 module Env =
 
   let get name =
@@ -49,7 +50,7 @@ module Env =
     | None -> fallback
 
   let want name =
-    get name |> wantSome $"Missing environment variable - ${name}"
+    get name |> Opt.wantSome $"Missing environment variable - ${name}"
 
   let set name value =
     Environment.SetEnvironmentVariable(name, value)

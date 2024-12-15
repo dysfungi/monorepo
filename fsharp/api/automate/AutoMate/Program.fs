@@ -45,12 +45,13 @@ let main args =
     not_found ErrorController.notFound
 
     endpoints [
-      any "/-/debug" Response.debugRequest
-      get "/-/liveness" Liveness.handle
-      get "/-/readiness" Readiness.handle
-      get "/-/startup" Startup.handle
-      post "/v1/todoist/webhook-events" Todoist.SyncApi.WebhookEvent.handler
-      get "/" <| Response.ofPlainText "Hello, world!"
+      get Route.index <| Response.ofPlainText "Hello, world!"
+      any Route.Meta.debug Response.debugRequest
+      get Route.Meta.liveness Liveness.handle
+      get Route.Meta.readiness Readiness.handle
+      get Route.Meta.startup Startup.handle
+      get Route.V1.OAuth.Dropbox.register OAuth.Dropbox.handleRegister
+      post Route.V1.Todoist.webhookEvents Todoist.SyncApi.WebhookEvent.handler
     ]
   }
 

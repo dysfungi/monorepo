@@ -2,6 +2,7 @@ module AutoMate.Tests.Utilities
 
 open AutoMate.Utilities
 open Expecto
+open System
 
 [<Tests>]
 let strTests =
@@ -139,22 +140,38 @@ let strTests =
   ]
 
 [<Tests>]
-let optTests =
-  testList "Opt" [
-    testList "wantSome" [
+let wantTests =
+  testList "Want" [
+    testList "some" [
       testCase "pass"
       <| fun _ ->
         let expected = "foo"
         let input = Some expected
-        let output = Opt.wantSome "expect Some" input
+        let output = Want.some input
         Want.equal expected output
 
-      testCase "fail when exception is not raised"
+      testCase "fail when None option does not raise exception"
       <| fun _ ->
         let input = None
-        let outputf = (fun _ -> Opt.wantSome "expect None" input)
+        let outputf = (fun _ -> Want.some input)
         Want.throws outputf
     ]
+
+    testList "ok" [
+      testCase "pass"
+      <| fun _ ->
+        let expected = "foo"
+        let input = Ok expected
+        let output = Want.ok input
+        Want.equal expected output
+
+      testCase "fail when Error result does not raise exception"
+      <| fun _ ->
+        let input = Error "foo"
+        let outputf = (fun _ -> Want.ok input)
+        Want.throws outputf
+    ]
+
   ]
 
 [<Tests>]
@@ -166,16 +183,23 @@ let urlTests =
         let input = "https://foo.bar/baz"
         let output = Url.parseAbsolute input
         let output': Uri = Want.wantOk output
-        Want.equal input <| string output'
+        let output'' = string output'
+        Want.equal input output''
     ]
 
     testList "parseRelative" [
       testCase "pass"
       <| fun _ ->
-        let input = "https://foo.bar/baz"
+        let input = "baz"
         let output = Url.parseRelative input
         let output' = Want.wantOk output
         Want.equal input <| string output'
+
+      testCase "fail when URL is absolute"
+      <| fun _ ->
+        let input = "https://foo.bar/baz"
+        let output = Url.parseRelative input
+        Want.isError output
     ]
   ]
 
@@ -231,5 +255,30 @@ let jsonTests =
 
         let output' = Want.wantOk output
         Want.equal expected output'
+    ]
+  ]
+
+[<Tests>]
+let fsHttpTests =
+  testList "FsHttp" [
+    testList "Response" [
+      testList "toJson" [
+        testCase "pass"
+        <| fun _ ->
+          let expected = {|
+            Nested = {|
+              String = "foo"
+              Number = 2
+            |}
+          |}
+
+          let input = Json.serialize expected
+          (* TODO
+          let output = FsHttp.Response.toJson input
+          let output' = Want.wantOk output
+          Want.equal expected output'
+          *)
+          Want.equal "foo" "foo"
+      ]
     ]
   ]

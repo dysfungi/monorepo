@@ -30,11 +30,22 @@ module Str =
   let join = String.concat
 
 [<RequireQualifiedAccess>]
-module Opt =
-  let wantSome errorMessage =
+module Want =
+  let someMsg errorMsg =
     function
     | Some value -> value
-    | None -> failwith errorMessage
+    | None -> failwith errorMsg
+
+  let some opt =
+    someMsg "Wanted Some option, got None" opt
+
+  let okMsg errorMsg =
+    function
+    | Ok value -> value
+    | Error _ -> failwith errorMsg
+
+  let ok result =
+    okMsg "Wanted Ok result, got Error" result
 
 [<RequireQualifiedAccess>]
 module Url =
@@ -46,9 +57,9 @@ module Url =
     with ex ->
       Error ex.Message
 
-  let parseAny s = parse UriKind.RelativeOrAbsolute
-  let parseAbsolute s = parse UriKind.Absolute
-  let parseRelative s = parse UriKind.Relative
+  let parseAny = parse UriKind.RelativeOrAbsolute
+  let parseAbsolute = parse UriKind.Absolute
+  let parseRelative = parse UriKind.Relative
 
 [<RequireQualifiedAccess>]
 module Json =
@@ -93,7 +104,13 @@ module Env =
     | None -> fallback
 
   let want name =
-    get name |> Opt.wantSome $"Missing environment variable - ${name}"
+    get name |> Want.someMsg $"Missing environment variable - ${name}"
 
   let set name value =
     Environment.SetEnvironmentVariable(name, value)
+
+module FsHttp =
+  open FsHttp
+
+  module Response =
+    let toJson response = response |> Response.parseAsync

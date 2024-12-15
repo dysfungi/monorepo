@@ -24,3 +24,7 @@ module Want =
   let wantOk result = Expect.wantOk result "Wanted Ok result"
   /// Want Ok result.
   let isOk result = Expect.isOk result "Wanted Ok result"
+
+  /// Want Error result.
+  let isError result =
+    Expect.isError result "Wanted Error result"

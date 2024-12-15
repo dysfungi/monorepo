@@ -19,7 +19,9 @@
     <Compile Include="Utilities.fs" />
     <Compile Include="Route.fs" />
     <Compile Include="Database.fs" />
+    <Compile Include="Dropbox.fs" />
     <Compile Include="Todoist.fs" />
+    <Compile Include="OAuth.fs" />
     <Compile Include="Health.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
@@ -28,6 +30,7 @@
     <PackageReference Include="Dapper.FSharp" Version="4.9.0" />
     <PackageReference Include="Falco" Version="4.0.6" />
     <PackageReference Include="FSharp.Json" Version="0.4.1" />
+    <PackageReference Include="FsHttp" Version="15.0.1" />
     <PackageReference Include="Npgsql.FSharp" Version="8.0.0" />
     <PackageReference Include="prometheus-net" Version="8.2.1" />
     <PackageReference Include="Validus" Version="4.1.4" />

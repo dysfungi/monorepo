@@ -1,9 +1,9 @@
 module AutoMate.Utilities
 
-open System
-
 [<RequireQualifiedAccess>]
 module Str =
+  open System
+
   let whitespace = "\t\n\v\f\r "
 
   let toLower (s: string) = s.ToLower()
@@ -66,6 +66,7 @@ module Json =
 
 [<RequireQualifiedAccess>]
 module Env =
+  open System
 
   let get name =
     match Environment.GetEnvironmentVariable name with

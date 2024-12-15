@@ -11,7 +11,7 @@ let strTests =
       <| fun _ ->
         let input = "FOOBAR"
         let output = Str.toLower input
-        Want.equal output "foobar"
+        Want.equal "foobar" output
     ]
 
     testList "toUpper" [
@@ -19,7 +19,7 @@ let strTests =
       <| fun _ ->
         let input = "foobar"
         let output = Str.toUpper input
-        Want.equal output "FOOBAR"
+        Want.equal "FOOBAR" output
     ]
 
     testList "startsWith" [
@@ -27,13 +27,13 @@ let strTests =
       <| fun _ ->
         let input, prefix = "foobar", "foo"
         let output = Str.startsWith prefix input
-        Want.equal output true
+        Want.equal true output
 
       testCase "fail when does not start with prefix"
       <| fun _ ->
         let input, suffix = "foobar", "bar"
         let output = Str.startsWith suffix input
-        Want.equal output false
+        Want.equal false output
     ]
 
     testList "endsWith" [
@@ -41,13 +41,13 @@ let strTests =
       <| fun _ ->
         let input, suffix = "foobar", "bar"
         let output = Str.endsWith suffix input
-        Want.equal output true
+        Want.equal true output
 
       testCase "fail when does not end with suffix"
       <| fun _ ->
         let input, prefix = "foobar", "foo"
         let output = Str.endsWith prefix input
-        Want.equal output false
+        Want.equal false output
     ]
 
     testList "split" [
@@ -56,11 +56,13 @@ let strTests =
         let input = "foo,bar,baz"
         let output = Str.split "," input
 
-        Want.equal output [
-          "foo"
-          "bar"
-          "baz"
-        ]
+        Want.equal
+          [
+            "foo"
+            "bar"
+            "baz"
+          ]
+          output
     ]
 
     testList "splitWhitespace" [
@@ -69,11 +71,13 @@ let strTests =
         let input = "foo\nbar baz"
         let output = Str.splitWhitespace input
 
-        Want.equal output [
-          "foo"
-          "bar"
-          "baz"
-        ]
+        Want.equal
+          [
+            "foo"
+            "bar"
+            "baz"
+          ]
+          output
     ]
 
     testList "splitMax" [
@@ -82,10 +86,12 @@ let strTests =
         let input = "foo,bar,baz"
         let output = Str.splitMax 2 "," input
 
-        Want.equal output [
-          "foo"
-          "bar,baz"
-        ]
+        Want.equal
+          [
+            "foo"
+            "bar,baz"
+          ]
+          output
     ]
 
     testList "splitWhitespaceMax" [
@@ -94,11 +100,13 @@ let strTests =
         let input = "foo bar\nbaz"
         let output = Str.splitWhitespace input
 
-        Want.equal output [
-          "foo"
-          "bar"
-          "baz"
-        ]
+        Want.equal
+          [
+            "foo"
+            "bar"
+            "baz"
+          ]
+          output
     ]
 
     testList "splitWord" [
@@ -107,10 +115,12 @@ let strTests =
         let input = "foobarbaz"
         let output = Str.splitWord "bar" input
 
-        Want.equal output [
-          "foo"
-          "baz"
-        ]
+        Want.equal
+          [
+            "foo"
+            "baz"
+          ]
+          output
     ]
 
     testList "splitWordMax" [
@@ -119,10 +129,12 @@ let strTests =
         let input = "foobarbazbarfoo"
         let output = Str.splitWordMax 2 "bar" input
 
-        Want.equal output [
-          "foo"
-          "bazbarfoo"
-        ]
+        Want.equal
+          [
+            "foo"
+            "bazbarfoo"
+          ]
+          output
     ]
   ]
 
@@ -178,7 +190,7 @@ let jsonTests =
   "snake_case": "foo bar"
 }"""
 
-        Want.equal output expected
+        Want.equal expected output
     ]
 
     testList "deserialize" [
@@ -196,6 +208,6 @@ let jsonTests =
         }
 
         let output' = Want.wantOk output
-        Want.equal output' expected
+        Want.equal expected output'
     ]
   ]

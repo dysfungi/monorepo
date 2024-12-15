@@ -2,6 +2,7 @@ module AutoMate.Tests.Utilities
 
 open AutoMate.Utilities
 open Expecto
+open Suave
 open System
 
 [<Tests>]
@@ -261,30 +262,5 @@ let jsonTests =
 
         let output' = Want.ok output
         Want.equal expected output'
-    ]
-  ]
-
-[<Tests>]
-let fsHttpTests =
-  testList "FsHttp" [
-    testList "Response" [
-      testList "toJson" [
-        testCase "pass"
-        <| fun _ ->
-          let expected = {|
-            Nested = {|
-              String = "foo"
-              Number = 2
-            |}
-          |}
-
-          let input = Json.serialize expected
-          (* TODO
-          let output = FsHttp.Response.toJson input
-          let output' = Want.ok output
-          Want.equal expected output'
-          *)
-          Want.equal "foo" "foo"
-      ]
     ]
   ]

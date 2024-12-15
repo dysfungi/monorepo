@@ -112,9 +112,3 @@ module Env =
 
   let set name value =
     Environment.SetEnvironmentVariable(name, value)
-
-module FsHttp =
-  open FsHttp
-
-  module Response =
-    let toJson response = response |> Response.parseAsync

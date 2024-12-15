@@ -22,7 +22,6 @@ let responseTests =
 
         let output = get <| Server.url @"" |> Request.send |> toJson |> Want.ok
         Want.equal expected output
-        server.Dispose()
 
     (* TODO: fix "Address already in use" issue with Server.serve
       testCase "fail when cannot deserialize"
@@ -35,7 +34,6 @@ let responseTests =
           |> Request.send
           |> toJson
         Want.isError output
-        server.Dispose()
       *)
 
     ]

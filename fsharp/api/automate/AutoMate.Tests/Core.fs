@@ -8,15 +8,13 @@ module Want =
 
   /// Want actual to equal expected.
   let equal (expected: 'T) (actual: 'T) =
-    let message = $"Wanted {actual} == {expected}"
-    Expect.equal actual expected message
+    Expect.equal actual expected $"Wanted {actual} == {expected}"
 
   /// Want f to throw an exception.
   let throws f =
-    let message = "Wanted a thrown exception"
-    Expect.throws f message
+    Expect.throws f "Wanted a thrown exception"
 
+  /// Want Ok and retun wrapped value.
+  let wantOk result = Expect.wantOk result "Wanted Ok result"
   /// Want Ok.
-  let isOk actual =
-    let message = "Wanted Ok"
-    Expect.isOk actual message
+  let isOk result = Expect.isOk result "Wanted Ok result"

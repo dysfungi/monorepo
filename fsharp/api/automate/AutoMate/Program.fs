@@ -46,9 +46,7 @@ let main args =
 
     endpoints [
       get "/" <| Response.ofPlainText "Hello world"
-      post
-        "/v1/todoist/webhook-events"
-        Integrations.Todoist.SyncApi.WebhookEvent.handler
+      post "/v1/todoist/webhook-events" Todoist.SyncApi.WebhookEvent.handler
       get "/-/startup" Startup.handle
       get "/-/readiness" Readiness.handle
       get "/-/liveness" Liveness.handle

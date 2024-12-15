@@ -1,5 +1,4 @@
-[<RequireQualifiedAccess>]
-module AutoMate.Integrations.Todoist
+module AutoMate.Todoist
 
 open AutoMate.Utilities
 open Falco
@@ -161,12 +160,14 @@ module SyncApi =
           match eventName with
           | "note:added"
           | "note:updated" ->
-            body
-            |> (Json.deserializeValidator<V9.NoteWebhookEventDto> *|* NoteEvent) "body"
+            (Json.deserializeValidator<V9.NoteWebhookEventDto> *|* NoteEvent)
+              "body"
+              body
           | "item:added"
           | "item:updated" ->
-            body
-            |> (Json.deserializeValidator<V9.ItemWebhookEventDto> *|* ItemEvent) "body"
+            (Json.deserializeValidator<V9.ItemWebhookEventDto> *|* ItemEvent)
+              "body"
+              body
           | _ ->
             Error
             <| ValidationErrors.create "event_name" [

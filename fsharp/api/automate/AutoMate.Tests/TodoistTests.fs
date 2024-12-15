@@ -1,5 +1,6 @@
 module AutoMate.Tests.Todoist
 
+open AutoMate.Todoist
 open AutoMate.Utilities
 open Expecto
 
@@ -41,11 +42,7 @@ let itemDtoTests =
           }
         """
 
-      let output =
-        Json.deserializeValidator<AutoMate.Integrations.Todoist.SyncApi.V9.ItemDto>
-          "test"
-          input
-
+      let output = Json.deserializeValidator<SyncApi.V9.ItemDto> "test" input
       Want.isOk output
   ]
 
@@ -73,11 +70,7 @@ let noteDtoTests =
           }
         """
 
-      let output =
-        Json.deserializeValidator<AutoMate.Integrations.Todoist.SyncApi.V9.NoteDto>
-          "test"
-          input
-
+      let output = Json.deserializeValidator<SyncApi.V9.NoteDto> "test" input
       Want.isOk output
   ]
 
@@ -148,9 +141,7 @@ let webhookEventTests =
           }
           """
 
-        let output =
-          AutoMate.Integrations.Todoist.SyncApi.WebhookEvent.Validate "test" input
-
+        let output = SyncApi.WebhookEvent.Validate "test" input
         Want.isOk output
     ]
   ]

@@ -17,9 +17,8 @@
 
   <ItemGroup>
     <Compile Include="Utilities.fs" />
-    <Compile Include="Integrations.fs" />
-    <Compile Include="Integrations.Todoist.fs" />
     <Compile Include="Database.fs" />
+    <Compile Include="Todoist.fs" />
     <Compile Include="Health.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

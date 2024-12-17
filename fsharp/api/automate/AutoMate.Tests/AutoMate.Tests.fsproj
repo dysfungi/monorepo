@@ -12,6 +12,7 @@
     <Compile Include="Core.fs" />
     <Compile Include="UtilitiesTests.fs" />
     <Compile Include="FsHttp.FSharpJsonTests.fs" />
+    <Compile Include="ConfigTests.fs" />
     <Compile Include="HealthTests.fs" />
     <Compile Include="TodoistTests.fs" />
     <Compile Include="Program.fs" />

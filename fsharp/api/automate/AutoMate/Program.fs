@@ -21,6 +21,9 @@ module ErrorController =
 
 [<EntryPoint>]
 let main args =
+  let config = Config.getAll args
+  printfn "Config: %A" config
+
   let configureHost (host: IHostBuilder) =
     // https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.hosting.ihostbuilder
     //host.AddSerilog()

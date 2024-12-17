@@ -39,7 +39,7 @@ let envReaderTests =
       Environment.SetEnvironmentVariable("EGG_SPAM", expectedEggSpam)
 
       let parse args =
-        parser.ParseConfiguration(configurationReader = envReader)
+        parser.ParseConfiguration(configurationReader = Cli.envReader)
 
       let results = parse [||]
       let output = results.GetAllResults()

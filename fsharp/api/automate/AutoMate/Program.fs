@@ -21,7 +21,7 @@ module ErrorController =
 
 [<EntryPoint>]
 let main args =
-  let config = Config.getAll args
+  let config = Config.load ()
   printfn "Config: %A" config
 
   let configureHost (host: IHostBuilder) =

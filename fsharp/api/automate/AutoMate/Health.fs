@@ -39,14 +39,12 @@ type Health = {
 
 [<RequireQualifiedAccess>]
 module Startup =
-  let handle: HttpHandler =
+  let handle (dbConnectionString: string) : HttpHandler =
     let handler: HttpHandler =
       fun ctx ->
         let dbResult =
-          printfn "Database URL: %s" Database.connectionString
-
           try
-            Database.connectionString
+            dbConnectionString
             |> Sql.connect
             |> Sql.query "SELECT 'Healthy' AS status"
             |> Sql.executeRow (fun read -> read.string "status")

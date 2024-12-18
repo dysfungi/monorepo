@@ -782,7 +782,11 @@ jobs:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          automate_dropbox_client_id: op://Frankenstructure/Dropbox App - Automatox/username
+          automate_dropbox_client_secret: op://Frankenstructure/Dropbox App - Automatox/credential
           automate_postgres_password: op://Frankenstructure/Postgres - AutoMate/password
+          automate_todoist_client_id: op://Frankenstructure/Todoist App - AutoMate/username
+          automate_todoist_client_secret: op://Frankenstructure/Todoist App - AutoMate/credential
       - id: kubeconfig-base64
         uses: cloudposse/github-action-secret-outputs@main
         with:
@@ -824,7 +828,12 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
           TF_VAR_app_version: ${{ needs.build-automate-api.outputs.app_version }}
+          TF_VAR_automate_dropbox_client_id: ${{ steps.op-secrets.outputs.automate_dropbox_client_id }}
+          TF_VAR_automate_dropbox_client_secret: ${{ steps.op-secrets.outputs.automate_dropbox_client_secret }}
           TF_VAR_automate_postgres_password: ${{ steps.op-secrets.outputs.automate_postgres_password }}
+          TF_VAR_automate_todoist_client_id: ${{ steps.op-secrets.outputs.automate_todoist_client_id }}
+          TF_VAR_automate_todoist_client_secret: ${{ steps.op-secrets.outputs.automate_todoist_client_secret }}
+          TF_VAR_automate_todoist_verification_token: ${{ steps.op-secrets.outputs.automate_todoist_verification_token }}
           TF_VAR_dockerconfigjson: ${{ steps.dockerconfigjson.outputs.out }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
@@ -835,7 +844,12 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
           TF_VAR_app_version: ${{ needs.build-automate-api.outputs.app_version }}
+          TF_VAR_automate_dropbox_client_id: ${{ steps.op-secrets.outputs.automate_dropbox_client_id }}
+          TF_VAR_automate_dropbox_client_secret: ${{ steps.op-secrets.outputs.automate_dropbox_client_secret }}
           TF_VAR_automate_postgres_password: ${{ steps.op-secrets.outputs.automate_postgres_password }}
+          TF_VAR_automate_todoist_client_id: ${{ steps.op-secrets.outputs.automate_todoist_client_id }}
+          TF_VAR_automate_todoist_client_secret: ${{ steps.op-secrets.outputs.automate_todoist_client_secret }}
+          TF_VAR_automate_todoist_verification_token: ${{ steps.op-secrets.outputs.automate_todoist_verification_token }}
           TF_VAR_dockerconfigjson: ${{ steps.dockerconfigjson.outputs.out }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}

@@ -10,17 +10,22 @@ resource "kubernetes_secret" "cr" {
   }
 }
 
-resource "kubernetes_secret" "db" {
+resource "kubernetes_secret" "env" {
   metadata {
-    name      = "automate-database"
+    name      = "automate-env"
     namespace = kubernetes_namespace.automate.metadata[0].name
   }
   data = {
-    DATABASE_HOST     = data.vultr_database.pg.host
-    DATABASE_NAME     = vultr_database_db.automate_app.name
-    DATABASE_PASSWORD = vultr_database_user.automate_api.password
-    DATABASE_PORT     = data.vultr_database.pg.port
-    DATABASE_SSLMODE  = "require"
-    DATABASE_USERNAME = vultr_database_user.automate_api.username
+    DATABASE_HOST              = data.vultr_database.pg.host
+    DATABASE_NAME              = vultr_database_db.automate_app.name
+    DATABASE_PASSWORD          = vultr_database_user.automate_api.password
+    DATABASE_PORT              = data.vultr_database.pg.port
+    DATABASE_SSLMODE           = "require"
+    DATABASE_USERNAME          = vultr_database_user.automate_api.username
+    DROPBOX_CLIENT_ID          = var.automate_dropbox_client_id
+    DROPBOX_CLIENT_SECRET      = var.automate_dropbox_client_secret
+    TODOIST_CLIENT_ID          = var.automate_todoist_client_id
+    TODOIST_CLIENT_SECRET      = var.automate_todoist_client_secret
+    TODOIST_VERIFICATION_TOKEN = var.automate_todoist_verification_token
   }
 }

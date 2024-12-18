@@ -6,17 +6,34 @@ open FsConfig
 
 
 type DatabaseConfig = {
+  Host: string
   [<DefaultValue("automate_app")>]
   Name: string
-  Host: string
   Password: string
   [<DefaultValue("5432")>]
   Port: int
+  [<DefaultValue("require")>]
+  SslMode: string
   [<DefaultValue("automate_api")>]
   Username: string
 }
 
-type AppConfig = { Database: DatabaseConfig }
+type TodoistConfig = {
+  ClientId: string
+  ClientSecret: string
+  VerificationToken: string
+}
+
+type DropboxConfig = {
+  ClientId: string
+  ClientSecret: string
+}
+
+type AppConfig = {
+  Database: DatabaseConfig
+  Dropbox: DropboxConfig
+  Todoist: TodoistConfig
+}
 
 let load () =
   match EnvConfig.Get<AppConfig>() with

@@ -2,7 +2,32 @@ variable "app_version" {
   type = string
 }
 
+variable "automate_dropbox_client_id" {
+  type      = string
+  sensitive = true
+}
+
+variable "automate_dropbox_client_secret" {
+  type      = string
+  sensitive = true
+}
+
 variable "automate_postgres_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "automate_todoist_client_id" {
+  type      = string
+  sensitive = true
+}
+
+variable "automate_todoist_client_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "automate_todoist_verification_token" {
   type      = string
   sensitive = true
 }

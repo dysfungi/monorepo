@@ -92,7 +92,7 @@ resource "kubernetes_deployment" "api" {
           }
           env_from {
             secret_ref {
-              name     = kubernetes_secret.db.metadata[0].name
+              name     = kubernetes_secret.env.metadata[0].name
               optional = false
             }
           }

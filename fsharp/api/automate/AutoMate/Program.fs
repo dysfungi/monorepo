@@ -24,6 +24,17 @@ let main args =
   let config = Config.load ()
   printfn "Config: %A" config
 
+  let dbConnectionString =
+    Database.buildConnectionString
+      config.Database.Username
+      config.Database.Password
+      config.Database.Host
+      config.Database.Port
+      config.Database.Name
+      config.Database.SslMode
+
+  printfn "Database URL: %s" dbConnectionString
+
   let configureHost (host: IHostBuilder) =
     // https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.hosting.ihostbuilder
     //host.AddSerilog()
@@ -52,7 +63,7 @@ let main args =
       any Route.Meta.debug Response.debugRequest
       get Route.Meta.liveness Liveness.handle
       get Route.Meta.readiness Readiness.handle
-      get Route.Meta.startup Startup.handle
+      get Route.Meta.startup <| Startup.handle dbConnectionString
       get Route.V1.OAuth.Dropbox.register OAuth.Dropbox.handleRegister
       post Route.V1.Todoist.webhookEvents Todoist.SyncApi.WebhookEvent.handler
     ]

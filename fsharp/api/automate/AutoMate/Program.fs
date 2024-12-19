@@ -24,14 +24,7 @@ let main args =
   let config = Config.load ()
   printfn "Config: %A" config
 
-  let dbConnectionString =
-    Database.buildConnectionString
-      config.Database.Username
-      config.Database.Password
-      config.Database.Host
-      config.Database.Port
-      config.Database.Name
-      config.Database.SslMode
+  let dbConnectionString = Database.buildConnectionString config.Database
 
   printfn "Database URL: %s" dbConnectionString
 

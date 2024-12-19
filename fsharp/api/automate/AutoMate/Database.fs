@@ -14,20 +14,20 @@ open AutoMate.Utilities
 
 OptionTypes.register ()
 
-let buildConnectionString username password host port dbname sslMode =
-  let sslMode': SslMode =
-    match Str.toLower sslMode with
+let buildConnectionString (db: Config.DatabaseConfig) =
+  let sslMode: SslMode =
+    match Str.toLower db.SslMode with
     | "disable" -> SslMode.Disable
     | "prefer" -> SslMode.Prefer
     | "require" -> SslMode.Require
     | _ -> failwith "Valid $DATABASE_SSLMODE required"
 
-  Sql.host host
-  |> Sql.database dbname
-  |> Sql.password password
-  |> Sql.port port
-  |> Sql.sslMode sslMode'
-  |> Sql.username username
+  Sql.host db.Host
+  |> Sql.database db.Name
+  |> Sql.password db.Password
+  |> Sql.port db.Port
+  |> Sql.sslMode sslMode
+  |> Sql.username db.Username
   |> Sql.formatConnectionString
 
 module OAuth =

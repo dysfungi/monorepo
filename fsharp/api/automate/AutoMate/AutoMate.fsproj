@@ -21,6 +21,7 @@
     <Compile Include="FsHttp.FSharpJson.fs" />
     <Compile Include="Route.fs" />
     <Compile Include="Database.fs" />
+    <Compile Include="Services.fs" />
     <Compile Include="Dropbox.fs" />
     <Compile Include="Todoist.fs" />
     <Compile Include="OAuth.fs" />

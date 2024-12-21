@@ -1,5 +1,6 @@
 module AutoMate.OAuth
 
+open AutoMate.Services
 open AutoMate.Utilities
 open Falco
 
@@ -14,23 +15,23 @@ module Dropbox =
       Response.ofPlainText "Successful" ctx
 
   let handleRegister: HttpHandler =
-    let handleQuery (q: QueryCollectionReader) =
-      let code = q.GetString("code", "TODO")
-      let state = q.GetString("state", "TODO")
-      (*
-      let redirectUri =
-        Url.parseAbsolute ("TODO" + Route.V1.OAuth.Dropbox.register)
-        |> Want.ok
-      let clientId = "TODO"
-      let clientSecret = "TODO"
-      let offlineAccess =
-        Api.getAccessToken redirectUri clientId clientSecret code
-        *)
-      "Successful"
+    fun ctx ->
+      let dbConnectionFactory = ctx.GetService<DbConnectionFactory>()
+      let dbConnection = dbConnectionFactory ()
 
-    Request.mapQuery handleQuery Response.ofPlainText
+      let handleQuery (q: QueryCollectionReader) =
+        let code = q.GetString("code", "TODO")
+        let state = q.GetString("state", "TODO")
 
+        let redirectUri =
+          Url.parseAbsolute ("TODO" + Route.V1.OAuth.Dropbox.register) |> Unwrap.ok
 
+        let clientId = "TODO"
+        let clientSecret = "TODO"
+        let offlineAccess = Api.getAccessToken redirectUri clientId clientSecret code
+        "Successful"
+
+      Request.mapQuery handleQuery Response.ofPlainText ctx
 
 
 (*

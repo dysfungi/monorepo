@@ -1,10 +1,13 @@
 module AutoMate.Program
 
+open AutoMate.Services
 open Falco
 open Falco.Routing
 open Falco.HostBuilder
+open Microsoft.AspNetCore.Authentication
 open Microsoft.AspNetCore.Hosting
 open Microsoft.Extensions.Configuration
+open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 //open Serilog
@@ -19,44 +22,61 @@ module ErrorController =
   let unauthorized: HttpHandler =
     Response.withStatusCode 403 >> Response.ofPlainText "Forbidden"
 
+let configureLogging (log: ILoggingBuilder) =
+  // https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.logging.iloggingbuilder
+  // https://learn.microsoft.com/en-us/aspnet/core/fundamentals/logging/#configure-logging
+  log.ClearProviders() |> ignore
+  //log.AddJsonConsole()
+  log.AddConsole()
+
+let configureServices (services: IServiceCollection) =
+  // https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.authenticationservicecollectionextensions.addauthentication?view=aspnetcore-9.0
+  (*
+  services
+    .AddAuthentication(fun options ->
+      // https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.authentication.authenticationoptions?view=aspnetcore-9.0
+      options.DefaultAuthenticationScheme <- JwtBearerDefaults.AuthenticationScheme
+      options.DefaultSigninScheme <- JwtBearerDefaults.AuthenticationScheme
+      options.DefaultChallengeScheme <- "TODO"
+    )
+    .AddOAuth(
+      "dropbox", fun options ->
+        options.ClientId <- "TODO"
+        options.ClientSecret <- "TODO"
+    )
+  *)
+  services.AddFalco() |> ignore
+
+let configureHost (host: IHostBuilder) =
+  // https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.hosting.ihostbuilder
+  //host.AddSerilog()
+  host
+
+let configureWebHost (webHost: IWebHostBuilder) =
+  // https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.hosting.iwebhostbuilder
+  //webHost.UseHttpSys()
+  webHost.ConfigureServices(configureServices)
+
 [<EntryPoint>]
 let main args =
   let config = Config.load ()
   printfn "Config: %A" config
-
-  let dbConnectionString = Database.buildConnectionString config.Database
-
-  printfn "Database URL: %s" dbConnectionString
-
-  let configureHost (host: IHostBuilder) =
-    // https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.hosting.ihostbuilder
-    //host.AddSerilog()
-    host
-
-  let configureWebHost (webHost: IWebHostBuilder) =
-    // https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.hosting.iwebhostbuilder
-    //webHost.UseHttpSys()
-    webHost
-
-  let configureLogging (log: ILoggingBuilder) =
-    // https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.logging.iloggingbuilder
-    // https://learn.microsoft.com/en-us/aspnet/core/fundamentals/logging/#configure-logging
-    log.ClearProviders() |> ignore
-    //log.AddJsonConsole()
-    log.AddConsole()
+  let dbConnectionService = configureDbConnectionService config.Database
 
   webHost args {
     host configureHost
     web_host configureWebHost
     logging configureLogging
     not_found ErrorController.notFound
+    add_service dbConnectionService
+    //add_service oauthService
 
     endpoints [
       get Route.index <| Response.ofPlainText "Hello, world!"
       any Route.Meta.debug Response.debugRequest
       get Route.Meta.liveness Liveness.handle
       get Route.Meta.readiness Readiness.handle
-      get Route.Meta.startup <| Startup.handle dbConnectionString
+      get Route.Meta.startup Startup.handle
       get Route.V1.OAuth.Dropbox.register OAuth.Dropbox.handleRegister
       post Route.V1.Todoist.webhookEvents Todoist.SyncApi.WebhookEvent.handler
     ]

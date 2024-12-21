@@ -6,6 +6,7 @@
 [<AutoOpen>]
 module AutoMate.Health
 
+open AutoMate.Services
 open Falco
 open FSharp.Json
 open Npgsql.FSharp
@@ -39,13 +40,16 @@ type Health = {
 
 [<RequireQualifiedAccess>]
 module Startup =
-  let handle (dbConnectionString: string) : HttpHandler =
+  let handle: HttpHandler =
     let handler: HttpHandler =
       fun ctx ->
         let dbResult =
+          let dbConnectionFactory = ctx.GetService<DbConnectionFactory>()
+          // TODO: use dbConnection = dbConnectionFactory()
+          let dbConnection = dbConnectionFactory ()
+
           try
-            dbConnectionString
-            |> Sql.connect
+            dbConnection
             |> Sql.query "SELECT 'Healthy' AS status"
             |> Sql.executeRow (fun read -> read.string "status")
             |> fun status ->

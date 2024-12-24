@@ -7,6 +7,11 @@ open Falco
 module Dropbox =
   open AutoMate.Dropbox
 
+  type Registration = {
+    Code: string
+    State: string
+  }
+
   let registerHandler2: HttpHandler =
     fun ctx ->
       let q = Request.getQuery ctx
@@ -15,23 +20,29 @@ module Dropbox =
       Response.ofPlainText "Successful" ctx
 
   let registerHandler: HttpHandler =
-    fun ctx ->
-      let dbConnectionFactory = ctx.GetService<DbConnectionFactory>()
-      use dbConnection = dbConnectionFactory ()
+    let queryMap (q: QueryCollectionReader) : Registration = {
+      Code = q.GetString("code", "TODO")
+      State = q.GetString("state", "TODO")
+    }
 
-      let handleQuery (q: QueryCollectionReader) =
-        let code = q.GetString("code", "TODO")
-        let state = q.GetString("state", "TODO")
+    let handleDepInj depInj record =
+      let redirectUri =
+        Url.parseAbsolute ("TODO" + Route.V1.OAuth.Dropbox.register) |> Unwrap.ok
 
-        let redirectUri =
-          Url.parseAbsolute ("TODO" + Route.V1.OAuth.Dropbox.register) |> Unwrap.ok
+      let clientId = "TODO"
+      let clientSecret = "TODO"
 
-        let clientId = "TODO"
-        let clientSecret = "TODO"
-        let offlineAccess = Api.getAccessToken redirectUri clientId clientSecret code
-        "Successful"
+      let offlineAccess =
+        Api.getAccessToken redirectUri clientId clientSecret record.Code
 
-      Request.mapQuery handleQuery Response.ofPlainText ctx
+      Ok "Successful"
+
+    let handleOk msg = Response.ofPlainText msg
+
+    let handleError msg =
+      Response.withStatusCode 503 >> Response.ofPlainText msg
+
+    Request.mapQuery queryMap <| DepInj.run handleDepInj handleOk handleError
 
 
 (*

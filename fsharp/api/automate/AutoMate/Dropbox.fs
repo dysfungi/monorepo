@@ -1,7 +1,7 @@
 module AutoMate.Dropbox
 
 open FsHttp
-open FsHttp.FSharpJson
+open FsHttp.FSharpJson.Response
 open System
 
 module Api =
@@ -17,12 +17,9 @@ module Api =
       ]
     }
     |> Request.send
-  (*
-    |> Response.toJson
-    |> fun json -> json?name.GetString(), json?age.GetInt32()
-    *)
+    |> Response.toText
 
-  type OfflineAccess = {
+  type ShortLivedOfflineAccess = {
     AccessToken: string
     RefreshToken: string
     ExpiresIn: int
@@ -37,7 +34,7 @@ module Api =
     (appKey: string)
     (appSecret: string)
     (authorizationCode: string)
-    : OfflineAccess =
+    =
     http {
       POST "https://api.dropbox.com/oauth2/token"
 
@@ -50,34 +47,24 @@ module Api =
       ]
     }
     |> Request.send
+    |> toJson<ShortLivedOfflineAccess>
 
-    {
-      AccessToken = "foo"
-      RefreshToken = "bar"
-      ExpiresIn = 2
-      TokenType = "bearer"
-      Scope = ""
-      AccountId = "me"
-      Uid = "id"
-    }
-  (*
-    |> Response.toJson
-    |> fun json -> json?name.GetString()
-    *)
+  type ShortLivedRefreshAccess = {
+    AccessToken: string
+    ExpiresIn: int
+    TokenType: string
+  }
 
-  let refreshToken =
+  let refreshToken (clientId: string) (clientSecret: string) (refreshToken: string) =
     http {
       POST "https://api.dropbox.com/oauth2/token"
 
       query [
         "grant_type", "refresh_token"
-        "refresh_token", "<REFRESH_TOKEN>"
-        "client_id", "<APP_KEY>"
-        "client_secret", "<APP_SECRET>"
+        "refresh_token", refreshToken
+        "client_id", clientId
+        "client_secret", clientSecret
       ]
     }
-(*
     |> Request.send
-    |> Response.toJson
-    |> fun json -> json?name.GetString()
-    *)
+    |> toJson<ShortLivedRefreshAccess>

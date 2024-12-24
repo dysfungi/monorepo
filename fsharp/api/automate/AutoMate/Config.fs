@@ -12,7 +12,7 @@ type DatabaseConfig = {
   Password: string
   [<DefaultValue("5432")>]
   Port: int
-  [<DefaultValue("require")>]
+  [<DefaultValue("prefer")>]
   SslMode: string
   [<DefaultValue("automate_api")>]
   Username: string

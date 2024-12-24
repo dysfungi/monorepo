@@ -7,7 +7,10 @@ services:
       target: final
     environment: &api_env
       DATABASE_HOST: postgres
-      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: &db_name automate_app
+      DATABASE_PASSWORD: &db_pw postgres
+      DATABASE_SSL_MODE: prefer
+      DATABASE_USERNAME: &db_user automate_api
       DROPBOX_CLIENT_ID: ${TF_VAR_automate_dropbox_client_id}
       DROPBOX_CLIENT_SECRET: ${TF_VAR_automate_dropbox_client_secret}
       TODOIST_CLIENT_ID: ${TF_VAR_automate_todoist_client_id}
@@ -61,7 +64,9 @@ services:
     restart: always
     shm_size: 128mb
     environment:
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: *db_name
+      POSTGRES_PASSWORD: *db_pw
+      POSTGRES_USER: *db_user
     volumes:
       - pgdata:/var/lib/postgresql/data
 

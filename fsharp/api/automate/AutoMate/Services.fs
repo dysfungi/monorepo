@@ -41,6 +41,7 @@ module DepInj =
       let log = ctx.GetLogger "AutoMate.Services.DepInj"
       let dbConnectionFactory = ctx.GetService<DbConnectionFactory>()
       use dbConnection = dbConnectionFactory ()
+      dbConnection.Open()
       use dbTransaction = dbConnection.BeginTransaction()
 
       let depInj = {

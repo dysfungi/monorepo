@@ -7,17 +7,17 @@ open Falco
 module Dropbox =
   open AutoMate.Dropbox
 
-  let handleRegister2: HttpHandler =
+  let registerHandler2: HttpHandler =
     fun ctx ->
       let q = Request.getQuery ctx
       let code = q.GetString("code", "")
       let state = q.GetString("state", "")
       Response.ofPlainText "Successful" ctx
 
-  let handleRegister: HttpHandler =
+  let registerHandler: HttpHandler =
     fun ctx ->
       let dbConnectionFactory = ctx.GetService<DbConnectionFactory>()
-      let dbConnection = dbConnectionFactory ()
+      use dbConnection = dbConnectionFactory ()
 
       let handleQuery (q: QueryCollectionReader) =
         let code = q.GetString("code", "TODO")

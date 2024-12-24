@@ -33,58 +33,60 @@ type HealthCheck = {
   Description: string option
 }
 
+type HealthCheckResults = { Database: HealthCheck option }
+
 type Health = {
   Status: string
-  Results: {| Database: HealthCheck option |}
+  Results: HealthCheckResults
 }
 
 [<RequireQualifiedAccess>]
 module Startup =
-  let handle: HttpHandler =
-    let handler: HttpHandler =
-      fun ctx ->
-        let dbResult =
-          let dbConnectionFactory = ctx.GetService<DbConnectionFactory>()
-          // TODO: use dbConnection = dbConnectionFactory()
-          let dbConnection = dbConnectionFactory ()
-
-          try
-            dbConnection
-            |> Sql.query "SELECT 'Healthy' AS status"
-            |> Sql.executeRow (fun read -> read.string "status")
-            |> fun status ->
-                Ok {
-                  Status = status
-                  Description = None
-                }
-          with ex ->
-            Error {
-              Status = "Unhealthy"
-              Description = Some ex.Message
+  let handler: HttpHandler =
+    let checkDb dbConn =
+      try
+        dbConn
+        |> Sql.existingConnection
+        |> Sql.query "SELECT 'Healthy' AS status"
+        |> Sql.executeRow (fun read -> read.string "status")
+        |> fun status ->
+            Ok {
+              Status = status
+              Description = None
             }
+      with ex ->
+        Error {
+          Status = "Unhealthy"
+          Description = Some ex.Message
+        }
 
-        let handler =
-          match dbResult with
-          | Ok dbCheck ->
-            Respond.ofJson {
-              Status = "Healthy"
-              Results = {| Database = Some dbCheck |}
-            }
-          | Error dbCheck ->
-            Response.withStatusCode 503
-            >> Respond.ofJson {
-              Status = "Unhealthy"
-              Results = {| Database = Some dbCheck |}
-            }
+    let handleDepInj: DependencyInjectionHandler<unit, Health, Health> =
+      fun depInj input ->
+        let dbResult = checkDb depInj.DbConn
 
-        handler ctx
+        match dbResult with
+        | Ok dbCheck ->
+          Ok {
+            Status = "Healthy"
+            Results = { Database = Some dbCheck }
+          }
+        | Error dbCheck ->
+          Error {
+            Status = "Unhealthy"
+            Results = { Database = Some dbCheck }
+          }
 
-    handler
+    let handleOk (health: Health) = Respond.ofJson health
+
+    let handleError (health: Health) =
+      Response.withStatusCode 503 >> Respond.ofJson health
+
+    DepInj.run handleDepInj handleOk handleError ()
 
 [<RequireQualifiedAccess>]
 module Readiness =
   // TODO: latency for readiness checks? OS metrics?
-  let handle: HttpHandler =
+  let handler: HttpHandler =
     let skippedCheck = {
       Status = "Skipped"
       Description = None
@@ -92,9 +94,9 @@ module Readiness =
 
     Respond.ofJson {
       Status = "Healthy"
-      Results = {| Database = Some skippedCheck |}
+      Results = { Database = Some skippedCheck }
     }
 
 [<RequireQualifiedAccess>]
 module Liveness =
-  let handle: HttpHandler = Readiness.handle
+  let handler: HttpHandler = Readiness.handler

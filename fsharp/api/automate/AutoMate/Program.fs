@@ -74,10 +74,10 @@ let main args =
     endpoints [
       get Route.index <| Response.ofPlainText "Hello, world!"
       any Route.Meta.debug Response.debugRequest
-      get Route.Meta.liveness Liveness.handle
-      get Route.Meta.readiness Readiness.handle
-      get Route.Meta.startup Startup.handle
-      get Route.V1.OAuth.Dropbox.register OAuth.Dropbox.handleRegister
+      get Route.Meta.liveness Liveness.handler
+      get Route.Meta.readiness Readiness.handler
+      get Route.Meta.startup Startup.handler
+      get Route.V1.OAuth.Dropbox.register OAuth.Dropbox.registerHandler
       post Route.V1.Todoist.webhookEvents Todoist.SyncApi.WebhookEvent.handler
     ]
   }

@@ -24,6 +24,15 @@ type DatabaseConfig = {
   Username: string
 }
 
+type LogFormatEnum =
+  | Plain
+  | Json
+
+type LoggingConfig = {
+  [<DefaultValue("plain")>]
+  Format: LogFormatEnum
+}
+
 type TodoistConfig = {
   ClientId: string
   ClientSecret: string
@@ -38,6 +47,7 @@ type DropboxConfig = {
 type AppConfig = {
   Database: DatabaseConfig
   Dropbox: DropboxConfig
+  Logging: LoggingConfig
   Todoist: TodoistConfig
 }
 

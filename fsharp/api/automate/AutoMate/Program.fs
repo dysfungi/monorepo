@@ -21,12 +21,14 @@ module ErrorController =
   let unauthorized: HttpHandler =
     Response.withStatusCode 403 >> Response.ofPlainText "Forbidden"
 
-let configureLogging (log: ILoggingBuilder) =
+let configureLogging (config: Config.LoggingConfig) (log: ILoggingBuilder) =
   // https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.logging.iloggingbuilder
   // https://learn.microsoft.com/en-us/aspnet/core/fundamentals/logging/#configure-logging
   log.ClearProviders() |> ignore
-  //log.AddJsonConsole()
-  log.AddConsole()
+
+  match config.Format with
+  | Config.LogFormatEnum.Json -> log.AddJsonConsole()
+  | Config.LogFormatEnum.Plain -> log.AddConsole()
 
 let configureServices (services: IServiceCollection) =
   // https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.authenticationservicecollectionextensions.addauthentication?view=aspnetcore-9.0
@@ -64,7 +66,7 @@ let main args =
   webHost args {
     host configureHost
     web_host configureWebHost
-    logging configureLogging
+    logging (configureLogging config.Logging)
     not_found ErrorController.notFound
     add_service (dbConnectionService config.Database)
     //add_service oauthService

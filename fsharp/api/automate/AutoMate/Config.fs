@@ -1,7 +1,6 @@
 module AutoMate.Config
 
 open Argu
-open AutoMate.Utilities
 open FsConfig
 open Microsoft.Extensions.Logging
 

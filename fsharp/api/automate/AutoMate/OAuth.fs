@@ -1,6 +1,5 @@
 module AutoMate.OAuth
 
-open AutoMate.Utilities
 open Falco
 
 module Dropbox =

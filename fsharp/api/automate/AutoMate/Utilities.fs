@@ -1,3 +1,4 @@
+[<AutoOpen>]
 module AutoMate.Utilities
 
 [<RequireQualifiedAccess>]

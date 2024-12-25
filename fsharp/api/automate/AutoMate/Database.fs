@@ -10,7 +10,6 @@ module AutoMate.Database
 open Dapper.FSharp
 open Dapper.FSharp.PostgreSQL
 open Npgsql.FSharp
-open AutoMate.Utilities
 
 OptionTypes.register ()
 

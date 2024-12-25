@@ -1,6 +1,5 @@
 module AutoMate.Todoist
 
-open AutoMate.Utilities
 open Falco
 open System
 open Validus

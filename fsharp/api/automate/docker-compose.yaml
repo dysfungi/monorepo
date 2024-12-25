@@ -13,6 +13,7 @@ services:
       DATABASE_USERNAME: &db_user automate_api
       DROPBOX_CLIENT_ID: ${TF_VAR_automate_dropbox_client_id}
       DROPBOX_CLIENT_SECRET: ${TF_VAR_automate_dropbox_client_secret}
+      LOGGING_LEVEL: debug
       TODOIST_CLIENT_ID: ${TF_VAR_automate_todoist_client_id}
       TODOIST_CLIENT_SECRET: ${TF_VAR_automate_todoist_client_secret}
       TODOIST_VERIFICATION_TOKEN: ${TF_VAR_automate_todoist_verification_token}

@@ -3,10 +3,11 @@ module AutoMate.Config
 open Argu
 open AutoMate.Utilities
 open FsConfig
+open Microsoft.Extensions.Logging
 
 
 // https://github.com/Zaid-Ajaj/Npgsql.FSharp/blob/master/src/Npgsql.FSharp.fs#L13
-type SslModeEnum =
+type DbSslMode =
   | Disable
   | Prefer
   | Require
@@ -19,18 +20,21 @@ type DatabaseConfig = {
   [<DefaultValue("5432")>]
   Port: int
   [<DefaultValue("prefer")>]
-  SslMode: SslModeEnum
+  SslMode: DbSslMode
   [<DefaultValue("automate_api")>]
   Username: string
 }
 
-type LogFormatEnum =
+type LogFormat =
   | Plain
   | Json
 
 type LoggingConfig = {
   [<DefaultValue("plain")>]
-  Format: LogFormatEnum
+  Format: LogFormat
+  // https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.logging.loglevel
+  [<DefaultValue("Information")>]
+  Level: LogLevel
 }
 
 type TodoistConfig = {

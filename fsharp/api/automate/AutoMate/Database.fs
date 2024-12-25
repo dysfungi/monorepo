@@ -17,9 +17,9 @@ OptionTypes.register ()
 let buildConnectionString (db: Config.DatabaseConfig) =
   let sslMode: SslMode =
     match db.SslMode with
-    | Config.SslModeEnum.Disable -> SslMode.Disable
-    | Config.SslModeEnum.Prefer -> SslMode.Prefer
-    | Config.SslModeEnum.Require -> SslMode.Require
+    | Config.DbSslMode.Disable -> SslMode.Disable
+    | Config.DbSslMode.Prefer -> SslMode.Prefer
+    | Config.DbSslMode.Require -> SslMode.Require
 
   Sql.host db.Host
   |> Sql.database db.Name

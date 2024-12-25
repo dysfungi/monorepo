@@ -27,8 +27,13 @@ let configureLogging (config: Config.LoggingConfig) (log: ILoggingBuilder) =
   log.ClearProviders() |> ignore
 
   match config.Format with
-  | Config.LogFormatEnum.Json -> log.AddJsonConsole()
-  | Config.LogFormatEnum.Plain -> log.AddConsole()
+  | Config.LogFormat.Json -> log.AddJsonConsole()
+  | Config.LogFormat.Plain -> log.AddConsole()
+  |> ignore
+
+  log.SetMinimumLevel(config.Level) |> ignore
+
+  log
 
 let configureServices (services: IServiceCollection) =
   // https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.authenticationservicecollectionextensions.addauthentication?view=aspnetcore-9.0

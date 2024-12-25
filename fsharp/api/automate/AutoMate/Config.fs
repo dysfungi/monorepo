@@ -5,6 +5,12 @@ open AutoMate.Utilities
 open FsConfig
 
 
+// https://github.com/Zaid-Ajaj/Npgsql.FSharp/blob/master/src/Npgsql.FSharp.fs#L13
+type SslModeEnum =
+  | Disable
+  | Prefer
+  | Require
+
 type DatabaseConfig = {
   Host: string
   [<DefaultValue("automate_app")>]
@@ -13,7 +19,7 @@ type DatabaseConfig = {
   [<DefaultValue("5432")>]
   Port: int
   [<DefaultValue("prefer")>]
-  SslMode: string
+  SslMode: SslModeEnum
   [<DefaultValue("automate_api")>]
   Username: string
 }

@@ -1,6 +1,5 @@
 module AutoMate.OAuth
 
-open AutoMate.Services
 open AutoMate.Utilities
 open Falco
 
@@ -25,7 +24,7 @@ module Dropbox =
       State = q.GetString("state", "TODO")
     }
 
-    let handleDepInj depInj record =
+    let handleDepInj deps record =
       let redirectUri =
         Url.parseAbsolute ("TODO" + Route.V1.OAuth.Dropbox.register) |> Unwrap.ok
 
@@ -42,7 +41,7 @@ module Dropbox =
     let handleError msg =
       Response.withStatusCode 503 >> Response.ofPlainText msg
 
-    Request.mapQuery queryMap <| DepInj.run handleDepInj handleOk handleError
+    Request.mapQuery queryMap <| Deps.inject handleDepInj handleOk handleError
 
 
 (*

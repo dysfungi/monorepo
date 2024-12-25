@@ -6,7 +6,6 @@
 [<AutoOpen>]
 module AutoMate.Health
 
-open AutoMate.Services
 open Falco
 open FSharp.Json
 open Npgsql.FSharp
@@ -61,8 +60,8 @@ module Startup =
         }
 
     let handleDepInj: DependencyInjectionHandler<unit, Health, Health> =
-      fun depInj input ->
-        let dbResult = checkDb depInj.DbConn
+      fun deps input ->
+        let dbResult = checkDb deps.DbConn
 
         match dbResult with
         | Ok dbCheck ->
@@ -81,7 +80,7 @@ module Startup =
     let handleError (health: Health) =
       Response.withStatusCode 503 >> Respond.ofJson health
 
-    DepInj.run handleDepInj handleOk handleError ()
+    Deps.inject handleDepInj handleOk handleError ()
 
 [<RequireQualifiedAccess>]
 module Readiness =

@@ -1,6 +1,5 @@
 module AutoMate.Program
 
-open AutoMate.Services
 open Falco
 open Falco.Routing
 open Falco.HostBuilder
@@ -61,14 +60,13 @@ let configureWebHost (webHost: IWebHostBuilder) =
 let main args =
   let config = Config.load ()
   printfn "Config: %A" config
-  let dbConnectionService = configureDbConnectionService config.Database
 
   webHost args {
     host configureHost
     web_host configureWebHost
     logging configureLogging
     not_found ErrorController.notFound
-    add_service dbConnectionService
+    add_service (dbConnectionService config.Database)
     //add_service oauthService
 
     endpoints [

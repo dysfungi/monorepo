@@ -8,6 +8,7 @@ module AutoMate.Health
 
 open Falco
 open FSharp.Json
+open Microsoft.Extensions.Logging
 open Npgsql.FSharp
 open System.Text
 
@@ -61,15 +62,23 @@ module Startup =
 
     let handleDepInj: DependencyInjectionHandler<unit, Health, Health> =
       fun deps input ->
+        deps.Logger.LogDebug("Handling startup health check")
+
+        deps.Logger.LogDebug("Checking database health")
         let dbResult = checkDb deps.DbConn
+        deps.Logger.LogDebug("Checked database health")
 
         match dbResult with
         | Ok dbCheck ->
+          deps.Logger.LogDebug("Checked startup health - Healthy")
+
           Ok {
             Status = "Healthy"
             Results = { Database = Some dbCheck }
           }
         | Error dbCheck ->
+          deps.Logger.LogWarning("Checked startup health - Unhealthy")
+
           Error {
             Status = "Unhealthy"
             Results = { Database = Some dbCheck }

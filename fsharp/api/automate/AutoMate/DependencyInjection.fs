@@ -22,7 +22,7 @@ let dbConnectionService
   services.AddSingleton<DbConnectionFactory>(dbConnectionFactory)
 
 type Dependencies = {
-  Log: ILogger
+  Logger: ILogger
   DbConn: Npgsql.NpgsqlConnection
   DbTransaction: IDbTransaction
 }
@@ -39,14 +39,14 @@ module Deps =
     (input: 'input)
     : HttpHandler =
     fun ctx ->
-      let log = ctx.GetLogger "AutoMate.Services.DepInj"
+      let logger = ctx.GetLogger "AutoMate.DependencyInjection.Deps.inject"
       let dbConnectionFactory = ctx.GetService<DbConnectionFactory>()
       use dbConnection = dbConnectionFactory ()
       dbConnection.Open()
       use dbTransaction = dbConnection.BeginTransaction()
 
       let depInj = {
-        Log = log
+        Logger = logger
         DbConn = dbConnection
         DbTransaction = dbTransaction
       }

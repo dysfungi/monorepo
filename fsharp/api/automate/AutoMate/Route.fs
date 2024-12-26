@@ -5,6 +5,7 @@ let index = "/"
 [<AutoOpen>]
 module Meta =
   let internal meta = index + "-"
+  let config = meta + "/config"
   let debug = meta + "/debug"
   let liveness = meta + "/liveness"
   let readiness = meta + "/readiness"

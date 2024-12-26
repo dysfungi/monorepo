@@ -108,3 +108,15 @@ module Readiness =
 [<RequireQualifiedAccess>]
 module Liveness =
   let handler: HttpHandler = Readiness.handler
+
+let configHandler: HttpHandler =
+  let handleDepInj deps input =
+    deps.Logger.LogInformation("Config - {Config}", deps.Config)
+    Ok "Successful"
+
+  let handleOk msg = Response.ofPlainText msg
+
+  let handleError msg =
+    Response.withStatusCode 503 >> Response.ofPlainText msg
+
+  Deps.inject handleDepInj handleOk handleError ()

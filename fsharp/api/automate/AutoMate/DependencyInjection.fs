@@ -7,6 +7,9 @@ open Microsoft.Extensions.Logging
 open Npgsql.FSharp
 open System.Data
 
+let configService (config: Config.AppConfig) (services: IServiceCollection) =
+  services.AddSingleton<Config.AppConfig>(config)
+
 type DbConnectionFactory = unit -> Npgsql.NpgsqlConnection //IDbConnection
 
 let dbConnectionService
@@ -22,6 +25,7 @@ let dbConnectionService
   services.AddSingleton<DbConnectionFactory>(dbConnectionFactory)
 
 type Dependencies = {
+  Config: Config.AppConfig
   Logger: ILogger
   DbConn: Npgsql.NpgsqlConnection
   DbTransaction: IDbTransaction
@@ -40,12 +44,14 @@ module Deps =
     : HttpHandler =
     fun ctx ->
       let logger = ctx.GetLogger "AutoMate.DependencyInjection.Deps.inject"
+      let config = ctx.GetService<Config.AppConfig>()
       let dbConnectionFactory = ctx.GetService<DbConnectionFactory>()
       use dbConnection = dbConnectionFactory ()
       dbConnection.Open()
       use dbTransaction = dbConnection.BeginTransaction()
 
       let depInj = {
+        Config = config
         Logger = logger
         DbConn = dbConnection
         DbTransaction = dbTransaction

@@ -4,7 +4,6 @@ open Argu
 open FsConfig
 open Microsoft.Extensions.Logging
 
-
 // https://github.com/Zaid-Ajaj/Npgsql.FSharp/blob/master/src/Npgsql.FSharp.fs#L13
 type DbSslMode =
   | Disable

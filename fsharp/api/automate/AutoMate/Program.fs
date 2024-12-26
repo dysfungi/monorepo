@@ -66,19 +66,21 @@ let configureWebHost (webHost: IWebHostBuilder) =
 [<EntryPoint>]
 let main args =
   let config = Config.load ()
-  printfn "Config: %A" config
+  printfn "Config - %A" config
 
   webHost args {
     host configureHost
     web_host configureWebHost
     logging (configureLogging config.Logging)
     not_found ErrorController.notFound
+    add_service (configService config)
     add_service (dbConnectionService config.Database)
     //add_service oauthService
 
     endpoints [
       get Route.index <| Response.ofPlainText "Hello, world!"
       any Route.Meta.debug Response.debugRequest
+      get Route.Meta.config configHandler
       get Route.Meta.liveness Liveness.handler
       get Route.Meta.readiness Readiness.handler
       get Route.Meta.startup Startup.handler

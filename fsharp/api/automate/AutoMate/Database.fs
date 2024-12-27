@@ -7,13 +7,9 @@
 
 module AutoMate.Database
 
-open Dapper.FSharp
-open Dapper.FSharp.PostgreSQL
 open Npgsql.FSharp
 open System
 open System.Data
-
-OptionTypes.register ()
 
 let buildConnectionString (db: Config.DatabaseConfig) =
   let sslMode: SslMode =
@@ -46,8 +42,6 @@ type OAuthAccess = {
   AccountId: string option
 }
 
-let oauthAccessTable = table'<OAuthAccess> "oauth_access"
-
 module OAuthAccess =
   let internal readRow (read: RowReader) : OAuthAccess = {
     Id = read.uuid "id"
@@ -70,33 +64,6 @@ module OAuthAccess =
     (expiresAt: DateTimeOffset option)
     (accountId: string option)
     : OAuthAccess =
-    (*
-    task {
-      let oauthAccess = {
-        Id = Guid.Empty
-        CreatedAt = DateTimeOffset.MinValue
-        UpdatedAt = DateTimeOffset.MinValue
-        Provider = provider
-        TokenType = tokenType
-        AccessToken = accessToken
-        RefreshToken = refreshToken
-        ExpiresAt = expiresAt
-        AccountId = accountId
-      }
-      let! rows =
-        insert {
-          for oa in oauthAccessTable do
-          value oauthAccess
-          excludeColumn oa.Id
-          excludeColumn oa.CreatedAt
-          excludeColumn oa.UpdatedAt
-        } |> conn.InsertOutputAsync<OAuthAccess, OAuthAccess>
-      return rows |> Seq.head
-    }
-    |> Async.AwaitTask
-    |> Async.RunSynchronously
-      *)
-
     conn
     |> Sql.existingConnection
     |> Sql.query

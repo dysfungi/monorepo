@@ -32,7 +32,6 @@
 
   <ItemGroup>
     <PackageReference Include="Argu" Version="6.2.5" />
-    <PackageReference Include="Dapper.FSharp" Version="4.9.0" />
     <PackageReference Include="Falco" Version="4.0.6" />
     <PackageReference Include="FsConfig" Version="4.1.0" />
     <PackageReference Include="FSharp.Json" Version="0.4.1" />

@@ -1,6 +1,7 @@
 module AutoMate.Program
 
 open Falco
+open Falco.FSharpJson
 open Falco.Routing
 open Falco.HostBuilder
 open Microsoft.AspNetCore.Authentication
@@ -9,6 +10,8 @@ open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
+open Npgsql.FSharp
+open System
 //open Serilog
 
 module ErrorController =
@@ -63,6 +66,31 @@ let configureWebHost (webHost: IWebHostBuilder) =
   //webHost.UseHttpSys()
   webHost.ConfigureServices(configureServices)
 
+let postOauthHandler: HttpHandler =
+
+  let handleDeps deps input =
+    Database.OAuthAccess.create deps.DbConn "dropbox" "bearer" "foobar" None None None
+    |> Ok
+
+  let handleOk r = Respond.ofJson r
+
+  let handleError e =
+    Response.withStatusCode 503 >> Respond.ofJson {| Error = string (e) |}
+
+  Deps.inject handleDeps handleOk handleError ()
+
+let putOauthHandler: HttpHandler =
+
+  let handleDeps deps input =
+    Database.OAuthAccess.update deps.DbConn "foofoo" None |> Ok
+
+  let handleOk r = Respond.ofJson r
+
+  let handleError e =
+    Response.withStatusCode 503 >> Respond.ofJson {| Error = string (e) |}
+
+  Deps.inject handleDeps handleOk handleError ()
+
 [<EntryPoint>]
 let main args =
   let config = Config.load ()
@@ -86,6 +114,8 @@ let main args =
       get Route.Meta.startup Startup.handler
       get Route.V1.OAuth.Dropbox.register OAuth.Dropbox.registerHandler
       post Route.V1.Todoist.webhookEvents Todoist.SyncApi.WebhookEvent.handler
+      post "/oauth" postOauthHandler
+      put "/oauth" putOauthHandler
     ]
   }
 

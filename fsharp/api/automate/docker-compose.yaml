@@ -70,6 +70,7 @@ services:
       POSTGRES_USER: *db_user
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
 
 volumes:
   pgdata:

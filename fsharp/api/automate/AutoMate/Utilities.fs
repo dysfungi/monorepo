@@ -73,13 +73,13 @@ module Json =
 
   type Field = JsonField
 
-  let config = JsonConfig.create (jsonFieldNaming = Json.snakeCase)
+  let defaultConfig = JsonConfig.create (jsonFieldNaming = Json.snakeCase)
 
-  let serialize data = Json.serializeEx config data
+  let serialize data = Json.serializeEx defaultConfig data
 
   let deserialize<'T> json =
     try
-      Json.deserializeEx<'T> config json |> Ok
+      Json.deserializeEx<'T> defaultConfig json |> Ok
     with ex ->
       Error ex
 

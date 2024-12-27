@@ -19,6 +19,7 @@
     <Compile Include="Utilities.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="FsHttp.FSharpJson.fs" />
+    <Compile Include="Falco.FSharpJson.fs" />
     <Compile Include="Route.fs" />
     <Compile Include="Database.fs" />
     <Compile Include="DependencyInjection.fs" />

@@ -22,6 +22,7 @@
     <Compile Include="Falco.FSharpJson.fs" />
     <Compile Include="Route.fs" />
     <Compile Include="Database.fs" />
+    <Compile Include="Errors.fs" />
     <Compile Include="DependencyInjection.fs" />
     <Compile Include="Dropbox.fs" />
     <Compile Include="Todoist.fs" />

@@ -58,12 +58,22 @@ module Deps =
       }
 
       let respondWith =
-        match depInjHandler depInj input with
-        | Ok output ->
-          dbTransaction.Commit()
-          handleOk output
-        | Error error ->
+        try
+          match depInjHandler depInj input with
+          | Ok output ->
+            logger.LogDebug("Committing transaction")
+            dbTransaction.Commit()
+            logger.LogDebug("Committed transaction")
+            handleOk output
+          | Error error ->
+            logger.LogWarning("Rolling back transaction for handled error")
+            dbTransaction.Rollback()
+            logger.LogDebug("Rolled back transaction for handled error")
+            handleError error
+        with exc ->
+          logger.LogError(exc, "Rolling back transaction for unhandled error")
           dbTransaction.Rollback()
-          handleError error
+          logger.LogTrace(exc, "Rolled back transaction for unhandled error")
+          ErrorResponse.internalServerError exc
 
       respondWith ctx

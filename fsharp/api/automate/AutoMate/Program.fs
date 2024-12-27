@@ -69,25 +69,30 @@ let configureWebHost (webHost: IWebHostBuilder) =
 let postOauthHandler: HttpHandler =
 
   let handleDeps deps input =
-    Database.OAuthAccess.create deps.DbConn "dropbox" "bearer" "foobar" None None None
+    Database.OAuthAccess.upsert
+      deps.DbConn
+      "derek"
+      "dropbox"
+      "bearer"
+      "foobar"
+      None
+      None
     |> Ok
 
   let handleOk r = Respond.ofJson r
 
-  let handleError e =
-    Response.withStatusCode 503 >> Respond.ofJson {| Error = string (e) |}
+  let handleError = ErrorResponse.badRequest
 
   Deps.inject handleDeps handleOk handleError ()
 
 let putOauthHandler: HttpHandler =
 
   let handleDeps deps input =
-    Database.OAuthAccess.update deps.DbConn "foofoo" None |> Ok
+    Database.OAuthAccess.update deps.DbConn "derek" "dropbox" "foofoo" None |> Ok
 
   let handleOk r = Respond.ofJson r
 
-  let handleError e =
-    Response.withStatusCode 503 >> Respond.ofJson {| Error = string (e) |}
+  let handleError = ErrorResponse.badRequest
 
   Deps.inject handleDeps handleOk handleError ()
 

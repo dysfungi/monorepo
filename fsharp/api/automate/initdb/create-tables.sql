@@ -11,12 +11,13 @@ CREATE TABLE IF NOT EXISTS oauth_access
 ( id UUID PRIMARY KEY DEFAULT GEN_RANDOM_UUID()
 , created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 , updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+, account_id TEXT NOT NULL
 , provider TEXT NOT NULL
 , token_type TEXT NOT NULL
 , access_token TEXT NOT NULL
 , refresh_token TEXT
 , expires_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
-, account_id TEXT
+, UNIQUE (account_id, provider)
 );
 
 CREATE TRIGGER touch_updated_at

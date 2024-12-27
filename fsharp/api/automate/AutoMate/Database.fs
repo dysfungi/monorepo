@@ -34,12 +34,12 @@ type OAuthAccess = {
   Id: Guid
   CreatedAt: DateTimeOffset
   UpdatedAt: DateTimeOffset
+  AccountId: string
   Provider: string
   TokenType: string
   AccessToken: string
   RefreshToken: string option
   ExpiresAt: DateTimeOffset option
-  AccountId: string option
 }
 
 module OAuthAccess =
@@ -47,55 +47,63 @@ module OAuthAccess =
     Id = read.uuid "id"
     CreatedAt = read.datetimeOffset "created_at"
     UpdatedAt = read.datetimeOffset "updated_at"
+    AccountId = read.text "account_id"
     Provider = read.text "provider"
     TokenType = read.text "token_type"
     AccessToken = read.text "access_token"
     RefreshToken = read.textOrNone "refresh_token"
     ExpiresAt = read.datetimeOffsetOrNone "expires_at"
-    AccountId = read.textOrNone "account_id"
   }
 
-  let create
+  let upsert
     (conn: Npgsql.NpgsqlConnection)
+    (accountId: string)
     (provider: string)
     (tokenType: string)
     (accessToken: string)
     (refreshToken: string option)
     (expiresAt: DateTimeOffset option)
-    (accountId: string option)
     : OAuthAccess =
     conn
     |> Sql.existingConnection
     |> Sql.query
       "INSERT INTO oauth_access
-       ( provider
+       ( account_id
+       , provider
        , token_type
        , access_token
        , refresh_token
        , expires_at
-       , account_id
        )
        VALUES
-       ( @provider
+       ( @account_id
+       , @provider
        , @token_type
        , @access_token
        , @refresh_token
        , @expires_at
-       , @account_id
        )
+       ON CONFLICT (account_id, provider)
+       DO UPDATE
+       SET token_type = @token_type
+         , access_token = @access_token
+         , refresh_token = @refresh_token
+         , expires_at = @expires_at
        RETURNING *;"
     |> Sql.parameters [
+      "@account_id", Sql.text accountId
       "@provider", Sql.text provider
       "@token_type", Sql.text tokenType
       "@access_token", Sql.text accessToken
       "@refresh_token", Sql.textOrNone refreshToken
       "@expires_at", Sql.timestamptzOrNone expiresAt
-      "@account_id", Sql.textOrNone accountId
     ]
     |> Sql.executeRow readRow
 
   let update
     (conn: Npgsql.NpgsqlConnection)
+    (accountId: string)
+    (provider: string)
     (accessToken: string)
     (expiresAt: DateTimeOffset option)
     : OAuthAccess =
@@ -104,12 +112,14 @@ module OAuthAccess =
     |> Sql.query
       "UPDATE oauth_access
        SET access_token = @access_token
-       WHERE id IN (
-         SELECT id
-         FROM oauth_access
-         ORDER BY created_at
-         LIMIT 1
-       )
+         , expires_at = @expires_at
+       WHERE account_id = @account_id
+         AND provider = @provider
        RETURNING *;"
-    |> Sql.parameters [ "@access_token", Sql.text accessToken ]
+    |> Sql.parameters [
+      "@account_id", Sql.text accountId
+      "@provider", Sql.text provider
+      "@access_token", Sql.text accessToken
+      "@expires_at", Sql.timestamptzOrNone expiresAt
+    ]
     |> Sql.executeRow readRow

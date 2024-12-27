@@ -37,8 +37,7 @@ module Dropbox =
 
     let handleOk msg = Response.ofPlainText msg
 
-    let handleError msg =
-      Response.withStatusCode 503 >> Response.ofPlainText msg
+    let handleError = ErrorResponse.badRequest
 
     Request.mapQuery queryMap <| Deps.inject handleDepInj handleOk handleError
 

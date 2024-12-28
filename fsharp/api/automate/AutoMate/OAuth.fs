@@ -23,7 +23,7 @@ module Dropbox =
       State = q.GetString("state", "TODO")
     }
 
-    let handleDepInj deps record =
+    let handleDepInj deps input =
       let config = deps.Config.Dropbox
 
       let redirectUri =
@@ -35,7 +35,7 @@ module Dropbox =
       let clientSecret = config.ClientSecret
 
       let offlineAccess =
-        Api.getAccessToken redirectUri clientId clientSecret record.Code
+        Api.getAccessToken redirectUri clientId clientSecret input.Code
 
       Ok "Successful"
 

@@ -66,6 +66,43 @@ module Url =
   let parseAbsolute = parse UriKind.Absolute
   let parseRelative = parse UriKind.Relative
 
+  let internal uriBuilder uri : Result<UriBuilder, exn> =
+    try
+      string uri |> UriBuilder |> Ok
+    with exc ->
+      Error exc
+
+  let internal tryMutate
+    (mutator: UriBuilder -> unit)
+    : Result<Uri, exn> -> Result<Uri, exn> =
+    Result.bind uriBuilder
+    >> Result.bind (fun builder ->
+      try
+        mutator builder |> ignore
+        Ok builder.Uri
+      with exc ->
+        Error exc)
+
+  let build baseUri : Result<Uri, exn> =
+    uriBuilder baseUri
+    |> Result.bind (fun builder ->
+      try
+        Ok builder.Uri
+      with exc ->
+        Error exc)
+
+  let replaceScheme scheme : Result<Uri, exn> -> Result<Uri, exn> =
+    tryMutate (fun builder -> builder.Scheme <- scheme)
+
+  let replaceUserName username =
+    tryMutate (fun builder -> builder.UserName <- username)
+
+  let replaceHost host =
+    tryMutate (fun builder -> builder.Host <- host)
+
+  let replacePath path =
+    tryMutate (fun builder -> builder.Path <- path)
+
 [<RequireQualifiedAccess>]
 module Json =
   open FSharp.Json

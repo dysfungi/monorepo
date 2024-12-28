@@ -24,11 +24,15 @@ module Dropbox =
     }
 
     let handleDepInj deps record =
-      let redirectUri =
-        Url.parseAbsolute ("TODO" + Route.V1.OAuth.Dropbox.register) |> Unwrap.ok
+      let config = deps.Config.Dropbox
 
-      let clientId = "TODO"
-      let clientSecret = "TODO"
+      let redirectUri =
+        Url.build config.RedirectBaseUrl
+        |> Url.replacePath Route.V1.OAuth.Dropbox.register
+        |> Unwrap.ok
+
+      let clientId = config.ClientId
+      let clientSecret = config.ClientSecret
 
       let offlineAccess =
         Api.getAccessToken redirectUri clientId clientSecret record.Code

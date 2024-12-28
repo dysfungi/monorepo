@@ -3,6 +3,7 @@ module AutoMate.Config
 open Argu
 open FsConfig
 open Microsoft.Extensions.Logging
+open System
 
 // https://github.com/Zaid-Ajaj/Npgsql.FSharp/blob/master/src/Npgsql.FSharp.fs#L13
 type DbSslMode =
@@ -44,6 +45,7 @@ type TodoistConfig = {
 type DropboxConfig = {
   ClientId: string
   ClientSecret: string
+  RedirectBaseUrl: Uri
 }
 
 type AppConfig = {

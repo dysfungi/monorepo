@@ -61,19 +61,19 @@ module Deps =
         try
           match depInjHandler depInj input with
           | Ok output ->
-            logger.LogDebug("Committing transaction")
+            logger.LogTrace("Committing transaction")
             dbTransaction.Commit()
-            logger.LogDebug("Committed transaction")
+            logger.LogTrace("Committed transaction")
             handleOk output
           | Error error ->
-            logger.LogWarning("Rolling back transaction for handled error")
+            logger.LogTrace("Rolling back transaction for handled error")
             dbTransaction.Rollback()
-            logger.LogDebug("Rolled back transaction for handled error")
+            logger.LogInformation("Rolled back transaction for handled error")
             handleError error
         with exc ->
-          logger.LogError(exc, "Rolling back transaction for unhandled error")
+          logger.LogTrace(exc, "Rolling back transaction for unhandled error")
           dbTransaction.Rollback()
-          logger.LogTrace(exc, "Rolled back transaction for unhandled error")
+          logger.LogError(exc, "Rolled back transaction for unhandled error")
           ErrorResponse.internalServerError exc
 
       respondWith ctx

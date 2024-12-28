@@ -66,7 +66,7 @@ module Url =
   let parseAbsolute = parse UriKind.Absolute
   let parseRelative = parse UriKind.Relative
 
-  let internal uriBuilder uri : Result<UriBuilder, exn> =
+  let internal tryUriBuilder uri : Result<UriBuilder, exn> =
     try
       string uri |> UriBuilder |> Ok
     with exc ->
@@ -75,7 +75,7 @@ module Url =
   let internal tryMutate
     (mutator: UriBuilder -> unit)
     : Result<Uri, exn> -> Result<Uri, exn> =
-    Result.bind uriBuilder
+    Result.bind tryUriBuilder
     >> Result.bind (fun builder ->
       try
         mutator builder |> ignore
@@ -84,7 +84,7 @@ module Url =
         Error exc)
 
   let build baseUri : Result<Uri, exn> =
-    uriBuilder baseUri
+    tryUriBuilder baseUri
     |> Result.bind (fun builder ->
       try
         Ok builder.Uri

@@ -26,7 +26,7 @@ resource "kubernetes_secret" "env" {
     DROPBOX_CLIENT_SECRET      = var.automate_dropbox_client_secret
     DROPBOX_REDIRECT_BASE_URL  = "https://${local.hostname}"
     LOGGING_FORMAT             = "plain"
-    LOGGING_LEVEL              = "Informational"
+    LOGGING_LEVEL              = "Information"
     TODOIST_CLIENT_ID          = var.automate_todoist_client_id
     TODOIST_CLIENT_SECRET      = var.automate_todoist_client_secret
     TODOIST_VERIFICATION_TOKEN = var.automate_todoist_verification_token

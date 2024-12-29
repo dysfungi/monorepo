@@ -30,6 +30,10 @@ module Str =
 
   let join = String.concat
 
+  let trim (chars: string) (s: string) = s.Trim(chars.ToCharArray())
+  let trimLeft (chars: string) (s: string) = s.TrimStart(chars.ToCharArray())
+  let trimRight (chars: string) (s: string) = s.TrimEnd(chars.ToCharArray())
+
 [<RequireQualifiedAccess>]
 module Unwrap =
   /// Unwrap Some option or throw exception with error message.
@@ -51,6 +55,53 @@ module Unwrap =
   /// Unwrap Ok result or throw exception.
   let ok result =
     okWith "Wanted Ok result, got Error" result
+
+[<RequireQualifiedAccess>]
+module Qry =
+  open System
+
+  type Query = Map<string, string list>
+
+  let create = Query
+
+  let empty: Query = create []
+
+  let add (key: string) (value: string) : Query -> Query =
+    Map.change key (function
+      | Some values -> Some(List.append values [ value ])
+      | None -> Some [ value ])
+
+  let extend (key: string) (values: string list) (query: Query) : Query =
+    List.fold (fun query value -> add key value query) query values
+
+  let parse (qs: string) : Query =
+    qs
+    |> Str.trimLeft "?"
+    |> Str.split "&"
+    |> List.fold
+      (fun query part ->
+        match Str.splitMax 2 "=" part with
+        | [ key; values ] ->
+          let decodedKey = Uri.UnescapeDataString key
+
+          let decodedValues =
+            values |> Str.split "," |> List.map Uri.UnescapeDataString
+
+          extend decodedKey decodedValues query
+        | [ key ] -> add key "" query
+        | _ -> query)
+      (Query [])
+
+  let toString: (Query) -> string =
+    Map.toList
+    >> List.map (fun (key, values) ->
+      let encodedKey = Uri.EscapeDataString key
+
+      values
+      |> List.map Uri.EscapeDataString
+      |> List.map (fun encodedValue -> sprintf "%s=%s" encodedKey encodedValue)
+      |> Str.join "&")
+    >> Str.join "&"
 
 [<RequireQualifiedAccess>]
 module Url =
@@ -102,6 +153,10 @@ module Url =
 
   let replacePath path =
     tryMutate (fun builder -> builder.Path <- path)
+
+  let addQuery (key: string) (value: string) =
+    tryMutate (fun builder ->
+      builder.Query <- Qry.parse builder.Query |> Qry.add key value |> Qry.toString)
 
 [<RequireQualifiedAccess>]
 module Json =

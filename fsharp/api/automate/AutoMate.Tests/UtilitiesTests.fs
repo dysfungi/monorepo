@@ -176,6 +176,82 @@ let unwrapTests =
   ]
 
 [<Tests>]
+let qryTests =
+  testList "Qry" [
+    testList "add" [
+      testCase "pass"
+      <| fun _ ->
+        let input = Qry.empty
+        let output = Qry.add "foo" "bar=baz" input
+        let expected = Qry.create [ "foo", [ "bar=baz" ] ]
+        Want.equal expected output
+    ]
+
+    testList "extend" [
+      testCase "pass"
+      <| fun _ ->
+        let input = Qry.empty
+
+        let output =
+          Qry.extend
+            "foo"
+            [
+              "bar=baz"
+              "egg&spam"
+            ]
+            input
+
+        let expected =
+          Qry.create [
+            "foo",
+            [
+              "bar=baz"
+              "egg&spam"
+            ]
+          ]
+
+        Want.equal expected output
+    ]
+
+    testList "parse" [
+      testCase "pass"
+      <| fun _ ->
+        let input = "?foo=bar%3Dbaz&foo=egg%26spam&egg=spam"
+        let output = Qry.parse input
+
+        let expected =
+          Qry.create [
+            "foo",
+            [
+              "bar=baz"
+              "egg&spam"
+            ]
+            "egg", [ "spam" ]
+          ]
+
+        Want.equal expected output
+    ]
+
+    testList "toString" [
+      testCase "pass"
+      <| fun _ ->
+        let input =
+          Qry.create [
+            "foo",
+            [
+              "bar=baz"
+              "egg&spam"
+            ]
+            "egg", [ "spam" ]
+          ]
+
+        let output = Qry.toString input
+        let expected = "egg=spam&foo=bar%3Dbaz&foo=egg%26spam"
+        Want.equal expected output
+    ]
+  ]
+
+[<Tests>]
 let urlTests =
   testList "Url" [
     testList "parseAbsolute" [
@@ -207,6 +283,15 @@ let urlTests =
         let input = "https://foo.bar/baz"
         let output = Url.parseRelative input
         Want.isError output
+    ]
+
+    testList "addQuery" [
+      testCase "pass"
+      <| fun _ ->
+        let input = Ok(Uri "http://foo.bar/baz?foo=bar&foo=baz")
+        let output = Url.addQuery "egg" "spam" input
+        let expected = Ok(Uri "http://foo.bar/baz?egg=spam&foo=bar&foo=baz")
+        Want.equal expected output
     ]
   ]
 

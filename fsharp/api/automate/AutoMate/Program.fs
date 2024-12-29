@@ -12,6 +12,7 @@ open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 open Npgsql.FSharp
 open System
+open System.Reflection
 //open Serilog
 
 module ErrorController =
@@ -117,6 +118,10 @@ let main args =
       get Route.Meta.liveness Liveness.handler
       get Route.Meta.readiness Readiness.handler
       get Route.Meta.startup Startup.handler
+      get Route.Meta.version
+      <| Response.ofPlainText (
+        Assembly.GetExecutingAssembly().GetName().Version.ToString()
+      )
       get Route.V1.OAuth.Dropbox.register OAuth.Dropbox.registerHandler
       get Route.V1.OAuth.Dropbox.authorize OAuth.Dropbox.authorizeHandler
       post Route.V1.Todoist.webhookEvents Todoist.SyncApi.WebhookEvent.handler

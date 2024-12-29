@@ -10,6 +10,7 @@ module Meta =
   let liveness = meta + "/liveness"
   let readiness = meta + "/readiness"
   let startup = meta + "/startup"
+  let version = meta + "/version"
 
 [<RequireQualifiedAccess>]
 module V1 =

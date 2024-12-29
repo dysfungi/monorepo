@@ -288,10 +288,13 @@ let urlTests =
     testList "addQuery" [
       testCase "pass"
       <| fun _ ->
-        let input = Ok(Uri "http://foo.bar/baz?foo=bar&foo=baz")
-        let output = Url.addQuery "egg" "spam" input
-        let expected = Ok(Uri "http://foo.bar/baz?egg=spam&foo=bar&foo=baz")
-        Want.equal expected output
+        let input = Ok(Uri "http://foo.bar/baz")
+        let output = Url.addQuery "foo" "bar" input
+        let output' = Url.addQuery "egg" "spam" output
+        let output'' = Url.addQuery "empty" "" output'
+        let output''' = Url.addQuery "foo" "baz" output''
+        let expected = Ok(Uri "http://foo.bar/baz?egg=spam&empty=&foo=bar&foo=baz")
+        Want.equal expected output'''
     ]
   ]
 

@@ -88,6 +88,7 @@ module Qry =
             values |> Str.split "," |> List.map Uri.UnescapeDataString
 
           extend decodedKey decodedValues query
+        | [ "" ] -> query
         | [ key ] -> add key "" query
         | _ -> query)
       (Query [])

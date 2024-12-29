@@ -20,7 +20,7 @@ resource "kubernetes_secret" "env" {
     DATABASE_NAME              = vultr_database_db.automate_app.name
     DATABASE_PASSWORD          = vultr_database_user.automate_api.password
     DATABASE_PORT              = data.vultr_database.pg.port
-    DATABASE_SSLMODE           = "require"
+    DATABASE_SSL_MODE          = "require"
     DATABASE_USERNAME          = vultr_database_user.automate_api.username
     DROPBOX_CLIENT_ID          = var.automate_dropbox_client_id
     DROPBOX_CLIENT_SECRET      = var.automate_dropbox_client_secret

@@ -1,24 +1,49 @@
 module AutoMate.OAuth
 
 open Falco
+open System
 
 module Dropbox =
   open AutoMate.Dropbox
+
+  type Authorization = {
+    ResponseType: string
+    ClientId: string
+    RedirectUri: string
+    TokenAccessType: string
+    State: string
+  }
+
+  let authorizeHandler: HttpHandler =
+    let handleDeps deps input =
+      let config = deps.Config.Dropbox
+
+      let redirectUri =
+        Url.build config.RedirectBaseUrl
+        |> Url.replacePath Route.V1.OAuth.Dropbox.register
+        |> Unwrap.ok
+
+      Url.build "https://www.dropbox.com/oauth2/authorize"
+      |> Url.addQuery "response_type" "code"
+      |> Url.addQuery "client_id" config.ClientId
+      |> Url.addQuery "redirect_uri" (string redirectUri)
+      |> Url.addQuery "token_access_type" "offline"
+      |> Url.addQuery "state" ""
+
+    let handleOk uri =
+      Response.redirectTemporarily (string uri)
+
+    let handleError = ErrorResponse.internalServerError
+
+    Deps.inject handleDeps handleOk handleError ()
 
   type Registration = {
     Code: string
     State: string
   }
 
-  let registerHandler2: HttpHandler =
-    fun ctx ->
-      let q = Request.getQuery ctx
-      let code = q.GetString("code", "")
-      let state = q.GetString("state", "")
-      Response.ofPlainText "Successful" ctx
-
   let registerHandler: HttpHandler =
-    let queryMap (q: QueryCollectionReader) : Registration = {
+    let queryMapper (q: QueryCollectionReader) : Registration = {
       Code = q.GetString("code", "TODO")
       State = q.GetString("state", "TODO")
     }
@@ -34,16 +59,23 @@ module Dropbox =
       let clientId = config.ClientId
       let clientSecret = config.ClientSecret
 
-      let offlineAccess =
-        Api.getAccessToken redirectUri clientId clientSecret input.Code
+      Api.getAccessToken redirectUri clientId clientSecret input.Code
+      |> Result.map (fun access ->
+        Some(DateTimeOffset.UtcNow.AddSeconds access.ExpiresIn)
+        |> Database.OAuthAccess.upsert
+          deps.DbConn
+          access.AccountId
+          "dropbox"
+          access.TokenType
+          access.AccessToken
+          (Some access.RefreshToken))
+      |> Result.map (fun _ -> "Successful")
 
-      Ok "Successful"
-
-    let handleOk msg = Response.ofPlainText msg
+    let handleOk = Response.ofPlainText
 
     let handleError = ErrorResponse.badRequest
 
-    Request.mapQuery queryMap <| Deps.inject handleDepInj handleOk handleError
+    Request.mapQuery queryMapper <| Deps.inject handleDepInj handleOk handleError
 
 
 (*

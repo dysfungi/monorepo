@@ -118,6 +118,7 @@ let main args =
       get Route.Meta.readiness Readiness.handler
       get Route.Meta.startup Startup.handler
       get Route.V1.OAuth.Dropbox.register OAuth.Dropbox.registerHandler
+      get Route.V1.OAuth.Dropbox.authorize OAuth.Dropbox.authorizeHandler
       post Route.V1.Todoist.webhookEvents Todoist.SyncApi.WebhookEvent.handler
       post "/oauth" postOauthHandler
       put "/oauth" putOauthHandler

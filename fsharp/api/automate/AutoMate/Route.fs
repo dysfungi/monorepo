@@ -18,11 +18,13 @@ module V1 =
   [<RequireQualifiedAccess>]
   module OAuth =
     let private oauth = v1 + "/oauth"
+    let private authorize = oauth + "/authorize"
     let private register = oauth + "/register"
 
     [<RequireQualifiedAccess>]
     module Dropbox =
       let private suffix = "/dropbox"
+      let authorize = authorize + suffix
       let register = register + suffix
 
   [<RequireQualifiedAccess>]

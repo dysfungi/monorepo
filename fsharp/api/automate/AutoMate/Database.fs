@@ -30,20 +30,21 @@ type OAuthProviders =
   | Dropbox
   | Todoist
 
-type OAuthAccess = {
-  Id: Guid
-  CreatedAt: DateTimeOffset
-  UpdatedAt: DateTimeOffset
-  AccountId: string
-  Provider: string
-  TokenType: string
-  AccessToken: string
-  RefreshToken: string option
-  ExpiresAt: DateTimeOffset option
-}
-
+[<RequireQualifiedAccess>]
 module OAuthAccess =
-  let internal readRow (read: RowReader) : OAuthAccess = {
+  type Dbo = {
+    Id: Guid
+    CreatedAt: DateTimeOffset
+    UpdatedAt: DateTimeOffset
+    AccountId: string
+    Provider: string
+    TokenType: string
+    AccessToken: string
+    RefreshToken: string option
+    ExpiresAt: DateTimeOffset option
+  }
+
+  let private readRow (read: RowReader) : Dbo = {
     Id = read.uuid "id"
     CreatedAt = read.datetimeOffset "created_at"
     UpdatedAt = read.datetimeOffset "updated_at"
@@ -63,7 +64,7 @@ module OAuthAccess =
     (accessToken: string)
     (refreshToken: string option)
     (expiresAt: DateTimeOffset option)
-    : OAuthAccess =
+    : Dbo =
     conn
     |> Sql.existingConnection
     |> Sql.query
@@ -106,7 +107,7 @@ module OAuthAccess =
     (provider: string)
     (accessToken: string)
     (expiresAt: DateTimeOffset option)
-    : OAuthAccess =
+    : Dbo =
     conn
     |> Sql.existingConnection
     |> Sql.query

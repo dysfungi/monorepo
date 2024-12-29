@@ -34,7 +34,7 @@ module Api =
     (appKey: string)
     (appSecret: string)
     (authorizationCode: string)
-    =
+    : Result<ShortLivedOfflineAccess, exn> =
     http {
       POST "https://api.dropbox.com/oauth2/token"
 

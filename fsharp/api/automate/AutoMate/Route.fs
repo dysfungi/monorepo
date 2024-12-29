@@ -4,7 +4,7 @@ let index = "/"
 
 [<AutoOpen>]
 module Meta =
-  let internal meta = index + "-"
+  let private meta = index + "-"
   let config = meta + "/config"
   let debug = meta + "/debug"
   let liveness = meta + "/liveness"
@@ -13,18 +13,19 @@ module Meta =
 
 [<RequireQualifiedAccess>]
 module V1 =
-  let internal v1 = index + "v1"
+  let private v1 = index + "v1"
 
   [<RequireQualifiedAccess>]
   module OAuth =
-    let internal oauth = v1 + "/oauth"
-    let internal register = oauth + "/register"
+    let private oauth = v1 + "/oauth"
+    let private register = oauth + "/register"
 
     [<RequireQualifiedAccess>]
     module Dropbox =
-      let register = register + "/dropbox"
+      let private suffix = "/dropbox"
+      let register = register + suffix
 
   [<RequireQualifiedAccess>]
   module Todoist =
-    let internal todoist = v1 + "/todoist"
+    let private todoist = v1 + "/todoist"
     let webhookEvents = todoist + "/webhook-events"

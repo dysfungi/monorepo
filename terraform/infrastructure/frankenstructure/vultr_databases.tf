@@ -1,3 +1,31 @@
+data "http" "github_api_meta" {
+  url = "https://api.github.com/meta"
+
+  request_headers = {
+    Accept = "application/json"
+  }
+
+  retry {
+    attempts     = 2
+    min_delay_ms = 1000
+    max_delay_ms = 10000
+  }
+}
+
+data "http" "myip" {
+  url = "https://ipinfo.io/json"
+
+  request_headers = {
+    Accept = "application/json"
+  }
+
+  retry {
+    attempts     = 2
+    min_delay_ms = 1000
+    max_delay_ms = 10000
+  }
+}
+
 resource "vultr_database" "pg" {
   # max connections: 97
   label                   = "postgres"
@@ -10,10 +38,16 @@ resource "vultr_database" "pg" {
   cluster_time_zone       = "UTC"
   maintenance_dow         = "sunday"
   maintenance_time        = "10:00"
-  trusted_ips = [
-    format("%v/%v", vultr_vpc.k8s.v4_subnet, vultr_vpc.k8s.v4_subnet_mask),
-    vultr_kubernetes.k8s.service_subnet,
-    vultr_kubernetes.k8s.cluster_subnet,
-    format("%v/32", var.home_ip),
-  ]
+  trusted_ips = concat(
+    [
+      format("%v/%v", vultr_vpc.k8s.v4_subnet, vultr_vpc.k8s.v4_subnet_mask),
+      vultr_kubernetes.k8s.service_subnet,
+      vultr_kubernetes.k8s.cluster_subnet,
+      format("%v/32", var.home_ip),
+    ],
+    [
+      for cidr in jsondecode(data.http.github_api_meta.response_body).actions
+      : cidr if startswith(cidr, jsondecode(data.http.myip.response_body).ip)
+    ],
+  )
 }

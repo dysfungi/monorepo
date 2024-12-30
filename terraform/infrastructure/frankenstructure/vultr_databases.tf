@@ -26,6 +26,15 @@ data "http" "myip" {
   }
 }
 
+locals {
+  github_cidrs = [
+    for cidr in jsondecode(data.http.github_api_meta.response_body).actions : cidr
+    if !strcontains(cidr, "::")
+  ]
+  myip       = jsondecode(data.http.myip.response_body).ip
+  myip_parts = split(".", local.myip)
+}
+
 resource "vultr_database" "pg" {
   # max connections: 97
   label                   = "postgres"
@@ -46,11 +55,8 @@ resource "vultr_database" "pg" {
       format("%v/32", var.home_ip),
     ],
     [
-      for cidr in jsondecode(data.http.github_api_meta.response_body).actions
-      : cidr if(
-        slice(split(".", cidr), 0, 2)
-        == slice(split(".", jsondecode(data.http.myip.response_body).ip), 0, 2)
-      )
+      for cidr_parts in [for cidr in local.github_cidrs : split(".", cidr)] : join(".", cidr_parts)
+      if slice(cidr_parts, 0, min(2, length(cidr_parts))) == slice(local.myip_parts, 0, 2)
     ],
   )
 }

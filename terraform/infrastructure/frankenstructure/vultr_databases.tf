@@ -47,7 +47,10 @@ resource "vultr_database" "pg" {
     ],
     [
       for cidr in jsondecode(data.http.github_api_meta.response_body).actions
-      : cidr if startswith(cidr, jsondecode(data.http.myip.response_body).ip)
+      : cidr if(
+        slice(split(".", cidr), 0, 2)
+        == slice(split(".", jsondecode(data.http.myip.response_body).ip), 0, 2)
+      )
     ],
   )
 }

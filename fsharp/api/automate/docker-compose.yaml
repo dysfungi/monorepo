@@ -81,12 +81,12 @@ services:
     image: ghcr.io/amacneil/dbmate
     restart: on-failure:5
     command:
-      - --wait
       - up
       - --strict
       - --verbose
     environment:
       DATABASE_URL: postgres://automate_api:postgres@postgres:5432/automate_app?sslmode=disable
+      DBMATE_WAIT: "true"
     depends_on:
       postgres:
         condition: service_healthy

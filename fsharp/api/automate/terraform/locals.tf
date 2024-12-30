@@ -1,6 +1,7 @@
 locals {
-  hostname = "${var.subdomain}.${var.root_domain}"
-  probe    = "http://${local.hostname}/-/liveness"
+  hostname  = "${var.subdomain}.${var.root_domain}"
+  probe     = "http://${local.hostname}/-/liveness"
+  dbsslmode = "require"
   labels = {
     "app.kubernetes.io/name"     = "automate"
     "app.kubernetes.io/instance" = "automate-api"

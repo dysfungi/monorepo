@@ -37,6 +37,15 @@ variable "dockerconfigjson" {
   sensitive = true
 }
 
+variable "github_username" {
+  type = string
+}
+
+variable "github_token" {
+  type      = string
+  sensitive = true
+}
+
 variable "kubeconfig_path" {
   type = string
 }

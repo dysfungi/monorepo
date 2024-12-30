@@ -456,8 +456,6 @@ jobs:
           TF_VAR_cloudflare_api_token: ${{ steps.cloudflare-api-token.outputs.out }}
           TF_VAR_discord_webhook_alerts: ${{ steps.discord-webhook-alerts.outputs.out }}
           TF_VAR_exporter_postgres_password: ${{ steps.op-secrets.outputs.exporter_postgres_password }}
-          TF_VAR_github_token: ${{ github.token }}
-          TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_grafana_admin_password: ${{ steps.grafana-admin-password.outputs.out }}
           TF_VAR_healthchecksio_api_key: ${{ steps.healthchecksio-api-key.outputs.out }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
@@ -476,8 +474,6 @@ jobs:
           TF_VAR_cloudflare_api_token: ${{ steps.cloudflare-api-token.outputs.out }}
           TF_VAR_discord_webhook_alerts: ${{ steps.discord-webhook-alerts.outputs.out }}
           TF_VAR_exporter_postgres_password: ${{ steps.op-secrets.outputs.exporter_postgres_password }}
-          TF_VAR_github_token: ${{ github.token }}
-          TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_grafana_admin_password: ${{ steps.grafana-admin-password.outputs.out }}
           TF_VAR_healthchecksio_api_key: ${{ steps.healthchecksio-api-key.outputs.out }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
@@ -835,6 +831,8 @@ jobs:
           TF_VAR_automate_todoist_client_secret: ${{ steps.op-secrets.outputs.automate_todoist_client_secret }}
           TF_VAR_automate_todoist_verification_token: ${{ steps.op-secrets.outputs.automate_todoist_verification_token }}
           TF_VAR_dockerconfigjson: ${{ steps.dockerconfigjson.outputs.out }}
+          TF_VAR_github_token: ${{ github.token }}
+          TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
       - name: Deploy
@@ -851,5 +849,15 @@ jobs:
           TF_VAR_automate_todoist_client_secret: ${{ steps.op-secrets.outputs.automate_todoist_client_secret }}
           TF_VAR_automate_todoist_verification_token: ${{ steps.op-secrets.outputs.automate_todoist_verification_token }}
           TF_VAR_dockerconfigjson: ${{ steps.dockerconfigjson.outputs.out }}
+          TF_VAR_github_token: ${{ github.token }}
+          TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
+      - name: Commit Schema
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: fsharp/api/automate/db
+          default_author: github_actions
+          message: "chore(automate-api): Update database schema from production migration"
+          pull: "--rebase"
+          push: true

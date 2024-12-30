@@ -185,6 +185,9 @@ def plan() -> dict:
         "actions": [
             tools.LongRunning(tofu("plan")),
         ],
+        "setup": [
+            "_setup:app_version",
+        ],
         "title": tools.title_with_actions,
         "verbosity": 2,
     }

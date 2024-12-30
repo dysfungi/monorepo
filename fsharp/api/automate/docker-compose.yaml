@@ -78,6 +78,7 @@ services:
     environment:
       PGDATABASE: *db_name
       PGPASSWORD: *db_pw
+      PGSSLMODE: allow
       PGUSER: *db_user
       POSTGRES_DB: *db_name
       POSTGRES_PASSWORD: *db_pw

@@ -817,6 +817,9 @@ jobs:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_vultr_api_key }}
+      - uses: defrank/action-vultr@v2024.10.20-1
+        with:
+          token: ${{ steps.vultr-api-key.outputs.out }}
       - id: database-instance
         env:
           VULTR_API_KEY: ${{ steps.vultr-api-key.outputs.out }}
@@ -874,9 +877,9 @@ jobs:
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
       - name: Database Migrations
-        uses: dwin/dbmate-action@v1.15
+        uses: docker://ghcr.io/amacneil/dbmate
         with:
-          command: "up --strict --verbose"
+          args: "up --strict --verbose"
         env:
           DATABASE_URL: ${{ steps.database-url.outputs.database_url }}
           DBMATE_MIGRATIONS_DIR: "./fsharp/api/automate/db/migrations"

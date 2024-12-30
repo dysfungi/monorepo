@@ -878,6 +878,7 @@ jobs:
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
       - name: Database Migrations
         uses: docker://ghcr.io/amacneil/dbmate
+        timeout-minutes: 5
         with:
           args: "up --strict --verbose"
         env:

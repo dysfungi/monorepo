@@ -24,6 +24,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      dbmigrate:
+        condition: service_completed_successfully
 
   api-debug:
     platform: linux/amd64
@@ -38,6 +40,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      dbmigrate:
+        condition: service_completed_successfully
     volumes:
       - ./AutoMate:/source/AutoMate
 
@@ -62,6 +66,23 @@ services:
       - ./AutoMate:/source/AutoMate
       - ./AutoMate.Tests:/source/AutoMate.Tests
 
+  dbmigrate:
+    platform: linux/amd64
+    image: ghcr.io/amacneil/dbmate
+    restart: on-failure:5
+    command:
+      - --wait
+      - up
+      - --strict
+      - --verbose
+    environment:
+      DATABASE_URL: postgres://automate_api:postgres@postgres:5432/automate_app?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./db:/db
+
   postgres:
     # https://hub.docker.com/_/postgres
     image: postgres:16
@@ -69,9 +90,7 @@ services:
     shm_size: 128mb
     command: ["postgres", "-c", "log_statement=all"]
     healthcheck:
-      test:
-        - CMD-SHELL
-        - pg_isready
+      test: pg_isready
       interval: 10s
       timeout: 5s
       retries: 5
@@ -87,7 +106,7 @@ services:
       - "5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./initdb:/docker-entrypoint-initdb.d
+      - ./db/init:/docker-entrypoint-initdb.d
 
 volumes:
   pgdata:

@@ -836,24 +836,10 @@ jobs:
             ]
           | join("\n")
           '
-      - id: database-user-creds
-        env:
-          DATABASE_ID: ${{ steps.database-instance.outputs.database_id }}
-          VULTR_API_KEY: ${{ steps.vultr-api-key.outputs.out }}
-        run: >
-          vultr-cli --output=json database user list "$DATABASE_ID"
-          | jq --raw-output >> "$GITHUB_OUTPUT" '
-          .users[]
-          | select(.username == "automate_api")
-          | [ "database_user=" + .username
-            , "database_password=" + .password
-          ]
-          | join("\n")
-          '
       - id: database-url
         env:
-          DB_USER: ${{ steps.database-user-creds.outputs.database_user }}
-          DB_PASSWORD: ${{ steps.database-user-creds.outputs.database_password }}
+          DB_USER: ${{ steps.database-instance.outputs.database_user }}
+          DB_PASSWORD: ${{ steps.database-instance.outputs.database_password }}
           DB_HOST: ${{ steps.database-instance.outputs.database_host }}
           DB_PORT: ${{ steps.database-instance.outputs.database_port }}
           DB_NAME: automate_app

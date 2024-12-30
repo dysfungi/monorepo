@@ -8,10 +8,6 @@ terraform {
   }
   required_version = "~> 1.5"
   required_providers {
-    docker = {
-      source  = "kreuzwerker/docker"
-      version = "~> 3.0"
-    }
     kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "~> 2.32"
@@ -20,16 +16,6 @@ terraform {
       source  = "vultr/vultr"
       version = "~> 2.21"
     }
-  }
-}
-
-provider "docker" {
-  host = "unix:///var/run/docker.sock"
-
-  registry_auth {
-    address  = "ghcr.io"
-    username = var.github_username
-    password = var.github_token
   }
 }
 

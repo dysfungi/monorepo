@@ -875,13 +875,12 @@ jobs:
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
       - name: Database Migrations
         uses: dwin/dbmate-action@v1.15
-        working-directory: fsharp/api/automate
         with:
           command: "up --strict --verbose"
         env:
           DATABASE_URL: ${{ steps.database-url.outputs.database_url }}
-          DBMATE_MIGRATIONS_DIR: "./db/migrations"
-          DBMATE_SCHEMA_FILE: "./db/schema.sql"
+          DBMATE_MIGRATIONS_DIR: "./fsharp/api/automate/db/migrations"
+          DBMATE_SCHEMA_FILE: "./fsharp/api/automate/db/schema.sql"
           DBMATE_WAIT: "true"
       - name: Deploy
         working-directory: fsharp/api/automate/terraform

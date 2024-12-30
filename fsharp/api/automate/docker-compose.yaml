@@ -5,6 +5,15 @@ services:
     build:
       context: .
       target: final
+    healthcheck: &api_healthcheck
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8080/-/startup
+      interval: 10s
+      timeout: 5s
+      retries: 5
     environment: &api_env
       DATABASE_HOST: postgres
       DATABASE_NAME: &db_name automate_app
@@ -33,6 +42,7 @@ services:
     build:
       context: .
       target: debug
+    healthcheck: *api_healthcheck
     entrypoint: [dotnet, watch, run]
     environment: *api_env
     ports:

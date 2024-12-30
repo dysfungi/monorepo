@@ -22,7 +22,8 @@ services:
       - "8080"
     scale: 1
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   api-debug:
     platform: linux/amd64
@@ -35,7 +36,8 @@ services:
     ports:
       - "8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
       - ./AutoMate:/source/AutoMate
 
@@ -65,6 +67,13 @@ services:
     image: postgres:16
     restart: always
     shm_size: 128mb
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready
+      interval: 10s
+      timeout: 5s
+      retries: 5
     environment:
       POSTGRES_DB: *db_name
       POSTGRES_PASSWORD: *db_pw

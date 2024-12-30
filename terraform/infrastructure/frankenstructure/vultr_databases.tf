@@ -10,12 +10,10 @@ resource "vultr_database" "pg" {
   cluster_time_zone       = "UTC"
   maintenance_dow         = "sunday"
   maintenance_time        = "10:00"
-  /*
   trusted_ips = [
     format("%v/%v", vultr_vpc.k8s.v4_subnet, vultr_vpc.k8s.v4_subnet_mask),
     vultr_kubernetes.k8s.service_subnet,
     vultr_kubernetes.k8s.cluster_subnet,
     format("%v/32", var.home_ip),
   ]
-  */
 }

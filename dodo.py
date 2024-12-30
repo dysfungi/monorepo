@@ -137,7 +137,7 @@ def dbshell() -> dict:
                                         r"@\(.public_host):\(.port)/\(.dbname)"
                                         '?sslmode=require"'
                                     ),
-                                )
+                                ),
                             ),
                         ),
                     ),

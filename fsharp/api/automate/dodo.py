@@ -8,7 +8,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Callable, Generator, Iterable, Optional
 
-from doit import tools
+from doit import get_var, tools
 
 logger = getLogger(__name__)
 
@@ -54,6 +54,40 @@ def cleandocker() -> dict:
     return {
         "actions": [
             compose("down", remove_orphans=None, volumes=None),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def dbmigrate() -> dict:
+    env = get_var("env", "dev")
+    assert env in ["dev", "prod"], env
+    if env == "prod":
+        subcmd = subshell(
+            pipe(
+                vultr("database", "list"),
+                jq(
+                    pipe(
+                        ".databases[]",
+                        'select(.label=="postgres")',
+                        (
+                            r'"postgres://\(.user):\(.password)'
+                            r"@\(.public_host):\(.port)/\(.dbname)"
+                            '?sslmode=require"'
+                        ),
+                    ),
+                ),
+            )
+        )
+        args = [f"--url={subcmd}", "up", "--strict", "--verbose"]
+    else:
+        args = []
+
+    return {
+        "actions": [
+            compose("run", "dbmigrate", *args, rm=None),
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,
@@ -313,7 +347,7 @@ def _setup() -> Generator[dict, None, None]:
 def compose(command, *args, **options) -> str:
     posargs = _positionize(args)
     optargs = _optize(options)
-    return f"docker compose {command} {optargs} {posargs}"
+    return f"docker compose {command} {optargs} -- {posargs}"
 
 
 def date(*args, **options) -> str:
@@ -329,10 +363,35 @@ def dotnet(command, *args, **options) -> str:
     return f"dotnet {command} {posargs} {optargs}"
 
 
+def jq(script: str, *files, raw_output: bool = True, **options) -> str:
+    """Build a string for calling JQ in the CLI."""
+    if raw_output or raw_output is None:
+        options["raw_output"] = None
+    pos_params = _positionize(files)
+    opt_params = _optize(options)
+    return f"jq {opt_params} '{script}' {pos_params}"
+
+
+def pipe(*commands: str) -> str:
+    return " | ".join(commands)
+
+
+def subshell(command: str) -> str:
+    return f"$({command})"
+
+
 def tofu(command, *args, **options) -> str:
     posargs = _positionize(args)
     optargs = _optize(options, long_prefix="-")
     return f"tofu -chdir=terraform {command} {optargs} {posargs}"
+
+
+def vultr(resource: str, command: str, *args, output: str = "json", **options) -> str:
+    """Build a string for calling Vultr in the CLI."""
+    output = options.pop("o", output)
+    pos_params = _positionize(args)
+    opt_params = _optize(options)
+    return f"vultr --output={output} {resource} {command} {opt_params} {pos_params}"
 
 
 def _optize(options: dict[str, Any], *, long_prefix="--", separator="=") -> str:

@@ -95,4 +95,5 @@ CREATE TRIGGER touch_updated_at BEFORE UPDATE ON public.oauth_access FOR EACH RO
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20241230003033');
+    ('20241230003033'),
+    ('20241230182503');

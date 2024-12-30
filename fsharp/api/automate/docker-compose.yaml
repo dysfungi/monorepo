@@ -16,10 +16,10 @@ services:
       retries: 5
     environment: &api_env
       DATABASE_HOST: postgres
-      DATABASE_NAME: &db_name automate_app
-      DATABASE_PASSWORD: &db_pw postgres
+      DATABASE_NAME: &api_dbname automate_app
+      DATABASE_PASSWORD: &api_dbpwd postgres
       DATABASE_SSL_MODE: prefer
-      DATABASE_USERNAME: &db_user automate_api
+      DATABASE_USERNAME: &api_dbuser automate_api
       DROPBOX_CLIENT_ID: ${TF_VAR_automate_dropbox_client_id}
       DROPBOX_CLIENT_SECRET: ${TF_VAR_automate_dropbox_client_secret}
       DROPBOX_REDIRECT_BASE_URL: http://localhost
@@ -85,7 +85,7 @@ services:
       - --strict
       - --verbose
     environment:
-      DATABASE_URL: postgres://automate_api:postgres@postgres:5432/automate_app?sslmode=disable
+      DATABASE_URL: postgres://pgadmin:postgres@postgres:5432/automate_app?sslmode=disable
       DBMATE_WAIT: "true"
     depends_on:
       postgres:
@@ -105,13 +105,13 @@ services:
       timeout: 5s
       retries: 5
     environment:
-      PGDATABASE: *db_name
-      PGPASSWORD: *db_pw
+      PGDATABASE: &admin_dbname defaultdb
+      PGPASSWORD: &admin_dbpwd postgres
       PGSSLMODE: allow
-      PGUSER: *db_user
-      POSTGRES_DB: *db_name
-      POSTGRES_PASSWORD: *db_pw
-      POSTGRES_USER: *db_user
+      PGUSER: &admin_dbuser pgadmin
+      POSTGRES_DB: *admin_dbname
+      POSTGRES_PASSWORD: *admin_dbpwd
+      POSTGRES_USER: *admin_dbuser
     ports:
       - "5432"
     volumes:

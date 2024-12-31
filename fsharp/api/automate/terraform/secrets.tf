@@ -10,6 +10,22 @@ resource "kubernetes_secret" "cr" {
   }
 }
 
+resource "kubernetes_secret" "dbmate" {
+  metadata {
+    name      = "automate-dbmate"
+    namespace = kubernetes_namespace.automate.metadata[0].name
+  }
+  data = {
+    DATABASE_URL = join("", [
+      "postgres:",
+      "//${data.vultr_database.pg.user}:${data.vultr_database.pg.password}",
+      "@${data.vultr_database.pg.host}:${data.vultr_database.pg.port}",
+      "/${vultr_database_db.automate_app.name}",
+      "?sslmode=${local.dbsslmode}",
+    ])
+  }
+}
+
 resource "kubernetes_secret" "env" {
   metadata {
     name      = "automate-env"
@@ -20,7 +36,7 @@ resource "kubernetes_secret" "env" {
     DATABASE_NAME              = vultr_database_db.automate_app.name
     DATABASE_PASSWORD          = vultr_database_user.automate_api.password
     DATABASE_PORT              = data.vultr_database.pg.port
-    DATABASE_SSL_MODE          = "require"
+    DATABASE_SSL_MODE          = local.dbsslmode
     DATABASE_USERNAME          = vultr_database_user.automate_api.username
     DROPBOX_CLIENT_ID          = var.automate_dropbox_client_id
     DROPBOX_CLIENT_SECRET      = var.automate_dropbox_client_secret

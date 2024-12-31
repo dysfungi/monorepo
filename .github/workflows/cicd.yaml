@@ -817,35 +817,6 @@ jobs:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_vultr_api_key }}
-      - uses: defrank/action-vultr@v2024.10.20-1
-        with:
-          token: ${{ steps.vultr-api-key.outputs.out }}
-      - id: database-instance
-        env:
-          VULTR_API_KEY: ${{ steps.vultr-api-key.outputs.out }}
-        run: >
-          vultr-cli --output=json database list
-          | jq --raw-output >> "$GITHUB_OUTPUT" '
-          .databases[]
-          | select(.tag == "postgres")
-          | [ "database_id=" + .id
-            , "database_user=" + .user
-            , "database_password=" + .password
-            , "database_host=" + .public_host
-            , "database_port=" + .port
-            ]
-          | join("\n")
-          '
-      - id: database-url
-        env:
-          DB_USER: ${{ steps.database-instance.outputs.database_user }}
-          DB_PASSWORD: ${{ steps.database-instance.outputs.database_password }}
-          DB_HOST: ${{ steps.database-instance.outputs.database_host }}
-          DB_PORT: ${{ steps.database-instance.outputs.database_port }}
-          DB_NAME: automate_app
-        run: >
-          echo >> "$GITHUB_OUTPUT"
-          "database_url=postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=require"
       - name: Initialize tofu
         working-directory: fsharp/api/automate/terraform
         run: tofu init -input=false -upgrade
@@ -862,16 +833,6 @@ jobs:
           TF_VAR_dockerconfigjson: ${{ steps.dockerconfigjson.outputs.out }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
-      - name: Database Migrations
-        uses: docker://ghcr.io/amacneil/dbmate
-        timeout-minutes: 5
-        with:
-          args: "up --strict --verbose"
-        env:
-          DATABASE_URL: ${{ steps.database-url.outputs.database_url }}
-          DBMATE_MIGRATIONS_DIR: "./fsharp/api/automate/db/migrations"
-          DBMATE_SCHEMA_FILE: "./fsharp/api/automate/db/schema.sql"
-          DBMATE_WAIT: "true"
       - name: Deploy
         working-directory: fsharp/api/automate/terraform
         run: tofu apply -auto-approve -input=false
@@ -888,11 +849,3 @@ jobs:
           TF_VAR_dockerconfigjson: ${{ steps.dockerconfigjson.outputs.out }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
-      - name: Commit Schema
-        uses: EndBug/add-and-commit@v9
-        with:
-          add: fsharp/api/automate/db
-          default_author: github_actions
-          message: "chore(automate-api): Update database schema from production migration"
-          pull: "--rebase"
-          push: true

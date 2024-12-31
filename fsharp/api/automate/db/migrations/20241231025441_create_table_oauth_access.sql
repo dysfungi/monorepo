@@ -30,5 +30,7 @@ FOR EACH ROW EXECUTE FUNCTION touch_updated_at_column();
 
 -- migrate:down
 DROP TRIGGER IF EXISTS touch_updated_at ON public.oauth_access;
+
 DROP TABLE IF EXISTS public.oauth_access;
+
 DROP FUNCTION IF EXISTS public.touch_updated_at_column;

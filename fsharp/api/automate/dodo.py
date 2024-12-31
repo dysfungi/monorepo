@@ -20,6 +20,11 @@ DOIT_CONFIG: dict = {
 APP_FSPROJ = Path("./AutoMate/AutoMate.fsproj").absolute()
 TESTS_FSPROJ = Path("./AutoMate.Tests/AutoMate.Tests.fsproj").absolute()
 
+DEV = "dev"
+PROD = "prod"
+ENV = get_var("env", DEV)
+assert ENV in {DEV, PROD}, ENV
+
 
 class task:
     """Decorate tasks with a special attribute to be found by Doit.
@@ -60,34 +65,61 @@ def cleandocker() -> dict:
     }
 
 
-@task
-def dbmigrate() -> dict:
-    env = get_var("env", "dev")
-    assert env in ["dev", "prod"], env
-    if env == "prod":
-        subcmd = subshell(
-            pipe(
-                vultr("database", "list"),
-                jq(
-                    pipe(
-                        ".databases[]",
-                        'select(.label=="postgres")',
-                        (
-                            r'"postgres://\(.user):\(.password)'
-                            r"@\(.public_host):\(.port)/\(.dbname)"
-                            '?sslmode=require"'
-                        ),
+def dburl_action(env: str) -> str:
+    if env == PROD:
+        action = pipe(
+            vultr("database", "list"),
+            jq(
+                pipe(
+                    ".databases[]",
+                    'select(.label=="postgres")',
+                    (
+                        r'"postgres://\(.user):\(.password)'
+                        r"@\(.public_host):\(.port)/automate_app"
+                        '?sslmode=require"'
                     ),
                 ),
-            )
+            ),
         )
-        args = [f"--url={subcmd}", "up", "--strict", "--verbose"]
+    elif env == DEV:
+        action = printf(
+            "postgres://pgadmin:postgres@%%s/automate_app?sslmode=disable",
+            subshell(compose("port", "postgres", "5432")),
+        )
     else:
-        args = []
+        raise ValueError(f"Unsupported env - {env}")
+
+    return action
+
+
+@task
+def dbmigrate() -> dict:
+    if ENV == PROD:
+        dburl = subshell(dburl_action(ENV))
+        args = [f"--url={dburl}", "up", "--strict", "--verbose"]
+    else:
+        args = ["up", "--strict", "--verbose"]
 
     return {
         "actions": [
-            compose("run", "dbmigrate", *args, rm=None),
+            tools.LongRunning(compose("run", "dbmigrate", *args, rm=None)),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def dbrollback() -> dict:
+    if ENV == PROD:
+        dburl = subshell(dburl_action(ENV))
+        args = [f"--url={dburl}", "down", "--verbose"]
+    else:
+        args = ["down", "--verbose"]
+
+    return {
+        "actions": [
+            tools.LongRunning(compose("run", "dbmigrate", *args, rm=None)),
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,
@@ -96,8 +128,18 @@ def dbmigrate() -> dict:
 
 @task
 def dbshell() -> dict:
-    return {
-        "actions": [
+    if ENV == PROD:
+        actions = [
+            tools.Interactive(
+                docker_run(
+                    "postgres:16-alpine",
+                    "psql",
+                    subshell(dburl_action(ENV)),
+                )
+            ),
+        ]
+    elif ENV == DEV:
+        actions = [
             compose("up", "postgres", detach=None),
             tools.Interactive(
                 compose(
@@ -105,11 +147,25 @@ def dbshell() -> dict:
                     "postgres",
                     "psql",
                     # "postgres://postgres:postgres@localhost:5432/automate_api?sslmode=require",
-                    "--username=postgres",
+                    "--username=pgadmin",
                     interactive=None,
                     tty=None,
                 ),
             ),
+        ]
+
+    return {
+        "actions": actions,
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
+def dburl() -> dict:
+    return {
+        "actions": [
+            dburl_action(ENV),
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,
@@ -357,6 +413,11 @@ def date(*args, **options) -> str:
     return f"{gnudate} {optargs} {posargs}"
 
 
+def docker_run(image: str, *command: str) -> str:
+    pos_args = _positionize(command)
+    return f"docker run --interactive --rm --tty -- {image} {pos_args}"
+
+
 def dotnet(command, *args, **options) -> str:
     posargs = _positionize(args)
     optargs = _optize(options)
@@ -374,6 +435,12 @@ def jq(script: str, *files, raw_output: bool = True, **options) -> str:
 
 def pipe(*commands: str) -> str:
     return " | ".join(commands)
+
+
+def printf(template, *args, trailing_newline=True) -> str:
+    posargs = _positionize(args)
+    suffix = "\n" if trailing_newline else ""
+    return f"printf '{template}{suffix}' {posargs}"
 
 
 def subshell(command: str) -> str:

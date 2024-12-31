@@ -1,6 +1,8 @@
+import inspect
 import json
 import os
 from contextlib import contextmanager
+from functools import partial, wraps
 from importlib.machinery import SourceFileLoader
 from itertools import chain
 from logging import getLogger
@@ -18,7 +20,7 @@ from typing import (
     Unpack,
 )
 
-from doit import tools
+from doit import get_var, tools
 from doit.api import run_tasks
 from doit.cmd_base import ModuleTaskLoader
 
@@ -27,6 +29,16 @@ logger = getLogger(__name__)
 DOIT_CONFIG: dict = {
     "default_tasks": ["ls"],
 }
+
+
+DEV = "dev"
+PROD = "prod"
+ENV = get_var("env", DEV)
+assert ENV in {DEV, PROD}, ENV
+
+
+def is_prod():
+    return ENV == PROD
 
 
 class task:
@@ -39,11 +51,39 @@ class task:
         https://mypy.readthedocs.io/en/stable/error_code_list.html#check-that-attribute-exists-attr-defined
     """
 
-    def __init__(self, func: Callable):
-        self.create_doit_tasks = func
+    def __init__(
+        self,
+        func: Callable[..., dict[str, Any] | Iterable[dict[str, Any]]],
+        *,
+        _predicate: Optional[Callable[[], bool]] = None,
+    ):
+        """Define self to be a task creator."""
+        enabled = True if _predicate is None else _predicate()
+
+        @wraps(func)
+        def create_disabled():
+            code = inspect.getsource(_predicate)
+            return {
+                "actions": [
+                    f'echo "DISABLED due to predicate evaluating to {enabled}:\n{code}"'
+                ],
+                "verbosity": 2,
+            }
+
+        self.create_doit_tasks = func if enabled else create_disabled
+        wraps(func)(self)
 
     def __call__(self, *args, **kwargs):
+        """Create tasks."""
         return self.create_doit_tasks(*args, **kwargs)
+
+    @classmethod
+    def onlyif(cls, predicate: Callable[[], bool]) -> Callable[..., Self]:
+        """Define a task creator that is optionally disabled. This is
+        useful to disable a task based on a condition, but still have
+        it listed as an available task.
+        """
+        return partial(cls, _predicate=predicate)
 
 
 @task
@@ -51,10 +91,10 @@ def autoupgrade() -> dict:
     return {
         "actions": [
             tools.LongRunning(
-                _pipe(
-                    _find(".", type="f", name=".terraform.lock.hcl"),
-                    _rp("dirname"),
-                    _rp("pushd {0} && tofu init -upgrade", regex=r"^.*$", shell=None),
+                pipe(
+                    find(".", type="f", name=".terraform.lock.hcl"),
+                    rp("dirname"),
+                    rp("pushd {0} && tofu init -upgrade", regex=r"^.*$", shell=None),
                 )
             ),
         ],
@@ -117,30 +157,38 @@ def cwd() -> dict:
     }
 
 
-@task
+def dburl_action(env: str) -> str:
+    if env == PROD:
+        action = pipe(
+            vultr("database", "list"),
+            jq(
+                pipe(
+                    ".databases[]",
+                    'select(.label=="postgres")',
+                    (
+                        r'"postgres://\(.user):\(.password)'
+                        r"@\(.public_host):\(.port)/\(.dbname)"
+                        '?sslmode=require"'
+                    ),
+                ),
+            ),
+        )
+    else:
+        raise ValueError(f"Unsupported env - {env}")
+
+    return action
+
+
+@task.onlyif(is_prod)
 def dbshell() -> dict:
+    """Access a database shell. Only supports env=prod"""
     return {
         "actions": [
             tools.Interactive(
-                _docker_run(
+                docker_run(
                     "postgres:16-alpine",
                     "psql",
-                    _subshell(
-                        _pipe(
-                            _vultr("database", "list"),
-                            _jq(
-                                _pipe(
-                                    ".databases[]",
-                                    'select(.label=="postgres")',
-                                    (
-                                        r'"postgres://\(.user):\(.password)'
-                                        r"@\(.public_host):\(.port)/\(.dbname)"
-                                        '?sslmode=require"'
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
+                    subshell(dburl_action(ENV)),
                 ),
             ),
         ],
@@ -484,28 +532,18 @@ class Project(NamedTuple):
         return projects
 
 
-@contextmanager
-def _chdir(path: Path):
-    cwd = os.getcwd()
-    os.chdir(path)
-    try:
-        yield path
-    finally:
-        os.chdir(cwd)
-
-
-def _docker_run(image: str, *command: str) -> str:
+def docker_run(image: str, *command: str) -> str:
     pos_args = _positionize(command)
-    return f"docker run -it --rm {image} {pos_args}"
+    return f"docker run --interactive --rm --tty -- {image} {pos_args}"
 
 
-def _find(*paths: str | Path, **options) -> str:
+def find(*paths: str | Path, **options) -> str:
     pos_params = _positionize(paths)
     opt_params = _optize(options, long_prefix="-", separator=" ")
     return f"find {pos_params} {opt_params}"
 
 
-def _helm(command: str, *args, output: str = "json", **options) -> str:
+def helm(command: str, *args, output: str = "json", **options) -> str:
     """Build a string for calling Helm in the CLI."""
     output = options.pop("o", output)
     if command not in {"repo"}:
@@ -515,7 +553,7 @@ def _helm(command: str, *args, output: str = "json", **options) -> str:
     return f"helm {command} {pos_params} {opt_params}"
 
 
-def _jq(script: str, *files, raw_output: bool = True, **options) -> str:
+def jq(script: str, *files, raw_output: bool = True, **options) -> str:
     """Build a string for calling JQ in the CLI."""
     if raw_output or raw_output is None:
         options["raw_output"] = None
@@ -524,40 +562,50 @@ def _jq(script: str, *files, raw_output: bool = True, **options) -> str:
     return f"jq {opt_params} '{script}' {pos_params}"
 
 
-def _kubectl(command: str, *args, **options) -> str:
+def kubectl(command: str, *args, **options) -> str:
     """Build a string for calling kubectl in the CLI."""
     pos_params = _positionize(args)
     opt_params = _optize(options)
     return f"kubectl {command} {opt_params} {pos_params}"
 
 
-def _pipe(*commands: str) -> str:
+def pipe(*commands: str) -> str:
     return " | ".join(commands)
 
 
-def _rp(command: str, *initial_args: str, **options) -> str:
+def rp(command: str, *initial_args: str, **options) -> str:
     pos_params = _positionize(initial_args)
     opt_params = _optize(options)
     return f"rust-parallel {opt_params} -- '{command}' {pos_params}"
 
 
-def _subshell(command: str) -> str:
+def subshell(command: str) -> str:
     return f"$({command})"
 
 
-def _tofu(command: str, *args, **options) -> str:
+def tofu(command: str, *args, **options) -> str:
     """Build a string for calling Tofu in the CLI."""
     pos_params = _positionize(args)
     opt_params = _optize(options, long_prefix="-")
     return f"tofu {command} {opt_params} {pos_params}"
 
 
-def _vultr(resource: str, command: str, *args, output: str = "json", **options) -> str:
+def vultr(resource: str, command: str, *args, output: str = "json", **options) -> str:
     """Build a string for calling Vultr in the CLI."""
     output = options.pop("o", output)
     pos_params = _positionize(args)
     opt_params = _optize(options)
     return f"vultr --output={output} {resource} {command} {opt_params} {pos_params}"
+
+
+@contextmanager
+def _chdir(path: Path):
+    cwd = os.getcwd()
+    os.chdir(path)
+    try:
+        yield path
+    finally:
+        os.chdir(cwd)
 
 
 def _optize(options: dict[str, Any], *, long_prefix="--", separator="=") -> str:

@@ -2,7 +2,9 @@ resource "kubernetes_config_map" "dbmigrations" {
   metadata {
     name      = "automate-api-dbmigrations"
     namespace = kubernetes_namespace.automate.metadata[0].name
-    labels    = local.dbmigrate_labels
+    labels = merge(local.labels, {
+      "app.kubernetes.io/instance" = "dbmigrations"
+    })
   }
 
   data = {

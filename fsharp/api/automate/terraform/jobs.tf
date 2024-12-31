@@ -1,20 +1,19 @@
 resource "kubernetes_job" "dbmate" {
   metadata {
-    generate_name = "automate-api-dbmigrate"
-    namespace     = kubernetes_namespace.automate.metadata[0].name
-    labels        = local.dbmigrate_labels
+    name      = "automate-api-dbmigrate"
+    namespace = kubernetes_namespace.automate.metadata[0].name
+    labels = merge(local.labels, {
+      "app.kubernetes.io/instance" = "dbmigrate"
+    })
   }
 
   spec {
     template {
       metadata {
-        generate_name = "automate-api-dbmigrate"
-        labels        = local.dbmigrate_labels
       }
 
       spec {
-        active_deadline_seconds = 5 * 60
-        node_selector           = local.node_selector
+        node_selector = local.node_selector
 
         container {
           name  = "dbmate"
@@ -52,5 +51,12 @@ resource "kubernetes_job" "dbmate" {
         }
       }
     }
+  }
+
+  wait_for_completion = true
+  timeouts {
+    create = "2m"
+    delete = "2m"
+    update = "2m"
   }
 }

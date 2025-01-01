@@ -74,6 +74,6 @@ module Deps =
           logger.LogTrace(exc, "Rolling back transaction for unhandled error")
           dbTransaction.Rollback()
           logger.LogError(exc, "Rolled back transaction for unhandled error")
-          ErrorResponse.internalServerError exc
+          ErrorResponse.unexpectedError exc
 
       respondWith ctx

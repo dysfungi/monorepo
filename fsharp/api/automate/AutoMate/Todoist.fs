@@ -170,7 +170,7 @@ module SyncApi =
           | _ ->
             Error
             <| ValidationErrors.create "event_name" [
-              $"unsupported event_name: {eventName}"
+              $"unsupported event_name - {eventName}"
             ]
 
         validate {
@@ -182,7 +182,7 @@ module SyncApi =
             | _ ->
               Error
               <| ValidationErrors.create "version" [
-                $"unsupported version: {eventPeek.Version}"
+                $"unsupported version - {eventPeek.Version}"
               ]
 
           return event
@@ -193,14 +193,29 @@ module SyncApi =
     let versionValidator = Check.String.equals "9" *|* int
 
     let handler: HttpHandler =
-      fun ctx ->
-        let handleBody (body: string) : HttpHandler =
-          printfn "%A" body
+      let handleDepInj deps body =
+        WebhookEvent.Validate "body" body
+        |> Result.mapError BodyValidationError
+        |> Result.bind (function
+          | ItemEvent itemEvent -> Error(NotImplemented "Item Events")
+          | NoteEvent noteEvent -> Ok noteEvent.EventData
+        // enrich with more data (eg, task/item)
+        // send to all sinks (ie, logseq)
+        // transform to logseq document with Markdown doc provider
+        // logseq stores with dropbox storage provider
+        )
 
-          WebhookEvent.Validate "body" body
-          |> function
-            | Error _ ->
-              Response.withStatusCode 400 >> Response.ofPlainText "Bad Request"
-            | _ -> Response.withStatusCode 200 >> Response.ofPlainText "OK"
+      let handleOk input =
+        Response.withStatusCode 200 >> Respond.ofJson input
 
-        Request.bodyString handleBody ctx
+      let handleError =
+        function
+        | QueryValidationError validationErrors ->
+          ErrorResponse.queryValidationErrors validationErrors
+        | BodyValidationError validationErrors ->
+          ErrorResponse.bodyValidationErrors validationErrors
+        | DatabaseError exc -> ErrorResponse.databaseError exc
+        | NotImplemented feature -> ErrorResponse.notImplemented feature
+        | UnexpectedError exc -> ErrorResponse.unexpectedError exc
+
+      Request.bodyString <| Deps.inject handleDepInj handleOk handleError

@@ -15,16 +15,6 @@ open System
 open System.Reflection
 //open Serilog
 
-module ErrorController =
-  let notFound: HttpHandler =
-    Response.withStatusCode 404 >> Response.ofPlainText "Not Found"
-
-  let unauthenticated: HttpHandler =
-    Response.withStatusCode 401 >> Response.ofPlainText "Unauthenticated"
-
-  let unauthorized: HttpHandler =
-    Response.withStatusCode 403 >> Response.ofPlainText "Forbidden"
-
 let configureLogging (config: Config.LoggingConfig) (log: ILoggingBuilder) =
   // https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.logging.iloggingbuilder
   // https://learn.microsoft.com/en-us/aspnet/core/fundamentals/logging/#configure-logging
@@ -102,6 +92,11 @@ let main args =
   let config = Config.load ()
   printfn "Config - %A" config
 
+  let dropboxOauthRegisterRedirectUri =
+    Url.build config.Dropbox.RedirectBaseUrl
+    |> Url.replacePath Route.V1.OAuth.Dropbox.register
+    |> Unwrap.ok
+
   webHost args {
     host configureHost
     web_host configureWebHost
@@ -122,7 +117,9 @@ let main args =
       <| Response.ofPlainText (
         Assembly.GetExecutingAssembly().GetName().Version.ToString()
       )
-      get Route.V1.OAuth.Dropbox.register OAuth.Dropbox.registerHandler
+      get
+        Route.V1.OAuth.Dropbox.register
+        (OAuth.Dropbox.registerHandler dropboxOauthRegisterRedirectUri)
       get Route.V1.OAuth.Dropbox.authorize OAuth.Dropbox.authorizeHandler
       post Route.V1.Todoist.webhookEvents Todoist.SyncApi.WebhookEvent.handler
       post "/oauth" postOauthHandler

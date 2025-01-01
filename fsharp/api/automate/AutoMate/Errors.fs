@@ -3,25 +3,93 @@ module AutoMate.Errors
 
 open Falco
 open Falco.FSharpJson
+open Validus
 
-type ErrorResponse = {
-  Status: int
-  Error: string
+type HandlerError =
+  | QueryValidationError of ValidationErrors
+  | BodyValidationError of ValidationErrors
+  | DatabaseError of exn
+  | NotImplemented of string
+  | UnexpectedError of exn
+
+type ErrorDetail = {
+  Type: string
   Message: string
 }
 
+type ErrorDetails = ErrorDetail list
+
+module ErrorDetails =
+  let ofException (exc: exn) : ErrorDetails = [
+    {
+      Type = exc.GetType().FullName
+      Message = exc.Message
+    }
+  ]
+
+  let ofValidationErrors (subtype: string) validationErrors : ErrorDetails =
+    validationErrors
+    |> ValidationErrors.toMap
+    |> Map.toList
+    |> List.collect (fun (field, errors) -> [
+      for error in errors do
+        {
+          Type = $"ValidationError[{subtype}:{field}]"
+          Message = error
+        }
+    ])
+
+type ErrorResponse = {
+  Status: int
+  Reason: string
+  Errors: ErrorDetails
+}
+
 module ErrorResponse =
-  let internal handle (status: int) (error: string) (exc: exn) : HttpHandler =
-    Response.withStatusCode status
+  let internal handle (statusCode: int) (statusReason: string) errors : HttpHandler =
+    Response.withStatusCode statusCode
     >> Respond.ofJson {
-      Status = status
-      Error = error
-      Message = string (exc)
+      Status = statusCode
+      Reason = statusReason
+      Errors = errors
     }
 
-  let badRequest (exc: exn) : HttpHandler = handle 400 "Bad Request" exc
+  let badRequest: ErrorDetails -> HttpHandler = handle 400 "Bad Request"
 
-  let internalServerError (exc: exn) : HttpHandler =
-    handle 500 "Internal Server Error" exc
+  let validationErrors (subtype: string) : ValidationErrors -> HttpHandler =
+    ErrorDetails.ofValidationErrors subtype >> badRequest
 
-  let serviceUnavailable (exc: exn) : HttpHandler = handle 503 "Service Unavailable" exc
+  let queryValidationErrors: ValidationErrors -> HttpHandler =
+    validationErrors "Query"
+
+  let bodyValidationErrors: ValidationErrors -> HttpHandler = validationErrors "Body"
+
+  let notImplemented feature : HttpHandler =
+    badRequest [
+      {
+        Type = "NotImplemented"
+        Message = $"Not implemented for {feature}"
+      }
+    ]
+
+  let internalServerError: ErrorDetails -> HttpHandler =
+    handle 500 "Internal Server Error"
+
+  let databaseError: exn -> HttpHandler =
+    ErrorDetails.ofException >> internalServerError
+
+  let unexpectedError: exn -> HttpHandler =
+    ErrorDetails.ofException >> internalServerError
+
+  let serviceUnavailable: ErrorDetails -> HttpHandler =
+    handle 503 "Service Unavailable"
+
+module ErrorController =
+  let notFound: HttpHandler =
+    Response.withStatusCode 404 >> Response.ofPlainText "Not Found"
+
+  let unauthenticated: HttpHandler =
+    Response.withStatusCode 401 >> Response.ofPlainText "Unauthenticated"
+
+  let unauthorized: HttpHandler =
+    Response.withStatusCode 403 >> Response.ofPlainText "Forbidden"

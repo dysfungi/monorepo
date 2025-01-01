@@ -56,6 +56,21 @@ module OAuthAccess =
     ExpiresAt = read.datetimeOffsetOrNone "expires_at"
   }
 
+  let get (conn: Npgsql.NpgsqlConnection) (userId: string) (provider: string) : Dbo =
+    conn
+    |> Sql.existingConnection
+    |> Sql.query
+      "SELECT *
+       FROM oauth_access
+       WHERE user_id = @user_id
+         AND provider = @provider
+       ;"
+    |> Sql.parameters [
+      "@user_id", Sql.text userId
+      "@provider", Sql.text provider
+    ]
+    |> Sql.executeRow readRow
+
   let upsert
     (conn: Npgsql.NpgsqlConnection)
     (accountId: string)
@@ -90,7 +105,8 @@ module OAuthAccess =
          , access_token = @access_token
          , refresh_token = @refresh_token
          , expires_at = @expires_at
-       RETURNING *;"
+       RETURNING *
+       ;"
     |> Sql.parameters [
       "@account_id", Sql.text accountId
       "@provider", Sql.text provider
@@ -116,7 +132,8 @@ module OAuthAccess =
          , expires_at = @expires_at
        WHERE account_id = @account_id
          AND provider = @provider
-       RETURNING *;"
+       RETURNING *
+       ;"
     |> Sql.parameters [
       "@account_id", Sql.text accountId
       "@provider", Sql.text provider

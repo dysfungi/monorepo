@@ -2,6 +2,7 @@ module AutoMate.OAuth
 
 open Falco
 open System
+open Validus
 
 module Dropbox =
   open AutoMate.Dropbox
@@ -33,7 +34,7 @@ module Dropbox =
     let handleOk uri =
       Response.redirectTemporarily (string uri)
 
-    let handleError = ErrorResponse.internalServerError
+    let handleError = ErrorResponse.unexpectedError
 
     Deps.inject handleDeps handleOk handleError ()
 
@@ -42,26 +43,43 @@ module Dropbox =
     State: string
   }
 
-  let registerHandler: HttpHandler =
-    let queryMapper (q: QueryCollectionReader) : Registration = {
-      Code = q.GetString("code", "TODO")
-      State = q.GetString("state", "TODO")
-    }
+  let registerHandler redirectUri : HttpHandler =
+    let queryMapper (q: QueryCollectionReader) : Result<Registration, HandlerError> =
+      Ok(Map<string, string> [])
+      |> Result.bind (fun map ->
+        let field = "code"
 
-    let handleDepInj deps input =
+        match q.TryGetStringNonEmpty(field) with
+        | Some value -> Ok <| Map.add field value map
+        | None ->
+          Error
+          <| ValidationErrors.create field [ ValidationMessages.optionIsSome field ])
+      |> Result.bind (fun map ->
+        let field = "state"
+
+        match q.TryGetString(field) with
+        | Some value -> Ok <| Map.add field value map
+        | None ->
+          Error
+          <| ValidationErrors.create field [ ValidationMessages.optionIsSome field ])
+      |> Result.map (fun map -> {
+        Code = Map.find "code" map
+        State = Map.find "state" map
+      })
+      |> Result.mapError QueryValidationError
+
+    let handleDepInj deps queryResult =
       let config = deps.Config.Dropbox
-
-      let redirectUri =
-        Url.build config.RedirectBaseUrl
-        |> Url.replacePath Route.V1.OAuth.Dropbox.register
-        |> Unwrap.ok
-
       let clientId = config.ClientId
       let clientSecret = config.ClientSecret
 
-      Api.getAccessToken redirectUri clientId clientSecret input.Code
+      queryResult
+      |> Result.bind (fun query ->
+        Api.getAccessToken redirectUri clientId clientSecret query.Code
+        |> Result.mapError (fun exc -> UnexpectedError exc))
       |> Result.map (fun access ->
-        Some(DateTimeOffset.UtcNow.AddSeconds access.ExpiresIn)
+        DateTimeOffset.UtcNow.AddSeconds access.ExpiresIn
+        |> Some
         |> Database.OAuthAccess.upsert
           deps.DbConn
           access.AccountId
@@ -73,7 +91,10 @@ module Dropbox =
 
     let handleOk = Response.ofPlainText
 
-    let handleError = ErrorResponse.badRequest
+    let handleError =
+      function
+      | QueryValidationError errors -> ErrorResponse.queryValidationErrors errors
+      | UnexpectedError exc -> ErrorResponse.unexpectedError exc
 
     Request.mapQuery queryMapper <| Deps.inject handleDepInj handleOk handleError
 

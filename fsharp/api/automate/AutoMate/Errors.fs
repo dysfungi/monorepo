@@ -2,7 +2,6 @@
 module AutoMate.Errors
 
 open Falco
-open Falco.FSharpJson
 open Validus
 
 type HandlerError =
@@ -48,7 +47,7 @@ type ErrorResponse = {
 module ErrorResponse =
   let internal handle (statusCode: int) (statusReason: string) errors : HttpHandler =
     Response.withStatusCode statusCode
-    >> Respond.ofJson {
+    >> Response.myOfJson {
       Status = statusCode
       Reason = statusReason
       Errors = errors

@@ -17,8 +17,8 @@
 
   <ItemGroup>
     <Compile Include="Utilities.fs" />
-    <Compile Include="FsHttp.FSharpJson.fs" />
-    <Compile Include="Falco.FSharpJson.fs" />
+    <Compile Include="FalcoExtensions.fs" />
+    <Compile Include="FsHttpExtensions.fs" />
     <Compile Include="Route.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="Database.fs" />

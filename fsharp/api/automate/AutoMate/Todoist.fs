@@ -206,7 +206,7 @@ module SyncApi =
         )
 
       let handleOk input =
-        Response.withStatusCode 200 >> Respond.ofJson input
+        Response.withStatusCode 200 >> Response.myOfJson input
 
       let handleError =
         function

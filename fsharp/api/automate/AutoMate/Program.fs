@@ -1,7 +1,6 @@
 module AutoMate.Program
 
 open Falco
-open Falco.FSharpJson
 open Falco.Routing
 open Falco.HostBuilder
 open Microsoft.AspNetCore.Authentication
@@ -70,7 +69,7 @@ let postOauthHandler: HttpHandler =
       None
     |> Ok
 
-  let handleOk r = Respond.ofJson r
+  let handleOk r = Response.myOfJson r
 
   let handleError = ErrorResponse.badRequest
 
@@ -81,7 +80,7 @@ let putOauthHandler: HttpHandler =
   let handleDeps deps input =
     Database.OAuthAccess.update deps.DbConn "derek" "dropbox" "foofoo" None |> Ok
 
-  let handleOk r = Respond.ofJson r
+  let handleOk r = Response.myOfJson r
 
   let handleError = ErrorResponse.badRequest
 

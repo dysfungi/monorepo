@@ -1,10 +1,10 @@
-module AutoMate.Tests.FsHttp.FSharpJson
+module AutoMate.Tests.FsHttpExtensions
 
+open AutoMate.FsHttpExtensions
 open AutoMate.Tests.Core
 open AutoMate.Utilities
 open Expecto
 open FsHttp
-open FsHttp.FSharpJson.Response
 open Suave
 open Suave.Operators
 open Suave.Filters
@@ -13,14 +13,16 @@ open Suave.Successful
 [<Tests>]
 let responseTests =
   testList "Response" [
-    testList "toJson" [
+    testList "myToJson" [
       testCase "pass"
       <| fun _ ->
         let expected = {| Foo = "bar" |}
         let input = Json.serialize expected
         use server = GET >=> request (fun _ -> input |> OK) |> Server.serve
 
-        let output = get <| Server.url @"" |> Request.send |> toJson |> Want.ok
+        let output =
+          get <| Server.url @"" |> Request.send |> Response.myToJson |> Want.ok
+
         Want.equal expected output
 
     (* TODO: fix "Address already in use" issue with Server.serve
@@ -32,7 +34,7 @@ let responseTests =
         let output =
           get <| Server.url @""
           |> Request.send
-          |> toJson
+          |> Response.myToJson
         Want.isError output
       *)
 

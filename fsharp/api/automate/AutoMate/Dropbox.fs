@@ -1,7 +1,6 @@
 module AutoMate.Dropbox
 
 open FsHttp
-open FsHttp.FSharpJson.Response
 open System
 
 module Api =
@@ -47,7 +46,7 @@ module Api =
       ]
     }
     |> Request.send
-    |> toJson<ShortLivedOfflineAccess>
+    |> Response.myToJson<ShortLivedOfflineAccess>
 
   type ShortLivedRefreshAccess = {
     AccessToken: string
@@ -67,4 +66,4 @@ module Api =
       ]
     }
     |> Request.send
-    |> toJson<ShortLivedRefreshAccess>
+    |> Response.myToJson<ShortLivedRefreshAccess>

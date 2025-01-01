@@ -7,7 +7,6 @@
 module AutoMate.Health
 
 open Falco
-open Falco.FSharpJson
 open Microsoft.Extensions.Logging
 open Npgsql.FSharp
 
@@ -67,10 +66,10 @@ module Startup =
             Results = { Database = Some dbCheck }
           }
 
-    let handleOk (health: Health) = Respond.ofJson health
+    let handleOk (health: Health) = Response.myOfJson health
 
     let handleError (health: Health) =
-      Response.withStatusCode 503 >> Respond.ofJson health
+      Response.withStatusCode 503 >> Response.myOfJson health
 
     Deps.inject handleDepInj handleOk handleError ()
 
@@ -83,7 +82,7 @@ module Readiness =
       Description = None
     }
 
-    Respond.ofJson {
+    Response.myOfJson {
       Status = "Healthy"
       Results = { Database = Some skippedCheck }
     }

@@ -1,6 +1,8 @@
 [<AutoOpen>]
 module AutoMate.Utilities
 
+type UNDEFINED = exn
+
 [<RequireQualifiedAccess>]
 module Str =
   open System

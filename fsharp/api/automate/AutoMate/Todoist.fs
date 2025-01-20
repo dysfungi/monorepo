@@ -187,35 +187,3 @@ module SyncApi =
 
           return event
         }
-
-  module WebhookEvent =
-    // https://developer.todoist.com/sync/v9/#request-format
-    let versionValidator = Check.String.equals "9" *|* int
-
-    let handler: HttpHandler =
-      let handleDepInj deps body =
-        WebhookEvent.Validate "body" body
-        |> Result.mapError BodyValidationError
-        |> Result.bind (function
-          | ItemEvent itemEvent -> Error(NotImplemented "Item Events")
-          | NoteEvent noteEvent -> Ok noteEvent.EventData
-        // enrich with more data (eg, task/item)
-        // send to all sinks (ie, logseq)
-        // transform to logseq document with Markdown doc provider
-        // logseq stores with dropbox storage provider
-        )
-
-      let handleOk input =
-        Response.withStatusCode 200 >> Response.myOfJson input
-
-      let handleError =
-        function
-        | QueryValidationError validationErrors ->
-          ErrorResponse.queryValidationErrors validationErrors
-        | BodyValidationError validationErrors ->
-          ErrorResponse.bodyValidationErrors validationErrors
-        | DatabaseError exc -> ErrorResponse.databaseError exc
-        | NotImplemented feature -> ErrorResponse.notImplemented feature
-        | UnexpectedError exc -> ErrorResponse.unexpectedError exc
-
-      Request.bodyString <| Deps.inject handleDepInj handleOk handleError

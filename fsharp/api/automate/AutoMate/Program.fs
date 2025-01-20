@@ -120,7 +120,7 @@ let main args =
         Route.V1.OAuth.Dropbox.register
         (OAuth.Dropbox.registerHandler dropboxOauthRegisterRedirectUri)
       get Route.V1.OAuth.Dropbox.authorize OAuth.Dropbox.authorizeHandler
-      post Route.V1.Todoist.webhookEvents Todoist.SyncApi.WebhookEvent.handler
+      post Route.V1.Todoist.webhookEvents UseCases.Todoist.handleWebhookEvent
       post "/oauth" postOauthHandler
       put "/oauth" putOauthHandler
     ]

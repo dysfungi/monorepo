@@ -28,6 +28,7 @@
     <Compile Include="Dropbox.fs" />
     <Compile Include="Todoist.fs" />
     <Compile Include="OAuth.fs" />
+    <Compile Include="UseCases.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

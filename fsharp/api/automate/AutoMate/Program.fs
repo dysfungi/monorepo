@@ -91,6 +91,9 @@ let main args =
   let config = Config.load ()
   printfn "Config - %A" config
 
+  let version = Assembly.GetExecutingAssembly().GetName().Version.ToString()
+  printfn "Version - %A" version
+
   let dropboxOauthRegisterRedirectUri =
     Url.build config.Dropbox.RedirectBaseUrl
     |> Url.replacePath Route.V1.OAuth.Dropbox.register
@@ -112,10 +115,7 @@ let main args =
       get Route.Meta.liveness Liveness.handler
       get Route.Meta.readiness Readiness.handler
       get Route.Meta.startup Startup.handler
-      get Route.Meta.version
-      <| Response.ofPlainText (
-        Assembly.GetExecutingAssembly().GetName().Version.ToString()
-      )
+      get Route.Meta.version <| Response.ofPlainText version
       get
         Route.V1.OAuth.Dropbox.register
         (OAuth.Dropbox.registerHandler dropboxOauthRegisterRedirectUri)

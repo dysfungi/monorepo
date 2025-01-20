@@ -5,9 +5,6 @@ open Falco
 module Todoist =
   open AutoMate.Todoist
 
-  let deserializeWebhookEvent body =
-    SyncApi.WebhookEvent.Validate "body" body |> Result.mapError BodyValidationError
-
   let handleWebhookEvent: HttpHandler =
     // deserializeEvent
     // validateEvent
@@ -16,16 +13,24 @@ module Todoist =
     // toResponse
 
     let handleDepInj deps body =
-      deserializeWebhookEvent body
-      |> Result.bind (function
-        | SyncApi.ItemEvent _ -> Error(NotImplemented "Item Events")
-        | SyncApi.NoteEvent noteEvent -> Ok noteEvent.EventData
-      // Logseq.Page
-      // enrich with more data (eg, task/item)
-      // send to all sinks (ie, logseq)
-      // transform to logseq document with Markdown doc provider
-      // logseq stores with dropbox storage provider
-      )
+      result {
+        let! validatedEvent =
+          SyncApi.WebhookEvent.Validate "body" body
+          |> Result.mapError BodyValidationError
+
+        let! routedEvent =
+          match validatedEvent with
+          | SyncApi.ItemEvent _ -> Error(NotImplemented "Item Events")
+          | SyncApi.NoteEvent noteEvent -> Ok noteEvent.EventData
+
+        // Logseq.Page
+        // enrich with more data (eg, task/item)
+        // send to all sinks (ie, logseq)
+        // transform to logseq document with Markdown doc provider
+        // logseq stores with dropbox storage provider
+
+        return routedEvent
+      }
 
     let handleOk input =
       Response.withStatusCode 200 >> Response.myOfJson input

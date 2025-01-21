@@ -20,7 +20,7 @@ jobs:
       REGISTRY: ${{ inputs.registry }}
     steps:
       - uses: actions/checkout@v4
-      - uses: xt0rted/setup-dotnet@v1
+      - uses: actions/setup-dotnet@v4
       - name: Setup Fantomas
         run: dotnet tool install fantomas
       - uses: opentofu/setup-opentofu@v1

@@ -21,6 +21,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
+      - name: Setup Fantomas
+        run: dotnet tool restore
       - uses: opentofu/setup-opentofu@v1
       - uses: actions/setup-python@v5
         with:

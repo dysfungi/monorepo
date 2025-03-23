@@ -17,8 +17,10 @@ DOIT_CONFIG: dict = {
     "default_tasks": [],
 }
 
-APP_FSPROJ = Path("./AutoMate/AutoMate.fsproj").absolute()
-TESTS_FSPROJ = Path("./AutoMate.Tests/AutoMate.Tests.fsproj").absolute()
+APP_DIR = Path("./AutoMate").resolve()
+APP_FSPROJ = APP_DIR / "AutoMate.fsproj"
+TESTS_DIR = Path("./AutoMate.Tests").resolve()
+TESTS_FSPROJ = TESTS_DIR / "AutoMate.Tests.fsproj"
 
 DEV = "dev"
 PROD = "prod"
@@ -359,7 +361,8 @@ def watch() -> Generator[dict, None, None]:
     yield {
         "name": "test",
         "actions": [
-            tools.LongRunning(dotnet("watch", "test", project=TESTS_FSPROJ)),
+            # https://github.com/dotnet/sdk/issues/45761
+            tools.LongRunning(logical_and(f"cd {TESTS_DIR}", dotnet("watch", "test"))),
         ],
         "title": tools.title_with_actions,
         "verbosity": 2,
@@ -422,7 +425,7 @@ def docker_run(image: str, *command: str) -> str:
 def dotnet(command, *args, **options) -> str:
     posargs = _positionize(args)
     optargs = _optize(options)
-    return f"dotnet {command} {posargs} {optargs}"
+    return f"dotnet {command} {optargs} {posargs}"
 
 
 def jq(script: str, *files, raw_output: bool = True, **options) -> str:
@@ -432,6 +435,14 @@ def jq(script: str, *files, raw_output: bool = True, **options) -> str:
     pos_params = _positionize(files)
     opt_params = _optize(options)
     return f"jq {opt_params} '{script}' {pos_params}"
+
+
+def logical_and(*commands: str) -> str:
+    return " && ".join(commands)
+
+
+def logical_or(*commands: str) -> str:
+    return " || ".join(commands)
 
 
 def pipe(*commands: str) -> str:

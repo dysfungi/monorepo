@@ -19,11 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Expecto" Version="10.2.1" />
+    <PackageReference Include="Expecto" Version="10.2.2" />
     <PackageReference Include="Suave" Version="2.6.2" />
-    <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.14.3" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageReference Update="FSharp.Core" Version="9.0.100" />
+    <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.15.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Update="FSharp.Core" Version="9.0.201" />
   </ItemGroup>
 
   <ItemGroup>

@@ -273,6 +273,17 @@ def iterate() -> dict:
 
 
 @task
+def outdated() -> dict:
+    return {
+        "actions": [
+            dotnet("list", "package", outdated=None),
+        ],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
 def plan() -> dict:
     return {
         "actions": [
@@ -425,7 +436,7 @@ def docker_run(image: str, *command: str) -> str:
 def dotnet(command, *args, **options) -> str:
     posargs = _positionize(args)
     optargs = _optize(options)
-    return f"dotnet {command} {optargs} {posargs}"
+    return f"dotnet {command} {posargs} {optargs}"
 
 
 def jq(script: str, *files, raw_output: bool = True, **options) -> str:

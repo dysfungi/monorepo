@@ -2,7 +2,7 @@
 # https://hub.docker.com/r/microsoft/dotnet-sdk
 # https://github.com/dotnet/dotnet-docker/blob/main/samples/README.md
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
 ARG TARGETARCH
 WORKDIR /source
 
@@ -45,7 +45,7 @@ HEALTHCHECK \
 # https://github.com/dotnet/dotnet-docker/blob/main/samples/aspnetapp/README.md
 # https://github.com/dotnet/dotnet-docker/blob/main/samples/aspnetapp/Dockerfile
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS final
 
 RUN apk add curl
 HEALTHCHECK \

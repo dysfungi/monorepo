@@ -21,12 +21,13 @@
     <Compile Include="FsHttpExtensions.fs" />
     <Compile Include="Route.fs" />
     <Compile Include="Config.fs" />
-    <Compile Include="Database.fs" />
-    <Compile Include="Errors.fs" />
-    <Compile Include="DependencyInjection.fs" />
-    <Compile Include="Health.fs" />
     <Compile Include="Dropbox.fs" />
     <Compile Include="Todoist.fs" />
+    <Compile Include="Database.fs" />
+    <Compile Include="Errors.fs" />
+    <Compile Include="NoteSyncing.fs" />
+    <Compile Include="DependencyInjection.fs" />
+    <Compile Include="Health.fs" />
     <Compile Include="OAuth.fs" />
     <Compile Include="UseCases.fs" />
     <Compile Include="Program.fs" />
@@ -36,6 +37,7 @@
     <PackageReference Include="Argu" Version="6.2.5" />
     <PackageReference Include="Falco" Version="4.0.6" />
     <PackageReference Include="FsConfig" Version="4.1.0" />
+    <PackageReference Include="FSharp.Formatting" Version="21.0.0-beta-004" />
     <PackageReference Include="FSharp.Json" Version="0.4.1" />
     <PackageReference Include="FsHttp" Version="15.0.1" />
     <PackageReference Include="FsRegEx" Version="0.7.2" />

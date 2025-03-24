@@ -15,6 +15,9 @@ module Str =
   let startsWith (prefix: string) (s: string) = s.StartsWith prefix
   let endsWith (suffix: string) (s: string) = s.EndsWith suffix
 
+  let replace (oldValue: string) (newValue: string) (s: string) =
+    s.Replace(oldValue, newValue)
+
   let split (separators: string) (s: string) =
     s.Split(separators.ToCharArray()) |> List.ofArray
 

@@ -14,7 +14,7 @@ module RestApi =
       String: string
       Date: DateOnly
       IsRecurring: bool
-      Datetime: DateTime option
+      Datetime: DateTimeOffset option
       Timezone: string option
     }
 
@@ -39,7 +39,7 @@ module RestApi =
         CommentCount: int
         Labels: string list
         IsCompleted: bool
-        CreatedAt: DateTime
+        CreatedAt: DateTimeOffset
         Due: TaskDueDto option
         Duration: TaskDurationDto option
         Content: string
@@ -72,10 +72,10 @@ module SyncApi =
         Labels: string list
         Checked: bool
         IsDeleted: bool
-        AddedAt: DateTime
-        UpdatedAt: DateTime
-        Due: DateTime option
-        CompletedAt: DateTime option
+        AddedAt: DateTimeOffset
+        UpdatedAt: DateTimeOffset
+        Due: DateTimeOffset option
+        CompletedAt: DateTimeOffset option
         Content: string
         Description: string
       }
@@ -107,7 +107,7 @@ module SyncApi =
         /// Whether the note is marked as deleted.
         IsDeleted: bool
         /// The date when the note was posted.
-        PostedAt: string
+        PostedAt: DateTimeOffset
         /// The content of the note.
         Content: string
         /// A file attached to the note.
@@ -130,7 +130,7 @@ module SyncApi =
       Version: string
       EventName: string
       UserId: string
-      TriggeredAt: DateTime
+      TriggeredAt: DateTimeOffset
       Initiator: InitiatorDto
       EventData: ItemDto
     }
@@ -139,7 +139,7 @@ module SyncApi =
       Version: string
       EventName: string
       UserId: string
-      TriggeredAt: DateTime
+      TriggeredAt: DateTimeOffset
       Initiator: InitiatorDto
       EventData: NoteDto
     }

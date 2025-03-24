@@ -15,6 +15,7 @@
     <Compile Include="ConfigTests.fs" />
     <Compile Include="HealthTests.fs" />
     <Compile Include="TodoistTests.fs" />
+    <Compile Include="NoteSyncingTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

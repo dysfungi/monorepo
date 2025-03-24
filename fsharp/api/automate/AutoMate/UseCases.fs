@@ -3,7 +3,9 @@ module AutoMate.UseCases
 open Falco
 
 module Todoist =
+  open AutoMate.NoteSyncing.DomainFunctions
   open AutoMate.Todoist
+  open FSharp.Formatting.Markdown
 
   let handleWebhookEvent: HttpHandler =
     // deserializeEvent
@@ -14,14 +16,17 @@ module Todoist =
 
     let handleDepInj deps body =
       result {
-        let! validatedEvent =
+        let! receivedEvent =
           SyncApi.WebhookEvent.Validate "body" body
           |> Result.mapError BodyValidationError
 
-        let! routedEvent =
-          match validatedEvent with
-          | SyncApi.ItemEvent _ -> Error(NotImplemented "Item Events")
-          | SyncApi.NoteEvent noteEvent -> Ok noteEvent.EventData
+        let! todoistEvent =
+          match receivedEvent with
+          | SyncApi.ItemEvent _ -> NotImplemented "TODO" |> Error
+          | SyncApi.NoteEvent noteEvent ->
+            Todoist.TaskCommentEvent.fromNoteEventDto noteEvent
+
+        let! logseqPage = Logseq.Page.fromTodoistTaskComment todoistEvent
 
         // Logseq.Page
         // enrich with more data (eg, task/item)
@@ -29,11 +34,11 @@ module Todoist =
         // transform to logseq document with Markdown doc provider
         // logseq stores with dropbox storage provider
 
-        return routedEvent
+        return logseqPage
       }
 
-    let handleOk input =
-      Response.withStatusCode 200 >> Response.myOfJson input
+    let handleOk result =
+      Response.withStatusCode 200 >> Response.myOfJson result
 
     let handleError =
       function

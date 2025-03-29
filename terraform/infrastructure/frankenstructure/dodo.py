@@ -104,6 +104,15 @@ def deploy() -> dict:
 
 
 @task
+def plan() -> dict:
+    return {
+        "actions": [_tofu("plan")],
+        "title": tools.title_with_actions,
+        "verbosity": 2,
+    }
+
+
+@task
 def setup() -> dict:
     return {
         "actions": [

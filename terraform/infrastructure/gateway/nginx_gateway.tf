@@ -4,7 +4,7 @@ locals {
 
 # https://registry.terraform.io/providers/kbst/kustomization/latest/docs/data-sources/build#example-usage
 data "kustomization_build" "gateway_crds" {
-  path = "https://github.com/nginxinc/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v${local.ngf_chart_version}"
+  path = "https://github.com/nginx/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v${local.ngf_chart_version}"
 }
 
 # https://registry.terraform.io/providers/kbst/kustomization/latest/docs/resources/resource#module-example
@@ -33,7 +33,7 @@ resource "kustomization_resource" "gateway_crds_p2" {
 # https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/
 resource "helm_release" "gateway" {
   name          = "nginx-gateway"
-  repository    = "oci://ghcr.io/nginxinc/charts"
+  repository    = "oci://ghcr.io/nginx/charts"
   chart         = "nginx-gateway-fabric"
   version       = local.ngf_chart_version
   namespace     = kubernetes_namespace.gateway.metadata[0].name
@@ -49,7 +49,7 @@ resource "helm_release" "gateway" {
       "fullnameOverride"              = "nginx-gateway"
       "affinity"                      = local.affinity
       "terminationGracePeriodSeconds" = 50
-      # https://github.com/nginxinc/nginx-gateway-fabric/blob/main/charts/nginx-gateway-fabric/values.yaml
+      # https://github.com/nginx/nginx-gateway-fabric/blob/main/charts/nginx-gateway-fabric/values.yaml
       # https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#configure-delayed-pod-termination-for-zero-downtime-upgrades
       "nginxGateway" = {
         "replicaCount" = 2
@@ -88,9 +88,9 @@ resource "helm_release" "gateway" {
   ]
 }
 
-/* TODO: https://github.com/nginxinc/nginx-gateway-fabric/blob/433eba254a328935c9064bd8cbf05d5c457773ce/docs/proposals/rewrite-client-ip.md
+/* TODO: https://github.com/nginx/nginx-gateway-fabric/blob/433eba254a328935c9064bd8cbf05d5c457773ce/docs/proposals/rewrite-client-ip.md
 # https://docs.nginx.com/nginx-gateway-fabric/reference/api/#gateway.nginx.org%2fv1alpha1.NginxProxy
-# https://github.com/nginxinc/nginx-gateway-fabric/blob/433eba254a328935c9064bd8cbf05d5c457773ce/deploy/crds.yaml#L650
+# https://github.com/nginx/nginx-gateway-fabric/blob/433eba254a328935c9064bd8cbf05d5c457773ce/deploy/crds.yaml#L650
 resource "kubernetes_manifest" "gateway_config_proxy_protocol" {
   manifest = {
     "apiVersion" = "gateway.nginx.org/v1alpha1"

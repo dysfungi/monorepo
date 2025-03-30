@@ -1,5 +1,5 @@
 # https://docs.nginx.com/nginx-gateway-fabric/how-to/monitoring/prometheus/#available-metrics-in-nginx-gateway-fabric
-# https://github.com/nginxinc/nginx-prometheus-exporter#exported-metrics
+# https://github.com/nginx/nginx-prometheus-exporter#exported-metrics
 # https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.PodMonitor
 resource "kubernetes_manifest" "gateway_pod_monitor" {
   manifest = {

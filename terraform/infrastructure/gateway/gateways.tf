@@ -119,7 +119,7 @@ resource "kubernetes_manifest" "gateway_refgrant_to_certs" {
   }
 }
 
-/* TODO: https://github.com/nginxinc/nginx-gateway-fabric/issues/1443
+/* TODO: https://github.com/nginx/nginx-gateway-fabric/issues/1443
 resource "kubernetes_manifest" "stage_gateway" {
   manifest = {
     "apiVersion" = "gateway.networking.k8s.io/v1"

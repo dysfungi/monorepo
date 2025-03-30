@@ -17,7 +17,7 @@ locals {
 resource "vultr_kubernetes" "k8s" {
   region           = "lax"
   label            = "frank8s"
-  version          = "v1.31.0+1"
+  version          = "v1.32.2+1"
   ha_controlplanes = false
   enable_firewall  = true
 

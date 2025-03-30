@@ -91,6 +91,10 @@ resource "helm_release" "gateway" {
         "securityContext" = {
           "allowPrivilegeEscalation" = true
         }
+        "snippetsFilters" = {
+          # https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/snippets/
+          "enable" = true
+        }
       }
       "nginx" = {
         "lifecycle" = {

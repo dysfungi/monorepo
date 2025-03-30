@@ -33,13 +33,19 @@ locals {
   ]
   myip       = jsondecode(data.http.myip.response_body).ip
   myip_parts = split(".", local.myip)
+  db_plans = {
+    # https://www.vultr.com/pricing/#managed-databases
+    cloud_compute = {
+      postgresql_36usd = "vultr-dbaas-startup-cc-hp-amd-1-64-2"
+    }
+  }
 }
 
 resource "vultr_database" "pg" {
   # max connections: 97
   label                   = "postgres"
   tag                     = "postgres"
-  plan                    = "vultr-dbaas-startup-cc-hp-amd-1-64-2"
+  plan                    = local.db_plans.cloud_compute.postgresql_36usd
   region                  = "lax"
   vpc_id                  = vultr_vpc.k8s.id
   database_engine         = "pg"

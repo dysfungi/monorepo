@@ -3,7 +3,7 @@ resource "helm_release" "ollama" {
   name       = "ollama"
   repository = "https://otwld.github.io/ollama-helm"
   chart      = "ollama"
-  version    = "0.63.0"
+  version    = "1.12.0"
   namespace  = kubernetes_namespace.ollama.metadata[0].name
 
   values = [
@@ -12,16 +12,22 @@ resource "helm_release" "ollama" {
       "fullnameOverride" = ""
       "ollama" = {
         "gpu" = {
-          "enabled" = false
+          "enabled" = true
           "type"    = "nvidia"
           "number"  = 1
         }
-        "models" = [
+        "models" = {
+          # https://ollama.com/models
           # https://github.com/ollama/ollama?tab=readme-ov-file#model-library
           # https://github.com/eugeneyan/open-llms
-          # "llama2",
-          # "mistral",
-        ]
+          "create" = []
+          "pull" = [
+            "deepseek-r1:latest",
+          ]
+          "run" = [
+            "deepseek-r1:latest",
+          ]
+        }
       }
       "autoscaling" = {
         "enabled"                           = false
@@ -48,13 +54,13 @@ resource "helm_release" "ollama" {
       }
       "resources" = {
         "requests" = {
-          "cpu"    = "1"
-          "memory" = "4Gi"
+          "cpu"    = "500m"
+          "memory" = "4.4Gi"
         }
-        "limits" = {
-          "cpu"    = "2"
-          "memory" = "8Gi"
-        }
+        # "limits" = {
+        #   "cpu"    = "800m"
+        #   "memory" = "4.4Gi"
+        # }
       }
       "persistentVolume" = {
         "enabled"      = true

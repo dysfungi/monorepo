@@ -56,7 +56,7 @@ resource "vultr_kubernetes_node_pools" "monitoring" {
 resource "vultr_kubernetes_node_pools" "llm" {
   cluster_id    = vultr_kubernetes.k8s.id
   node_quantity = 1
-  plan          = local.plans.cloud_compute.intel_oldgen_40usd
+  plan          = local.plans.cloud_gpu.nvidia_a40_55usd
   label         = "llm"
   tag           = "llm"
   auto_scaler   = false

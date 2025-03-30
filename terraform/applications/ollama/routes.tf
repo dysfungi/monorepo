@@ -21,6 +21,10 @@ resource "kubernetes_manifest" "ollama_route" {
       ]
       "rules" = [
         {
+          "timeouts" = {
+            "requests"        = "0s"
+            "backendRequests" = "0s"
+          }
           "matches" = [
             {
               "path" = {

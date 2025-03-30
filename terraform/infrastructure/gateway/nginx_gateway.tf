@@ -1,6 +1,10 @@
+locals {
+  ngf_chart_version = "1.6.2"
+}
+
 # https://registry.terraform.io/providers/kbst/kustomization/latest/docs/data-sources/build#example-usage
 data "kustomization_build" "gateway_crds" {
-  path = "https://github.com/nginxinc/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v1.4.0"
+  path = "https://github.com/nginxinc/nginx-gateway-fabric/config/crd/gateway-api/standard?ref=v${local.ngf_chart_version}"
 }
 
 # https://registry.terraform.io/providers/kbst/kustomization/latest/docs/resources/resource#module-example
@@ -31,7 +35,7 @@ resource "helm_release" "gateway" {
   name          = "nginx-gateway"
   repository    = "oci://ghcr.io/nginxinc/charts"
   chart         = "nginx-gateway-fabric"
-  version       = "1.4.0"
+  version       = local.ngf_chart_version
   namespace     = kubernetes_namespace.gateway.metadata[0].name
   wait          = true
   wait_for_jobs = true

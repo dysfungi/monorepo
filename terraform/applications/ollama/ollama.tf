@@ -8,11 +8,11 @@ resource "helm_release" "ollama" {
 
   values = [
     yamlencode({
-      "replicaCount"     = 1
+      "replicaCount"     = 0
       "fullnameOverride" = ""
       "ollama" = {
         "gpu" = {
-          "enabled" = true
+          "enabled" = false
           "type"    = "nvidia"
           "number"  = 1
         }
@@ -22,10 +22,13 @@ resource "helm_release" "ollama" {
           # https://github.com/eugeneyan/open-llms
           "create" = []
           "pull" = [
-            "deepseek-r1:latest",
+            "deepseek-r1:1.5b",
+            "deepseek-r1:8b",
+            "gemma3:4b",
+            "llama3.2:3b",
           ]
           "run" = [
-            "deepseek-r1:latest",
+            "deepseek-r1:1.5b",
           ]
         }
       }
@@ -44,6 +47,7 @@ resource "helm_release" "ollama" {
                 "key"      = "vke.vultr.com/node-pool"
                 "operator" = "In"
                 "values" = [
+                  "default",
                   "llm",
                   kubernetes_namespace.ollama.metadata[0].name,
                 ]
@@ -55,7 +59,7 @@ resource "helm_release" "ollama" {
       "resources" = {
         "requests" = {
           "cpu"    = "500m"
-          "memory" = "4.4Gi"
+          "memory" = "1.7Gi"
         }
         # "limits" = {
         #   "cpu"    = "800m"

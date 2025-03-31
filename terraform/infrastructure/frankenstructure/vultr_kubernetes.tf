@@ -58,13 +58,13 @@ resource "vultr_kubernetes_node_pools" "monitoring" {
   max_nodes     = 3
 }
 
-resource "vultr_kubernetes_node_pools" "llm" {
-  cluster_id    = vultr_kubernetes.k8s.id
-  node_quantity = 1
-  plan          = local.cpu_plans.cloud_gpu.nvidia_a40_105usd
-  label         = "llm"
-  tag           = "llm"
-  auto_scaler   = false
-  min_nodes     = 1
-  max_nodes     = 2
-}
+# resource "vultr_kubernetes_node_pools" "llm" {
+#   cluster_id    = vultr_kubernetes.k8s.id
+#   node_quantity = 1
+#   plan          = local.cpu_plans.cloud_gpu.nvidia_a40_105usd
+#   label         = "llm"
+#   tag           = "llm"
+#   auto_scaler   = false
+#   min_nodes     = 1
+#   max_nodes     = 2
+# }

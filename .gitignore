@@ -187,7 +187,6 @@ secrets/
 
 # Environment
 .env
-.envrc
 
 # Local .terraform directories
 **/.terraform/*

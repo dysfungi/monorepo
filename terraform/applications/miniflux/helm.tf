@@ -24,7 +24,8 @@ resource "helm_release" "miniflux" {
       }
       serviceMonitor = {
         main = {
-          enabled = true
+          enabled         = true
+          allowedNetworks = "10.0.0.0/8"
         }
       }
       nodeSelector = {

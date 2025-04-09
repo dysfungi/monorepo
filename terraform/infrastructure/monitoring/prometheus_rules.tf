@@ -14,7 +14,7 @@ resource "kubernetes_manifest" "alerts" {
             {
               "alert" = "BlackboxProbeHttpFailure"
               "expr"  = "probe_http_status_code <= 199 OR probe_http_status_code >= 400"
-              "for"   = "5m"
+              "for"   = "30m"
               "labels" = {
                 "severity" = "critical"
                 "type"     = "http"
@@ -31,7 +31,7 @@ resource "kubernetes_manifest" "alerts" {
             {
               "alert" = "BlackboxProbeSlowHttp"
               "expr"  = "avg_over_time(probe_http_duration_seconds[1m]) > 1"
-              "for"   = "5m"
+              "for"   = "30m"
               "labels" = {
                 "severity" = "warning"
                 "type"     = "http"

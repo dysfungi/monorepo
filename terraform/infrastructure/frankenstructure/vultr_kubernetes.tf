@@ -48,15 +48,15 @@ resource "vultr_kubernetes" "k8s" {
   ha_controlplanes = false
   enable_firewall  = true
 
-  node_pools {
-    node_quantity = 2
-    # plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_24usd
-    plan        = local.cpu_plans.cloud_compute.regular_performance.intel_oldgen_20usd
-    label       = "default"
-    auto_scaler = true
-    min_nodes   = 2
-    max_nodes   = 4
-  }
+  # node_pools {
+  #   node_quantity = 2
+  #   # plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_24usd
+  #   plan        = local.cpu_plans.cloud_compute.regular_performance.intel_oldgen_20usd
+  #   label       = "default"
+  #   auto_scaler = true
+  #   min_nodes   = 2
+  #   max_nodes   = 4
+  # }
 }
 
 resource "vultr_kubernetes_node_pools" "temp" {

@@ -8,6 +8,12 @@ variable "kubernetes_namespace" {
   nullable = false
 }
 
+variable "root_domain" {
+  type     = string
+  nullable = false
+  default  = "frank.sh"
+}
+
 variable "service_name" {
   type     = string
   nullable = false

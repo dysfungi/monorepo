@@ -3,36 +3,36 @@
 
 resource "kubernetes_manifest" "probes" {
   manifest = {
-    "apiVersion" = "monitoring.coreos.com/v1"
-    "kind"       = "Probe"
-    "metadata" = {
-      "name"      = var.probe_name
-      "namespace" = var.kubernetes_namespace
+    apiVersion = "monitoring.coreos.com/v1"
+    kind       = "Probe"
+    metadata = {
+      name      = var.probe_name
+      namespace = var.kubernetes_namespace
     }
-    "spec" = {
-      "jobName"  = "blackbox"
-      "interval" = var.probe_interval
-      "module"   = "http_2xx"
-      "prober" = {
-        "url" : "prometheus-blackbox-exporter.monitoring.svc.cluster.local:9115",
+    spec = {
+      jobName  = "blackbox"
+      interval = var.probe_interval
+      module   = "http_2xx"
+      prober = {
+        url : "prometheus-blackbox-exporter.monitoring.svc.cluster.local:9115",
       }
-      "targets" = {
-        "staticConfig" = {
-          "static" = [
+      targets = {
+        staticConfig = {
+          static = [
             var.probe_url,
           ]
-          "relabelingConfigs" = [
+          relabelingConfigs = [
             {
-              "sourceLabels" = ["instance"]
-              "targetLabel"  = "instance"
-              "action"       = "replace"
-              "replacement"  = var.probe_url
+              sourceLabels = ["instance"]
+              targetLabel  = "instance"
+              action       = "replace"
+              replacement  = var.probe_url
             },
             {
-              "sourceLabels" = ["target"]
-              "targetLabel"  = "target"
-              "action"       = "replace"
-              "replacement"  = var.probe_name
+              sourceLabels = ["target"]
+              targetLabel  = "target"
+              action       = "replace"
+              replacement  = var.probe_name
             },
           ]
         }

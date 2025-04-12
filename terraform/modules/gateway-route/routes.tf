@@ -12,11 +12,11 @@ resource "kubernetes_manifest" "route" {
           kind        = "Gateway"
           name        = "prod-web"
           namespace   = "gateway"
-          sectionName = "https-wildcard.frank.sh"
+          sectionName = "https-wildcard.${var.root_domain}"
         },
       ]
       hostnames = [
-        "${var.subdomain}.frank.sh",
+        "${var.subdomain}.${var.root_domain}",
       ]
       rules = [
         {

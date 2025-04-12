@@ -4,7 +4,7 @@ resource "helm_release" "kube_prometheus" {
   repository       = "https://prometheus-community.github.io/helm-charts"
   chart            = "kube-prometheus-stack"
   version          = "66.3.1"
-  namespace        = kubernetes_namespace.monitoring.metadata[0].name
+  namespace        = local.namespace
   create_namespace = false
 
   values = [
@@ -314,7 +314,7 @@ resource "helm_release" "blackbox_exporter" {
   repository       = "https://prometheus-community.github.io/helm-charts"
   chart            = "prometheus-blackbox-exporter"
   version          = "9.0.1"
-  namespace        = kubernetes_namespace.monitoring.metadata[0].name
+  namespace        = local.namespace
   create_namespace = false
 
   # https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-blackbox-exporter/values.yaml#L272
@@ -370,7 +370,7 @@ resource "helm_release" "postgres_exporter" {
   repository       = "https://prometheus-community.github.io/helm-charts"
   chart            = "prometheus-postgres-exporter"
   version          = "6.4.0"
-  namespace        = kubernetes_namespace.monitoring.metadata[0].name
+  namespace        = local.namespace
   create_namespace = false
 
   # https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-blackbox-exporter/values.yaml#L272
@@ -384,7 +384,7 @@ resource "helm_release" "postgres_exporter" {
       }
       serviceMonitor = {
         enabled   = true
-        namespace = kubernetes_namespace.monitoring.metadata[0].name
+        namespace = local.namespace
       }
       config = {
         datasource = {

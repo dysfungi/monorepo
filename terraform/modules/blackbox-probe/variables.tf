@@ -15,7 +15,7 @@ variable "probe_name" {
 
 variable "probe_interval" {
   type     = string
-  default  = "15s"
+  default  = "30s"
   nullable = false
 }
 variable "probe_url" {

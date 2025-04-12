@@ -1,131 +1,29 @@
-resource "kubernetes_manifest" "alertmanager_route" {
-  manifest = {
-    apiVersion = "gateway.networking.k8s.io/v1"
-    kind       = "HTTPRoute"
-    metadata = {
-      name      = "alertmanager"
-      namespace = helm_release.kube_prometheus.namespace
-    }
-    spec = {
-      parentRefs = [
-        {
-          kind        = "Gateway"
-          name        = "prod-web"
-          namespace   = "gateway"
-          sectionName = "https-wildcard.${var.root_domain}"
-        },
-      ]
-      hostnames = [
-        local.alertmanager_hostname,
-      ]
-      rules = [
-        {
-          matches = [
-            {
-              path = {
-                type  = "PathPrefix"
-                value = "/"
-              }
-            },
-          ]
-          backendRefs = [
-            {
-              kind      = "Service"
-              name      = "${helm_release.kube_prometheus.name}-alertmanager"
-              namespace = helm_release.kube_prometheus.namespace
-              port      = 9093
-            },
-          ]
-        }
-      ]
-    }
-  }
+module "alertmanager_route" {
+  source = "../../modules/gateway-route"
+
+  kubeconfig_path      = var.kubeconfig_path
+  kubernetes_namespace = local.namespace
+  service_name         = "${helm_release.kube_prometheus.name}-alertmanager"
+  service_port         = 9093
+  subdomain            = var.alertmanager_subdomain
 }
 
-resource "kubernetes_manifest" "prometheus_route" {
-  manifest = {
-    apiVersion = "gateway.networking.k8s.io/v1"
-    kind       = "HTTPRoute"
-    metadata = {
-      name      = "prometheus"
-      namespace = helm_release.kube_prometheus.namespace
-    }
-    spec = {
-      parentRefs = [
-        {
-          kind        = "Gateway"
-          name        = "prod-web"
-          namespace   = "gateway"
-          sectionName = "https-wildcard.${var.root_domain}"
-        }
-      ]
-      hostnames = [
-        local.prometheus_hostname,
-      ]
-      rules = [
-        {
-          matches = [
-            {
-              path = {
-                type  = "PathPrefix"
-                value = "/"
-              }
-            }
-          ]
-          backendRefs = [
-            {
-              kind      = "Service"
-              name      = "${helm_release.kube_prometheus.name}-prometheus"
-              namespace = helm_release.kube_prometheus.namespace
-              port      = 9090
-            }
-          ]
-        }
-      ]
-    }
-  }
+module "prometheus_route" {
+  source = "../../modules/gateway-route"
+
+  kubeconfig_path      = var.kubeconfig_path
+  kubernetes_namespace = local.namespace
+  service_name         = "${helm_release.kube_prometheus.name}-prometheus"
+  service_port         = 9090
+  subdomain            = var.prometheus_subdomain
 }
 
-resource "kubernetes_manifest" "grafana_route" {
-  manifest = {
-    apiVersion = "gateway.networking.k8s.io/v1"
-    kind       = "HTTPRoute"
-    metadata = {
-      name      = "grafana"
-      namespace = helm_release.kube_prometheus.namespace
-    }
-    spec = {
-      parentRefs = [
-        {
-          kind        = "Gateway"
-          name        = "prod-web"
-          namespace   = "gateway"
-          sectionName = "https-wildcard.${var.root_domain}"
-        }
-      ]
-      hostnames = [
-        local.grafana_hostname,
-      ]
-      rules = [
-        {
-          matches = [
-            {
-              path = {
-                type  = "PathPrefix"
-                value = "/"
-              }
-            }
-          ]
-          backendRefs = [
-            {
-              kind      = "Service"
-              name      = "${helm_release.kube_prometheus.name}-grafana"
-              namespace = helm_release.kube_prometheus.namespace
-              port      = 80
-            }
-          ]
-        }
-      ]
-    }
-  }
+module "grafana_route" {
+  source = "../../modules/gateway-route"
+
+  kubeconfig_path      = var.kubeconfig_path
+  kubernetes_namespace = local.namespace
+  service_name         = "${helm_release.kube_prometheus.name}-grafana"
+  service_port         = 80
+  subdomain            = var.grafana_subdomain
 }

@@ -16,12 +16,21 @@ resource "helm_release" "kube_prometheus" {
       additionalRuleAnnotations = {
         firing_alerts = "https://grafana.frank.sh/alerting/list?search=state%3Afiring+type%3Aalerting&view=state"
       }
+      defaultRules = {
+        disabled = {
+          # https://github.com/prometheus-community/helm-charts/blob/kube-prometheus-stack-66.3.1/charts/kube-prometheus-stack/templates/prometheus/rules-1.14/kubernetes-resources.yaml#L60
+          # NOTE: Disable KubeMemoryOvercommit because I don't need to overprovision extra nodes for failover yet.
+          KubeMemoryOvercommit = true
+        }
+      }
       customRules = {
         Watchdog = {
           severity = "heartbeat"
         }
       }
-      coreDns = { enabled = true }
+      coreDns = {
+        enabled = true
+      }
       kubeControllerManager = {
         # https://github.com/prometheus-community/helm-charts/issues/3368#issuecomment-1563510980
         enabled = false

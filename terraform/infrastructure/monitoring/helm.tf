@@ -346,11 +346,11 @@ resource "helm_release" "blackbox_exporter" {
       }
       resources = {
         requests = {
-          cpu    = "5m"
+          cpu    = "10m"
           memory = "25Mi"
         }
         limits = {
-          cpu    = "10m"
+          cpu    = "50m"
           memory = "50Mi"
         }
       }

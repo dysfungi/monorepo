@@ -37,11 +37,11 @@ resource "helm_release" "blackbox_exporter" {
       }
       "resources" = {
         "requests" = {
-          "cpu"    = "0.1"
+          "cpu"    = "5m"
           "memory" = "25Mi"
         }
         "limits" = {
-          "cpu"    = "0.2"
+          "cpu"    = "10m"
           "memory" = "50Mi"
         }
       }
@@ -96,11 +96,11 @@ resource "helm_release" "postgres_exporter" {
       }
       "resources" = {
         "requests" = {
-          "cpu"    = "0.1"
+          "cpu"    = "5m"
           "memory" = "25Mi"
         }
         "limits" = {
-          "cpu"    = "0.2"
+          "cpu"    = "10m"
           "memory" = "50Mi"
         }
       }

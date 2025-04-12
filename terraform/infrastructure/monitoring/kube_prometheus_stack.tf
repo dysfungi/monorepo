@@ -52,11 +52,11 @@ resource "helm_release" "kube_prometheus" {
           "affinity"    = local.affinity
           "resources" = {
             "requests" = {
-              "cpu"    = "0.1"
+              "cpu"    = "5m"
               "memory" = "50Mi"
             }
             "limits" = {
-              "cpu"    = "0.3"
+              "cpu"    = "10m"
               "memory" = "100Mi"
             }
           }
@@ -160,11 +160,11 @@ resource "helm_release" "kube_prometheus" {
           "affinity"    = local.affinity
           "resources" = {
             "requests" = {
-              "cpu"    = "0.4"
+              "cpu"    = "400m"
               "memory" = "400Mi"
             }
             "limits" = {
-              "cpu"    = "0.8"
+              "cpu"    = "800m"
               "memory" = "800Mi"
             }
           }
@@ -217,11 +217,11 @@ resource "helm_release" "kube_prometheus" {
         "affinity" = local.affinity
         "resources" = {
           "requests" = {
-            "cpu"    = "100m"
+            "cpu"    = "5m"
             "memory" = "50Mi"
           }
           "limits" = {
-            "cpu"    = "200m"
+            "cpu"    = "10m"
             "memory" = "100Mi"
           }
         }
@@ -231,11 +231,11 @@ resource "helm_release" "kube_prometheus" {
           "affinity" = local.affinity
           "resources" = {
             "requests" = {
-              "cpu"    = "0.2"
+              "cpu"    = "200m"
               "memory" = "400Mi"
             }
             "limits" = {
-              "cpu"    = "0.5"
+              "cpu"    = "500m"
               "memory" = "800Mi"
             }
           }

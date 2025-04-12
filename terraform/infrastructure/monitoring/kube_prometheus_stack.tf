@@ -53,11 +53,11 @@ resource "helm_release" "kube_prometheus" {
           "resources" = {
             "requests" = {
               "cpu"    = "0.1"
-              "memory" = "400Mi"
+              "memory" = "50Mi"
             }
             "limits" = {
               "cpu"    = "0.3"
-              "memory" = "500Mi"
+              "memory" = "100Mi"
             }
           }
           # https://github.com/prometheus-operator/prometheus-operator/issues/3737#issuecomment-1326667523
@@ -165,7 +165,7 @@ resource "helm_release" "kube_prometheus" {
             }
             "limits" = {
               "cpu"    = "0.8"
-              "memory" = "1Gi"
+              "memory" = "800Mi"
             }
           }
           "paused" = false # https://prometheus-operator.dev/docs/platform/storage/#resizing-volumes
@@ -216,12 +216,12 @@ resource "helm_release" "kube_prometheus" {
         }
         "affinity" = local.affinity
         "resources" = {
-          "limits" = {
-            "cpu"    = "200m"
-            "memory" = "200Mi"
-          }
           "requests" = {
             "cpu"    = "100m"
+            "memory" = "50Mi"
+          }
+          "limits" = {
+            "cpu"    = "200m"
             "memory" = "100Mi"
           }
         }
@@ -236,7 +236,7 @@ resource "helm_release" "kube_prometheus" {
             }
             "limits" = {
               "cpu"    = "0.5"
-              "memory" = "1Gi"
+              "memory" = "800Mi"
             }
           }
           "ruleSelector" = {

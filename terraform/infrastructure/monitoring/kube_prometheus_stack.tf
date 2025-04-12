@@ -141,7 +141,7 @@ resource "helm_release" "kube_prometheus" {
           }
           limits = {
             cpu    = "100m"
-            memory = "150Mi"
+            memory = "200Mi"
           }
         }
         "persistence" = {
@@ -153,6 +153,16 @@ resource "helm_release" "kube_prometheus" {
           "finalizers"       = ["kubernetes.io/pvc-protection"]
         }
         "sidecar" = {
+          resources = {
+            requests = {
+              cpu    = "10m"
+              memory = "90Mi"
+            }
+            limits = {
+              cpu    = "50m"
+              memory = "128Mi"
+            }
+          }
           "dashboards" = {
             "annotations" = {
               "grafana_folder" = "K8"
@@ -162,6 +172,18 @@ resource "helm_release" "kube_prometheus" {
             "provider" = {
               "foldersFromFilesStructure" = true
             }
+          }
+        }
+      }
+      kube-state-metrcis = {
+        resource = {
+          requests = {
+            cpu    = "5m"
+            memory = "20Mi"
+          }
+          limits = {
+            cpu    = "10m"
+            memory = "32Mi"
           }
         }
       }
@@ -234,6 +256,18 @@ resource "helm_release" "kube_prometheus" {
           "limits" = {
             "cpu"    = "100m"
             "memory" = "50Mi"
+          }
+        }
+      }
+      prometheus-node-exporter = {
+        resources = {
+          requests = {
+            cpu    = "50m"
+            memory = "15Mi"
+          }
+          limits = {
+            cpu    = "100m"
+            memory = "25Mi"
           }
         }
       }

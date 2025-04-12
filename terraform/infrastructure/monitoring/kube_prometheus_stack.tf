@@ -232,7 +232,7 @@ resource "helm_release" "kube_prometheus" {
             "memory" = "25Mi"
           }
           "limits" = {
-            "cpu"    = "10m"
+            "cpu"    = "100m"
             "memory" = "50Mi"
           }
         }

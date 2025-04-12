@@ -11,6 +11,7 @@ locals {
                 "key"      = "vke.vultr.com/node-pool"
                 "operator" = "In"
                 "values" = [
+                  "infrastructure",
                   kubernetes_namespace.gateway.metadata[0].name,
                 ]
               },

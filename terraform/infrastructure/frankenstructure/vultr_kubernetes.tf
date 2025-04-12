@@ -2,10 +2,32 @@ locals {
   cpu_plans = {
     cloud_compute = {
       # https://www.vultr.com/pricing/#cloud-compute
-      intel_oldgen_10usd = "vc2-1c-2gb"
-      intel_oldgen_15usd = "vc2-2c-2gb"
-      intel_oldgen_20usd = "vc2-2c-4gb"
-      intel_oldgen_40usd = "vc2-4c-8gb"
+      regular_performance = {
+        intel_oldgen_10usd = "vc2-1c-2gb"
+        intel_oldgen_15usd = "vc2-2c-2gb"
+        intel_oldgen_20usd = "vc2-2c-4gb"
+        intel_oldgen_40usd = "vc2-4c-8gb"
+      }
+      high_performance = {
+        amd_epyc_06usd   = "vhp-1c-1gb-amd"
+        amd_epyc_12usd   = "vhp-1c-2gb-amd"
+        amd_epyc_18usd   = "vhp-2c-2gb-amd"
+        amd_epyc_24usd   = "vhp-2c-4gb-amd"
+        intel_xeon_24usd = "vhp-2c-4gb-intel"
+      }
+      high_frequency = {
+      }
+    }
+    optimized_compute = {
+      # https://www.vultr.com/pricing/#optimized-cloud-compute
+      general_purpose = {
+      }
+      cpu_optimized = {
+      }
+      memory_optimized = {
+      }
+      storage_optimized = {
+      }
     }
     cloud_gpu = {
       # https://www.vultr.com/pricing/#cloud-gpu
@@ -28,34 +50,35 @@ resource "vultr_kubernetes" "k8s" {
 
   node_pools {
     node_quantity = 2
-    plan          = local.cpu_plans.cloud_compute.intel_oldgen_20usd
-    label         = "default"
-    auto_scaler   = true
-    min_nodes     = 2
-    max_nodes     = 4
+    # plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_24usd
+    plan        = local.cpu_plans.cloud_compute.regular_performance.intel_oldgen_20usd
+    label       = "default"
+    auto_scaler = true
+    min_nodes   = 2
+    max_nodes   = 4
   }
 }
 
-resource "vultr_kubernetes_node_pools" "gateway" {
+resource "vultr_kubernetes_node_pools" "temp" {
   cluster_id    = vultr_kubernetes.k8s.id
-  node_quantity = 1
-  plan          = local.cpu_plans.cloud_compute.intel_oldgen_10usd
-  label         = "gateway"
-  tag           = "gateway"
+  node_quantity = 2
+  plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_24usd
+  label         = "temp"
+  tag           = "temp"
   auto_scaler   = true
   min_nodes     = 1
-  max_nodes     = 3
+  max_nodes     = 2
 }
 
-resource "vultr_kubernetes_node_pools" "monitoring" {
+resource "vultr_kubernetes_node_pools" "infrastructure" {
   cluster_id    = vultr_kubernetes.k8s.id
   node_quantity = 1
-  plan          = local.cpu_plans.cloud_compute.intel_oldgen_15usd
-  label         = "monitoring"
-  tag           = "monitoring"
+  plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_24usd
+  label         = "infrastructure"
+  tag           = "infrastructure"
   auto_scaler   = true
   min_nodes     = 1
-  max_nodes     = 3
+  max_nodes     = 2
 }
 
 # resource "vultr_kubernetes_node_pools" "llm" {

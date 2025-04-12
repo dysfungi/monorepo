@@ -15,6 +15,7 @@ locals {
                 "key"      = "vke.vultr.com/node-pool"
                 "operator" = "In"
                 "values" = [
+                  "infrastructure",
                   kubernetes_namespace.monitoring.metadata[0].name,
                 ]
               },

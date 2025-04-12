@@ -194,11 +194,11 @@ resource "helm_release" "kube_prometheus" {
           "resources" = {
             "requests" = {
               "cpu"    = "250m"
-              "memory" = "575Mi"
+              "memory" = "600Mi"
             }
             "limits" = {
               "cpu"    = "400m"
-              "memory" = "600Mi"
+              "memory" = "800Mi"
             }
           }
           "paused" = false # https://prometheus-operator.dev/docs/platform/storage/#resizing-volumes

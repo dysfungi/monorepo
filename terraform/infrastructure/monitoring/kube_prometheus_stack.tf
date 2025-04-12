@@ -53,11 +53,11 @@ resource "helm_release" "kube_prometheus" {
           "resources" = {
             "requests" = {
               "cpu"    = "5m"
-              "memory" = "50Mi"
+              "memory" = "25Mi"
             }
             "limits" = {
               "cpu"    = "10m"
-              "memory" = "100Mi"
+              "memory" = "50Mi"
             }
           }
           # https://github.com/prometheus-operator/prometheus-operator/issues/3737#issuecomment-1326667523
@@ -133,6 +133,17 @@ resource "helm_release" "kube_prometheus" {
             "root_url" = "https://${local.grafana_hostname}/"
           }
         }
+        affinity = local.affinity
+        resources = {
+          requests = {
+            cpu    = "50m"
+            memory = "128Mi"
+          }
+          limits = {
+            cpu    = "100m"
+            memory = "150Mi"
+          }
+        }
         "persistence" = {
           "enabled" = true
           "type" : "sts"
@@ -160,12 +171,12 @@ resource "helm_release" "kube_prometheus" {
           "affinity"    = local.affinity
           "resources" = {
             "requests" = {
-              "cpu"    = "400m"
-              "memory" = "400Mi"
+              "cpu"    = "250m"
+              "memory" = "575Mi"
             }
             "limits" = {
-              "cpu"    = "800m"
-              "memory" = "800Mi"
+              "cpu"    = "400m"
+              "memory" = "600Mi"
             }
           }
           "paused" = false # https://prometheus-operator.dev/docs/platform/storage/#resizing-volumes
@@ -218,11 +229,11 @@ resource "helm_release" "kube_prometheus" {
         "resources" = {
           "requests" = {
             "cpu"    = "5m"
-            "memory" = "50Mi"
+            "memory" = "25Mi"
           }
           "limits" = {
             "cpu"    = "10m"
-            "memory" = "100Mi"
+            "memory" = "50Mi"
           }
         }
       }
@@ -231,12 +242,12 @@ resource "helm_release" "kube_prometheus" {
           "affinity" = local.affinity
           "resources" = {
             "requests" = {
-              "cpu"    = "200m"
+              "cpu"    = "250m"
               "memory" = "400Mi"
             }
             "limits" = {
-              "cpu"    = "500m"
-              "memory" = "800Mi"
+              "cpu"    = "400m"
+              "memory" = "600Mi"
             }
           }
           "ruleSelector" = {

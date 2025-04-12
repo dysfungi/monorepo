@@ -3,12 +3,20 @@ resource "helm_release" "kube_prometheus" {
   name             = "kube-prometheus-stack"
   repository       = "https://prometheus-community.github.io/helm-charts"
   chart            = "kube-prometheus-stack"
-  version          = "66.3.1"
+  version          = "70.4.2"
   namespace        = local.namespace
   create_namespace = false
 
   values = [
     yamlencode({
+      crds = {
+        enabled = true
+        upgradeJob = {
+          enabled        = true
+          forceConflicts = false
+          affinity       = local.affinity
+        }
+      }
       cleanPrometheusOperatorObjectNames = true
       annotations = {
         firing_alerts = "https://grafana.frank.sh/alerting/list?search=state%3Afiring+type%3Aalerting&view=state"
@@ -54,6 +62,20 @@ resource "helm_release" "kube_prometheus" {
       }
       kubelet = {
         enabled = true
+      }
+      nodeExporter = {
+        enabled = true
+        operatingSystems = {
+          aix = {
+            enabled = false
+          }
+          darwin = {
+            enabled = false
+          }
+          linux = {
+            enabled = true
+          }
+        }
       }
       alertmanager = {
         alertmanagerSpec = {
@@ -133,6 +155,7 @@ resource "helm_release" "kube_prometheus" {
         }
       }
       grafana = {
+        adminUser     = "admin"
         adminPassword = var.grafana_admin_password
         "grafana.ini" = {
           server = {
@@ -172,6 +195,8 @@ resource "helm_release" "kube_prometheus" {
               memory = "128Mi"
             }
           }
+          defaultDashboardsTimezone = "browser"
+          defaultDashboardsInterval = "1m"
           dashboards = {
             annotations = {
               grafana_folder = "K8"

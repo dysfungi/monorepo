@@ -1,39 +1,39 @@
 resource "kubernetes_manifest" "alertmanager_route" {
   manifest = {
-    "apiVersion" = "gateway.networking.k8s.io/v1"
-    "kind"       = "HTTPRoute"
-    "metadata" = {
-      "name"      = "alertmanager"
-      "namespace" = helm_release.kube_prometheus.namespace
+    apiVersion = "gateway.networking.k8s.io/v1"
+    kind       = "HTTPRoute"
+    metadata = {
+      name      = "alertmanager"
+      namespace = helm_release.kube_prometheus.namespace
     }
-    "spec" = {
-      "parentRefs" = [
+    spec = {
+      parentRefs = [
         {
-          "kind"        = "Gateway"
-          "name"        = "prod-web"
-          "namespace"   = "gateway"
-          "sectionName" = "https-wildcard.${var.root_domain}"
+          kind        = "Gateway"
+          name        = "prod-web"
+          namespace   = "gateway"
+          sectionName = "https-wildcard.${var.root_domain}"
         },
       ]
-      "hostnames" = [
+      hostnames = [
         local.alertmanager_hostname,
       ]
-      "rules" = [
+      rules = [
         {
-          "matches" = [
+          matches = [
             {
-              "path" = {
-                "type"  = "PathPrefix"
-                "value" = "/"
+              path = {
+                type  = "PathPrefix"
+                value = "/"
               }
             },
           ]
-          "backendRefs" = [
+          backendRefs = [
             {
-              "kind"      = "Service"
-              "name"      = "${helm_release.kube_prometheus.name}-alertmanager"
-              "namespace" = helm_release.kube_prometheus.namespace
-              "port"      = 9093
+              kind      = "Service"
+              name      = "${helm_release.kube_prometheus.name}-alertmanager"
+              namespace = helm_release.kube_prometheus.namespace
+              port      = 9093
             },
           ]
         }
@@ -44,40 +44,40 @@ resource "kubernetes_manifest" "alertmanager_route" {
 
 resource "kubernetes_manifest" "prometheus_route" {
   manifest = {
-    "apiVersion" = "gateway.networking.k8s.io/v1"
-    "kind"       = "HTTPRoute"
-    "metadata" = {
-      "name"      = "prometheus"
-      "namespace" = helm_release.kube_prometheus.namespace
+    apiVersion = "gateway.networking.k8s.io/v1"
+    kind       = "HTTPRoute"
+    metadata = {
+      name      = "prometheus"
+      namespace = helm_release.kube_prometheus.namespace
     }
-    "spec" = {
-      "parentRefs" = [
+    spec = {
+      parentRefs = [
         {
-          "kind"        = "Gateway"
-          "name"        = "prod-web"
-          "namespace"   = "gateway"
-          "sectionName" = "https-wildcard.${var.root_domain}"
+          kind        = "Gateway"
+          name        = "prod-web"
+          namespace   = "gateway"
+          sectionName = "https-wildcard.${var.root_domain}"
         }
       ]
-      "hostnames" = [
+      hostnames = [
         local.prometheus_hostname,
       ]
-      "rules" = [
+      rules = [
         {
-          "matches" = [
+          matches = [
             {
-              "path" = {
-                "type"  = "PathPrefix"
-                "value" = "/"
+              path = {
+                type  = "PathPrefix"
+                value = "/"
               }
             }
           ]
-          "backendRefs" = [
+          backendRefs = [
             {
-              "kind"      = "Service"
-              "name"      = "${helm_release.kube_prometheus.name}-prometheus"
-              "namespace" = helm_release.kube_prometheus.namespace
-              "port"      = 9090
+              kind      = "Service"
+              name      = "${helm_release.kube_prometheus.name}-prometheus"
+              namespace = helm_release.kube_prometheus.namespace
+              port      = 9090
             }
           ]
         }
@@ -88,40 +88,40 @@ resource "kubernetes_manifest" "prometheus_route" {
 
 resource "kubernetes_manifest" "grafana_route" {
   manifest = {
-    "apiVersion" = "gateway.networking.k8s.io/v1"
-    "kind"       = "HTTPRoute"
-    "metadata" = {
-      "name"      = "grafana"
-      "namespace" = helm_release.kube_prometheus.namespace
+    apiVersion = "gateway.networking.k8s.io/v1"
+    kind       = "HTTPRoute"
+    metadata = {
+      name      = "grafana"
+      namespace = helm_release.kube_prometheus.namespace
     }
-    "spec" = {
-      "parentRefs" = [
+    spec = {
+      parentRefs = [
         {
-          "kind"        = "Gateway"
-          "name"        = "prod-web"
-          "namespace"   = "gateway"
-          "sectionName" = "https-wildcard.${var.root_domain}"
+          kind        = "Gateway"
+          name        = "prod-web"
+          namespace   = "gateway"
+          sectionName = "https-wildcard.${var.root_domain}"
         }
       ]
-      "hostnames" = [
+      hostnames = [
         local.grafana_hostname,
       ]
-      "rules" = [
+      rules = [
         {
-          "matches" = [
+          matches = [
             {
-              "path" = {
-                "type"  = "PathPrefix"
-                "value" = "/"
+              path = {
+                type  = "PathPrefix"
+                value = "/"
               }
             }
           ]
-          "backendRefs" = [
+          backendRefs = [
             {
-              "kind"      = "Service"
-              "name"      = "${helm_release.kube_prometheus.name}-grafana"
-              "namespace" = helm_release.kube_prometheus.namespace
-              "port"      = 80
+              kind      = "Service"
+              name      = "${helm_release.kube_prometheus.name}-grafana"
+              namespace = helm_release.kube_prometheus.namespace
+              port      = 80
             }
           ]
         }

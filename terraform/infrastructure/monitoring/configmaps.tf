@@ -3,10 +3,10 @@ resource "kubernetes_config_map" "general_grafana_dashboards" {
     name      = "general-grafana-dashboards"
     namespace = helm_release.kube_prometheus.namespace
     labels = {
-      "grafana_dashboard" = "1"
+      grafana_dashboard = "1"
     }
     annotations = {
-      # "grafana_folder" = ""
+      # grafana_folder = ""
     }
   }
   data = {
@@ -24,10 +24,10 @@ resource "kubernetes_config_map" "folder_grafana_dashboards" {
     name      = "${lower(each.key)}-grafana-dashboards"
     namespace = helm_release.kube_prometheus.namespace
     labels = {
-      "grafana_dashboard" = "1"
+      grafana_dashboard = "1"
     }
     annotations = {
-      "grafana_folder" = each.key
+      grafana_folder = each.key
     }
   }
   data = {

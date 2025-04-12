@@ -38,7 +38,6 @@ locals {
       nvidia_a100_90usd = "vcg-a100-1c-6g-4vram" # NOTE: Was unavailable for VKE on 2025-03-29
     }
   }
-
 }
 
 resource "vultr_kubernetes" "k8s" {
@@ -48,27 +47,26 @@ resource "vultr_kubernetes" "k8s" {
   ha_controlplanes = false
   enable_firewall  = true
 
-  # node_pools {
-  #   node_quantity = 2
-  #   # plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_24usd
-  #   plan        = local.cpu_plans.cloud_compute.regular_performance.intel_oldgen_20usd
-  #   label       = "default"
-  #   auto_scaler = true
-  #   min_nodes   = 2
-  #   max_nodes   = 4
-  # }
+  node_pools {
+    node_quantity = 2
+    plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_24usd
+    label         = "default"
+    auto_scaler   = true
+    min_nodes     = 2
+    max_nodes     = 4
+  }
 }
 
-resource "vultr_kubernetes_node_pools" "temp" {
-  cluster_id    = vultr_kubernetes.k8s.id
-  node_quantity = 2
-  plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_24usd
-  label         = "temp"
-  tag           = "temp"
-  auto_scaler   = true
-  min_nodes     = 1
-  max_nodes     = 2
-}
+# resource "vultr_kubernetes_node_pools" "temp" {
+#   cluster_id    = vultr_kubernetes.k8s.id
+#   node_quantity = 2
+#   plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_24usd
+#   label         = "temp"
+#   tag           = "temp"
+#   auto_scaler   = true
+#   min_nodes     = 1
+#   max_nodes     = 2
+# }
 
 resource "vultr_kubernetes_node_pools" "infrastructure" {
   cluster_id    = vultr_kubernetes.k8s.id

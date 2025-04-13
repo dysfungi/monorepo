@@ -169,11 +169,11 @@ resource "helm_release" "kube_prometheus" {
         resources = {
           requests = {
             cpu    = "50m"
-            memory = "128Mi"
+            memory = "256Mi"
           }
           limits = {
             cpu    = "100m"
-            memory = "256Mi"
+            memory = "512Mi"
           }
         }
         persistence = {
@@ -192,7 +192,7 @@ resource "helm_release" "kube_prometheus" {
             }
             limits = {
               cpu    = "50m"
-              memory = "128Mi"
+              memory = "256Mi"
             }
           }
           defaultDashboardsTimezone = "browser"
@@ -285,11 +285,11 @@ resource "helm_release" "kube_prometheus" {
         resources = {
           requests = {
             cpu    = "5m"
-            memory = "25Mi"
+            memory = "32Mi"
           }
           limits = {
             cpu    = "100m"
-            memory = "50Mi"
+            memory = "64Mi"
           }
         }
       }
@@ -297,11 +297,11 @@ resource "helm_release" "kube_prometheus" {
         resources = {
           requests = {
             cpu    = "50m"
-            memory = "15Mi"
+            memory = "16Mi"
           }
           limits = {
             cpu    = "100m"
-            memory = "25Mi"
+            memory = "32Mi"
           }
         }
       }

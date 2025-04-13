@@ -1,7 +1,7 @@
 resource "kubernetes_service" "api" {
   metadata {
     name      = "api"
-    namespace = kubernetes_namespace.automate.metadata[0].name
+    namespace = local.namespace
     labels    = local.labels
   }
 

@@ -5,7 +5,7 @@ resource "kubernetes_manifest" "api_pod_monitor" {
     "kind"       = "PodMonitor"
     "metadata" = {
       "name"      = kubernetes_deployment.api.metadata[0].name
-      "namespace" = kubernetes_namespace.automate.metadata[0].name
+      "namespace" = local.namespace
     }
     "spec" = {
       "podTargetLabels" = [
@@ -23,7 +23,7 @@ resource "kubernetes_manifest" "api_pod_monitor" {
       "namespaceSelector" = {
         "any" = false
         "matchNames" = [
-          kubernetes_namespace.automate.metadata[0].name
+          local.namespace,
         ]
       }
       "selector" = {

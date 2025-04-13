@@ -2,7 +2,7 @@ resource "kubernetes_secret" "cr" {
   // https://docs.vultr.com/how-to-use-vultr-container-registry-with-kubernetes#generate-the-vultr-container-registry-kubernetes-credentials
   metadata {
     name      = "vultr-cr-credentials"
-    namespace = kubernetes_namespace.automate.metadata[0].name
+    namespace = local.namespace
   }
   type = "kubernetes.io/dockerconfigjson"
   data = {
@@ -13,7 +13,7 @@ resource "kubernetes_secret" "cr" {
 resource "kubernetes_secret" "dbmate" {
   metadata {
     name      = "automate-dbmate"
-    namespace = kubernetes_namespace.automate.metadata[0].name
+    namespace = local.namespace
   }
   data = {
     DATABASE_URL = join("", [
@@ -29,7 +29,7 @@ resource "kubernetes_secret" "dbmate" {
 resource "kubernetes_secret" "env" {
   metadata {
     name      = "automate-env"
-    namespace = kubernetes_namespace.automate.metadata[0].name
+    namespace = local.namespace
   }
   data = {
     DATABASE_HOST              = data.vultr_database.pg.host
@@ -40,7 +40,7 @@ resource "kubernetes_secret" "env" {
     DATABASE_USERNAME          = vultr_database_user.automate_api.username
     DROPBOX_CLIENT_ID          = var.automate_dropbox_client_id
     DROPBOX_CLIENT_SECRET      = var.automate_dropbox_client_secret
-    DROPBOX_REDIRECT_BASE_URL  = "https://${local.hostname}"
+    DROPBOX_REDIRECT_BASE_URL  = "https://${module.route.primary_hostname}"
     LOGGING_FORMAT             = "plain"
     LOGGING_LEVEL              = "Information"
     TODOIST_CLIENT_ID          = var.automate_todoist_client_id

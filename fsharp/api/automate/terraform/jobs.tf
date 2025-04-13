@@ -1,7 +1,7 @@
 resource "kubernetes_job" "dbmate" {
   metadata {
     name      = "automate-api-dbmigrate"
-    namespace = kubernetes_namespace.automate.metadata[0].name
+    namespace = local.namespace
     labels = merge(local.labels, {
       "app.kubernetes.io/instance" = "dbmigrate"
     })
@@ -13,6 +13,24 @@ resource "kubernetes_job" "dbmate" {
       }
 
       spec {
+        affinity {
+          # https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+          node_affinity {
+            preferred_during_scheduling_ignored_during_execution {
+              weight = 2
+              preference {
+                match_expressions {
+                  key      = "vke.vultr.com/node-pool"
+                  operator = "In"
+                  values = [
+                    "default",
+                    local.namespace,
+                  ]
+                }
+              }
+            }
+          }
+        }
         node_selector = local.node_selector
 
         container {

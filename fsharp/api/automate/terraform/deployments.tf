@@ -2,7 +2,7 @@
 resource "kubernetes_deployment" "api" {
   metadata {
     name      = "automate-api"
-    namespace = kubernetes_namespace.automate.metadata[0].name
+    namespace = local.namespace
     labels    = local.labels
   }
   spec {
@@ -15,10 +15,28 @@ resource "kubernetes_deployment" "api" {
     template {
       metadata {
         generate_name = "automate-api"
-        namespace     = kubernetes_namespace.automate.metadata[0].name
+        namespace     = local.namespace
         labels        = local.labels
       }
       spec {
+        affinity {
+          # https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+          node_affinity {
+            preferred_during_scheduling_ignored_during_execution {
+              weight = 2
+              preference {
+                match_expressions {
+                  key      = "vke.vultr.com/node-pool"
+                  operator = "In"
+                  values = [
+                    "default",
+                    local.namespace,
+                  ]
+                }
+              }
+            }
+          }
+        }
         node_selector = local.node_selector
 
         image_pull_secrets {

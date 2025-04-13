@@ -3,7 +3,7 @@ resource "helm_release" "httpbin" {
   repository = "https://matheusfm.dev/charts"
   chart      = "httpbin"
   version    = "0.1.1"
-  namespace  = kubernetes_namespace.httpbin.metadata[0].name
+  namespace  = local.namespace
 
   values = [
     yamlencode({

@@ -1,4 +1,3 @@
 locals {
-  hostname = "${var.subdomain}.${var.root_domain}"
-  probe    = "http://${local.hostname}/ip"
+  namespace = kubernetes_namespace.httpbin.metadata[0].name
 }

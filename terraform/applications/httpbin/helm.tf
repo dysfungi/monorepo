@@ -8,6 +8,13 @@ resource "helm_release" "httpbin" {
   values = [
     yamlencode({
       replicaCount = "2"
+      autoscaling = {
+        enabled                        = true
+        minReplicas                    = 2
+        maxReplicas                    = 8
+        targetCPUUtilizationPercentage = 80
+        # targetMemoryUtilizationPercentage = 80
+      }
       nodeSelector = {
         "kubernetes.io/os"        = "linux"
         "vke.vultr.com/node-pool" = "default"

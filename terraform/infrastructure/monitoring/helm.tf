@@ -84,11 +84,11 @@ resource "helm_release" "kube_prometheus" {
           resources = {
             requests = {
               cpu    = "5m"
-              memory = "32Mi"
+              memory = "64Mi"
             }
             limits = {
               cpu    = "10m"
-              memory = "64Mi"
+              memory = "128Mi"
             }
           }
           # https://github.com/prometheus-operator/prometheus-operator/issues/3737#issuecomment-1326667523
@@ -228,11 +228,11 @@ resource "helm_release" "kube_prometheus" {
           resources = {
             requests = {
               cpu    = "250m"
-              memory = "600Mi"
+              memory = "768Mi"
             }
             limits = {
-              cpu    = "400m"
-              memory = "800Mi"
+              cpu    = "500m"
+              memory = "1Gi"
             }
           }
           paused = false # https://prometheus-operator.dev/docs/platform/storage/#resizing-volumes

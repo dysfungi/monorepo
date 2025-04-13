@@ -108,8 +108,9 @@ resource "helm_release" "cert_manager" {
         }
       }
       cainjector = {
-        enabled  = true
-        affinity = local.affinity
+        enabled      = true
+        replicaCount = 2
+        affinity     = local.affinity
         resources = {
           requests = {
             cpu    = "5m"
@@ -136,8 +137,8 @@ resource "helm_release" "cert_manager" {
         }
       }
       webhook = {
-        enabled  = true
-        affinity = local.affinity
+        replicaCount = 2
+        affinity     = local.affinity
         resources = {
           requests = {
             cpu    = "5m"

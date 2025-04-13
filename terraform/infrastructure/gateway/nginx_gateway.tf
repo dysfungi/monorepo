@@ -83,11 +83,11 @@ resource "helm_release" "gateway" {
         replicaCount = 2
         resources = {
           requests = {
-            cpu    = "5m"
+            cpu    = "30m"
             memory = "128Mi"
           }
           limits = {
-            cpu    = "10m"
+            cpu    = "100m"
             memory = "128Mi"
           }
         }

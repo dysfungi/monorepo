@@ -74,42 +74,62 @@ resource "helm_release" "gateway" {
 
   values = [
     yamlencode({
-      "fullnameOverride"              = "nginx-gateway"
-      "affinity"                      = local.affinity
-      "terminationGracePeriodSeconds" = 50
+      fullnameOverride              = "nginx-gateway"
+      affinity                      = local.affinity
+      terminationGracePeriodSeconds = 50
       # https://github.com/nginx/nginx-gateway-fabric/blob/main/charts/nginx-gateway-fabric/values.yaml
       # https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#configure-delayed-pod-termination-for-zero-downtime-upgrades
-      "nginxGateway" = {
-        "replicaCount" = 2
-        "lifecycle" = {
-          "preStop" = {
-            "exec" = {
-              "command" = ["/usr/bin/gateway", "sleep", "--duration=30s"]
+      nginxGateway = {
+        replicaCount = 2
+        resources = {
+          requests = {
+            cpu    = "5m"
+            memory = "128Mi"
+          }
+          limits = {
+            cpu    = "10m"
+            memory = "128Mi"
+          }
+        }
+        lifecycle = {
+          preStop = {
+            exec = {
+              command = ["/usr/bin/gateway", "sleep", "--duration=30s"]
             }
           }
         }
-        "securityContext" = {
-          "allowPrivilegeEscalation" = true
+        securityContext = {
+          allowPrivilegeEscalation = true
         }
-        "snippetsFilters" = {
+        snippetsFilters = {
           # https://docs.nginx.com/nginx-gateway-fabric/how-to/traffic-management/snippets/
-          "enable" = true
+          enable = true
         }
       }
-      "nginx" = {
-        "lifecycle" = {
-          "preStop" = {
-            "exec" = {
-              "command" = ["/bin/sh", "-c", "/bin/sleep 30"]
+      nginx = {
+        resources = {
+          requests = {
+            cpu    = "10m"
+            memory = "128Mi"
+          }
+          limits = {
+            cpu    = "100m"
+            memory = "512Mi"
+          }
+        }
+        lifecycle = {
+          preStop = {
+            exec = {
+              command = ["/bin/sh", "-c", "/bin/sleep 30"]
             }
           }
         }
       }
-      "service" = {
+      service = {
         # https://docs.vultr.com/vultr-kubernetes-engine#vke-load-balancer
         # https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/service#example-usage
         # https://github.com/vultr/vultr-cloud-controller-manager/blob/master/docs/load-balancers.md#annotations
-        "annotations" = {
+        annotations = {
           # https://github.com/kubernetes-sigs/external-dns/blob/master/docs/annotations/annotations.md#external-dnsalphakubernetesiohostname
           # "external-dns.alpha.kubernetes.io/hostname" = "frank.sh,*.frank.sh"
           # https://docs.vultr.com/how-to-use-a-vultr-load-balancer-with-vke#7.-using-proxy-protocol
@@ -125,17 +145,17 @@ resource "helm_release" "gateway" {
 # https://github.com/nginx/nginx-gateway-fabric/blob/433eba254a328935c9064bd8cbf05d5c457773ce/deploy/crds.yaml#L650
 resource "kubernetes_manifest" "gateway_config_proxy_protocol" {
   manifest = {
-    "apiVersion" = "gateway.nginx.org/v1alpha1"
-    "kind"       = "NginxProxy"
-    "metadata" = {
-      "name"      = "${helm_release.gateway.metadata[0].name}-proxy-protocol"
-      "namespace" = kubernetes_namespace.gateway.metadata[0].name
+    apiVersion = "gateway.nginx.org/v1alpha1"
+    kind       = "NginxProxy"
+    metadata = {
+      name      = "${helm_release.gateway.metadata[0].name}-proxy-protocol"
+      namespace = kubernetes_namespace.gateway.metadata[0].name
     }
-    "spec" = {
-      "rewriteClientIP" = {
-        "mode"             = "ProxyProtocol"
-        "setIPRecursively" = true
-        "trustedAddresses" = []
+    spec = {
+      rewriteClientIP = {
+        mode             = "ProxyProtocol"
+        setIPRecursively = true
+        trustedAddresses = []
       }
     }
   }

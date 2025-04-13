@@ -84,11 +84,11 @@ resource "helm_release" "kube_prometheus" {
           resources = {
             requests = {
               cpu    = "5m"
-              memory = "25Mi"
+              memory = "32Mi"
             }
             limits = {
               cpu    = "10m"
-              memory = "50Mi"
+              memory = "64Mi"
             }
           }
           # https://github.com/prometheus-operator/prometheus-operator/issues/3737#issuecomment-1326667523
@@ -173,7 +173,7 @@ resource "helm_release" "kube_prometheus" {
           }
           limits = {
             cpu    = "100m"
-            memory = "200Mi"
+            memory = "256Mi"
           }
         }
         persistence = {
@@ -188,7 +188,7 @@ resource "helm_release" "kube_prometheus" {
           resources = {
             requests = {
               cpu    = "10m"
-              memory = "90Mi"
+              memory = "128Mi"
             }
             limits = {
               cpu    = "50m"

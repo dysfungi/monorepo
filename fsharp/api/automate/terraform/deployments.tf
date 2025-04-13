@@ -125,7 +125,7 @@ resource "kubernetes_deployment" "api" {
           resources {
             requests = {
               cpu    = "50m"
-              memory = "64Mi"
+              memory = "128Mi"
             }
             limits = {
               cpu    = "250m"

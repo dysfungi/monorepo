@@ -9,7 +9,8 @@ resource "helm_release" "httpbin" {
     yamlencode({
       replicaCount = "2"
       autoscaling = {
-        enabled                        = true
+        # TODO(dfrank): no matches for kind "HorizontalPodAutoscaler" in version "autoscaling/v2beta1"
+        enabled                        = false
         minReplicas                    = 2
         maxReplicas                    = 8
         targetCPUUtilizationPercentage = 80

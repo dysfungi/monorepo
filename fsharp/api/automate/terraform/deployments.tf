@@ -68,8 +68,8 @@ resource "kubernetes_deployment" "api" {
 
           resources {
             requests = {
-              cpu    = "50m"
-              memory = "32Mi"
+              cpu    = "100m"
+              memory = "64Mi"
             }
             limits = {
               cpu    = "250m"
@@ -125,7 +125,7 @@ resource "kubernetes_deployment" "api" {
           resources {
             requests = {
               cpu    = "50m"
-              memory = "32Mi"
+              memory = "64Mi"
             }
             limits = {
               cpu    = "250m"

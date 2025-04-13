@@ -7,10 +7,20 @@ resource "helm_release" "httpbin" {
 
   values = [
     yamlencode({
-      "replicaCount" = "2"
-      "nodeSelector" = {
+      replicaCount = "2"
+      nodeSelector = {
         "kubernetes.io/os"        = "linux"
         "vke.vultr.com/node-pool" = "default"
+      }
+      resources = {
+        requests = {
+          cpu    = "10m"
+          memory = "16Mi"
+        }
+        limits = {
+          cpu    = "100m"
+          memory = "128Mi"
+        }
       }
     }),
   ]

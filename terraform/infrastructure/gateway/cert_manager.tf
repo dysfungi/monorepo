@@ -14,14 +14,57 @@ resource "helm_release" "cert_manager" {
         enabled = true
         keep    = true
       }
+      resources = {
+        requests = {
+          cpu    = "5m"
+          memory = "32Mi"
+        }
+        limits = {
+          cpu    = "10m"
+          memory = "64Mi"
+        }
+      }
       cainjector = {
+        enabled  = true
         affinity = local.affinity
+        resources = {
+          requests = {
+            cpu    = "5m"
+            memory = "32Mi"
+          }
+          limits = {
+            cpu    = "10m"
+            memory = "64Mi"
+          }
+        }
       }
       startupapicheck = {
+        enabled  = true
         affinity = local.affinity
+        resources = {
+          requests = {
+            cpu    = "5m"
+            memory = "32Mi"
+          }
+          limits = {
+            cpu    = "10m"
+            memory = "64Mi"
+          }
+        }
       }
       webhook = {
+        enabled  = true
         affinity = local.affinity
+        resources = {
+          requests = {
+            cpu    = "5m"
+            memory = "16Mi"
+          }
+          limits = {
+            cpu    = "10m"
+            memory = "32Mi"
+          }
+        }
       }
       # https://cert-manager.io/docs/configuration/acme/dns01/#setting-nameservers-for-dns01-self-check
       extraArgs = [

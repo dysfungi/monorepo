@@ -11,8 +11,18 @@ resource "helm_release" "external_dns" {
   values = [
     yamlencode({
       namespaced = false
-      provider   = "cloudflare"
+      provider   = "cloudflare" # NOTE: only "webhook" supports more config like resources
       affinity   = local.affinity
+      resources = {
+        requests = {
+          cpu    = "5m"
+          memory = "32Mi"
+        }
+        limits = {
+          cpu    = "10m"
+          memory = "64Mi"
+        }
+      }
       rbac = {
         create = true
       }

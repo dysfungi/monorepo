@@ -47,7 +47,7 @@ resource "helm_release" "ollama" {
                 "key"      = "vke.vultr.com/node-pool"
                 "operator" = "In"
                 "values" = [
-                  "default",
+                  "gpu",
                   "llm",
                   kubernetes_namespace.ollama.metadata[0].name,
                 ]

@@ -16,9 +16,26 @@ resource "helm_release" "httpbin" {
         targetCPUUtilizationPercentage = 80
         # targetMemoryUtilizationPercentage = 80
       }
-      nodeSelector = {
-        "kubernetes.io/os"        = "linux"
-        "vke.vultr.com/node-pool" = "default"
+      affinity = {
+        # https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+        nodeAffinity = {
+          preferredDuringSchedulingIgnoredDuringExecution = [
+            {
+              weight = 2
+              preference = {
+                matchExpressions = [
+                  {
+                    key      = "vke.vultr.com/node-pool"
+                    operator = "In"
+                    values = [
+                      "default",
+                    ]
+                  },
+                ]
+              }
+            },
+          ]
+        }
       }
       resources = {
         requests = {

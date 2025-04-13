@@ -3,7 +3,7 @@
 resource "kubernetes_role" "secret_reader" {
   metadata {
     name      = "secret-reader"
-    namespace = kubernetes_namespace.gateway.metadata[0].name
+    namespace = local.namespace
   }
   rule {
     api_groups = [""]

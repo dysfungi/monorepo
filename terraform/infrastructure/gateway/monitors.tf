@@ -3,31 +3,31 @@
 # https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.PodMonitor
 resource "kubernetes_manifest" "gateway_pod_monitor" {
   manifest = {
-    "apiVersion" = "monitoring.coreos.com/v1"
-    "kind"       = "PodMonitor"
-    "metadata" = {
-      "name"      = helm_release.gateway.name
-      "namespace" = helm_release.gateway.namespace
+    apiVersion = "monitoring.coreos.com/v1"
+    kind       = "PodMonitor"
+    metadata = {
+      name      = helm_release.gateway.name
+      namespace = local.namespace
     }
-    "spec" = {
-      "podTargetLabels" = [
+    spec = {
+      podTargetLabels = [
         "app.kubernetes.io/instance",
         "app.kubernetes.io/name",
         "pod-template-hash",
       ]
-      "podMetricsEndpoints" = [
+      podMetricsEndpoints = [
         {
-          "port" = "metrics"
+          port = "metrics"
         },
       ]
-      "namespaceSelector" = {
-        "any" = false
-        "matchNames" = [
-          helm_release.gateway.namespace,
+      namespaceSelector = {
+        any = false
+        matchNames = [
+          local.namespace,
         ]
       }
-      "selector" = {
-        "matchLabels" = {
+      selector = {
+        matchLabels = {
           "app.kubernetes.io/instance" = helm_release.gateway.name
           "app.kubernetes.io/name"     = "nginx-gateway-fabric"
         }

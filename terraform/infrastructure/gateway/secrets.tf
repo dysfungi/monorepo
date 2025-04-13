@@ -3,7 +3,7 @@
 resource "kubernetes_secret" "cloudflare" {
   metadata {
     name      = "cloudflare"
-    namespace = kubernetes_namespace.gateway.metadata[0].name
+    namespace = local.namespace
   }
   data = {
     apiToken = var.cloudflare_api_token

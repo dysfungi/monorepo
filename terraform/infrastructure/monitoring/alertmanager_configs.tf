@@ -14,7 +14,7 @@ resource "kubernetes_manifest" "notifications" {
         ]
         groupWait      = "30s"
         groupInterval  = "5m"
-        repeatInterval = "12h"
+        repeatInterval = "1y"
         routes = [
           {
             receiver = "deadmans-switch"

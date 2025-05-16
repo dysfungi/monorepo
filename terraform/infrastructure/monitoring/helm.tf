@@ -263,7 +263,7 @@ resource "helm_release" "kube_prometheus" {
                 accessModes      = ["ReadWriteOnce"]
                 resources = {
                   requests = {
-                    storage = "50Gi"
+                    storage = "128Gi"
                   }
                 }
               }

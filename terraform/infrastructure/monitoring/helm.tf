@@ -223,8 +223,11 @@ resource "helm_release" "kube_prometheus" {
       }
       prometheus = {
         prometheusSpec = {
-          externalUrl = "https://${local.prometheus_hostname}"
-          affinity    = local.affinity
+          # https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api-reference/api.md#monitoring.coreos.com/v1.ByteSize
+          externalUrl   = "https://${local.prometheus_hostname}"
+          affinity      = local.affinity
+          retention     = "7d"
+          retentionSize = "40GiB"
           resources = {
             requests = {
               cpu    = "250m"

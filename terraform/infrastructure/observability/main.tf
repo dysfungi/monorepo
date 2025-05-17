@@ -20,6 +20,10 @@ terraform {
       source  = "kristofferahl/healthchecksio"
       version = "~> 2.0"
     }
+    honeycombio = {
+      source  = "honeycombio/honeycombio"
+      version = "~> 0.35.0"
+    }
   }
 }
 
@@ -37,4 +41,9 @@ provider "helm" {
 
 provider "healthchecksio" {
   api_key = var.healthchecksio_api_key
+}
+
+provider "honeycombio" {
+  api_key_id     = var.honeycomb_key_id
+  api_key_secret = var.honeycomb_key_secret
 }

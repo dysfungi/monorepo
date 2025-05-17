@@ -78,6 +78,7 @@ resource "helm_release" "kube_prometheus" {
         }
       }
       alertmanager = {
+        enabled = true
         alertmanagerSpec = {
           externalUrl = "https://${local.alertmanager_hostname}"
           affinity    = local.affinity
@@ -155,6 +156,7 @@ resource "helm_release" "kube_prometheus" {
         }
       }
       grafana = {
+        enabled       = true
         adminUser     = "admin"
         adminPassword = var.grafana_admin_password
         "grafana.ini" = {
@@ -222,6 +224,7 @@ resource "helm_release" "kube_prometheus" {
         }
       }
       prometheus = {
+        enabled = false
         prometheusSpec = {
           # https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api-reference/api.md#monitoring.coreos.com/v1.ByteSize
           externalUrl   = "https://${local.prometheus_hostname}"
@@ -275,6 +278,7 @@ resource "helm_release" "kube_prometheus" {
         }
       }
       prometheusOperator = {
+        enabled          = true
         fullnameOverride = "prometheus-operator"
         admissionWebhooks = {
           deployment = {
@@ -309,6 +313,7 @@ resource "helm_release" "kube_prometheus" {
         }
       }
       thanosRuler = {
+        enabled = false
         thanosRulerSpec = {
           affinity = local.affinity
           resources = {

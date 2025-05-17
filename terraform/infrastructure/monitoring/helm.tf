@@ -224,7 +224,7 @@ resource "helm_release" "kube_prometheus" {
         }
       }
       prometheus = {
-        enabled = false
+        enabled = true
         prometheusSpec = {
           # https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api-reference/api.md#monitoring.coreos.com/v1.ByteSize
           externalUrl   = "https://${local.prometheus_hostname}"

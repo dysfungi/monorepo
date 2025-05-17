@@ -229,8 +229,8 @@ resource "helm_release" "kube_prometheus" {
           # https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api-reference/api.md#monitoring.coreos.com/v1.ByteSize
           externalUrl   = "https://${local.prometheus_hostname}"
           affinity      = local.affinity
-          retention     = "7d"
-          retentionSize = "40GiB"
+          retention     = "1y"
+          retentionSize = "100GiB"
           resources = {
             requests = {
               cpu    = "250m"

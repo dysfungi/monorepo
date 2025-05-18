@@ -166,6 +166,7 @@ locals {
               "memory_limiter",
               "transform/events",
               "resourcedetection/env",
+              "logdedup",
               "batch",
             ]
             exporters = [
@@ -267,6 +268,7 @@ locals {
             processers = [
               "memory_limiter",
               "resourcedetection/env",
+              "logdedup",
               "batch",
             ]
             exporters = [

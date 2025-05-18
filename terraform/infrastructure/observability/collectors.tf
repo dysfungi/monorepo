@@ -27,7 +27,7 @@ locals {
           mode                = "proportional"
         }
         "probabilistic_sampler/logs" = {
-          sampling_percentage = 100
+          sampling_percentage = 10
           mode                = "proportional"
         }
         "resourcedetection/env" = {

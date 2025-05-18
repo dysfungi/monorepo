@@ -4,6 +4,9 @@ resource "kubernetes_deployment" "api" {
     name      = "automate-api"
     namespace = local.namespace
     labels    = local.labels
+    annotations = {
+      "instrumentation.opentelemetry.io/inject-dotnet" = "observability/opentelemetry-kube-stack"
+    }
   }
   spec {
     replicas = 2

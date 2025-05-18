@@ -8,6 +8,12 @@ resource "helm_release" "httpbin" {
   values = [
     yamlencode({
       replicaCount = "2"
+      podAnnotations = {
+        "instrumentation.opentelemetry.io/inject-go" = "observability/opentelemetry-kube-stack"
+        # Go Requires an additional annotation to the path of the binary on the container
+        # https://github.com/mccutchen/go-httpbin/blob/main/Dockerfile#L16
+        "instrumentation.opentelemetry.io/otel-go-auto-target-exe" = "/bin/go-httpbin"
+      }
       autoscaling = {
         # TODO(dfrank): no matches for kind "HorizontalPodAutoscaler" in version "autoscaling/v2beta1"
         enabled                        = false

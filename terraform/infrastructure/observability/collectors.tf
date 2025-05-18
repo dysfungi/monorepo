@@ -1,4 +1,5 @@
 # https://opentelemetry.io/docs/platforms/kubernetes/getting-started/#overview
+# https://github.com/open-telemetry/opentelemetry-operator/blob/main/docs/api/opentelemetrycollectors.md
 # https://github.com/open-telemetry/opentelemetry-collector/blob/main/README.md
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/README.md
 # https://docs.honeycomb.io/send-data/kubernetes/opentelemetry/create-telemetry-pipeline/#step-4-deploy-collectors

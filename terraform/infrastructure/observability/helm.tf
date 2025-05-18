@@ -7,6 +7,8 @@ resource "helm_release" "opentelemetry_kube_stack" {
   namespace        = local.namespace
   create_namespace = false
 
+  # https://github.com/open-telemetry/opentelemetry-operator/blob/main/README.md
+  # https://github.com/open-telemetry/opentelemetry-operator/blob/main/docs/api/README.md
   # https://docs.honeycomb.io/send-data/kubernetes/opentelemetry/create-telemetry-pipeline/
   values = [
     yamlencode({

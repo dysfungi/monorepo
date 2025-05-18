@@ -13,6 +13,9 @@ locals {
         }
         logdedup = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logdedupprocessor/README.md
+          interval            = "60s"
+          log_count_attribute = "log_count"
+          conditions          = ["true"]
         }
         memory_limiter = {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/memorylimiterprocessor/README.md
@@ -160,9 +163,9 @@ locals {
             ]
             processers = [
               "memory_limiter",
+              "logdedup",
               "transform/events",
               "resourcedetection/env",
-              "logdedup",
               "batch",
             ]
             exporters = [
@@ -266,8 +269,8 @@ locals {
             ]
             processers = [
               "memory_limiter",
-              "resourcedetection/env",
               "logdedup",
+              "resourcedetection/env",
               "batch",
             ]
             exporters = [

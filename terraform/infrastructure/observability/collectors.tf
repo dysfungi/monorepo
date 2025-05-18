@@ -20,6 +20,16 @@ locals {
         memory_limiter = {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/memorylimiterprocessor/README.md
         }
+        probabilistic_sampler = {
+          # Traces
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/probabilisticsamplerprocessor/README.md
+          sampling_percentage = 100
+          mode                = "proportional"
+        }
+        "probabilistic_sampler/logs" = {
+          sampling_percentage = 100
+          mode                = "proportional"
+        }
         "resourcedetection/env" = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/resourcedetectionprocessor/README.md
         }
@@ -164,6 +174,7 @@ locals {
             processers = [
               "memory_limiter",
               "logdedup",
+              "probabilistic_sampler/logs",
               "transform/events",
               "resourcedetection/env",
               "batch",
@@ -270,6 +281,7 @@ locals {
             processers = [
               "memory_limiter",
               "logdedup",
+              "probabilistic_sampler/logs",
               "resourcedetection/env",
               "batch",
             ]
@@ -298,6 +310,7 @@ locals {
             ]
             processers = [
               "memory_limiter",
+              "probabilistic_sampler",
               "resourcedetection/env",
               "batch",
             ]

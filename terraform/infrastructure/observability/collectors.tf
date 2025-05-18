@@ -175,8 +175,9 @@ locals {
               "memory_limiter",
               "logdedup",
               "probabilistic_sampler/logs",
-              "transform/events",
+              "k8sattributes",
               "resourcedetection/env",
+              "transform/events",
               "batch",
             ]
             exporters = [
@@ -190,6 +191,7 @@ locals {
             ]
             processers = [
               "memory_limiter",
+              "k8sattributes",
               "resourcedetection/env",
               "batch",
             ]
@@ -200,6 +202,7 @@ locals {
           }
           traces = null
         }
+        telemetry = {}
       }
     }
   }
@@ -218,6 +221,8 @@ locals {
         enabled = true
       }
     }
+    # https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-kube-stack/daemon_scrape_configs.yaml
+    # scrape_configs_file = "daemon_scrape_configs.yaml"
     config = {
       receivers = {
         kubeletstats = {
@@ -276,12 +281,14 @@ locals {
         pipelines = {
           logs = {
             receivers = [
+              "filelog",
               "otlp",
             ]
             processers = [
               "memory_limiter",
               "logdedup",
               "probabilistic_sampler/logs",
+              "k8sattributes",
               "resourcedetection/env",
               "batch",
             ]
@@ -292,10 +299,14 @@ locals {
           }
           metrics = {
             receivers = [
+              "hostmetrics",
+              "kubeletstats",
+              "prometheus",
               "otlp",
             ]
             processers = [
               "memory_limiter",
+              "k8sattributes",
               "resourcedetection/env",
               "batch",
             ]
@@ -311,6 +322,7 @@ locals {
             processers = [
               "memory_limiter",
               "probabilistic_sampler",
+              "k8sattributes",
               "resourcedetection/env",
               "batch",
             ]
@@ -320,6 +332,7 @@ locals {
             ]
           }
         }
+        telemetry = {}
       }
     }
   }

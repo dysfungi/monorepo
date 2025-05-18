@@ -491,8 +491,8 @@ jobs:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          honeycomb_key_id: op://Frankenstructure/Honeycomb.io Management API Key - prod/username
-          honeycomb_key_secret: op://Frankenstructure/Honeycomb.io Management API Key - prod/credential
+          honeycomb_key_id: op://Frankenstructure/Honeycomb.io Management API Key/username
+          honeycomb_key_secret: op://Frankenstructure/Honeycomb.io Management API Key/credential
       - id: healthchecksio-api-key
         uses: cloudposse/github-action-secret-outputs@main
         with:
@@ -528,8 +528,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
           TF_VAR_healthchecksio_api_key: ${{ steps.healthchecksio-api-key.outputs.out }}
-          TF_VAR_honeycomb_key_id: ${{ steps.op-secrets.outputs.honeycomb_api_id }}
-          TF_VAR_honeycomb_key_secret: ${{ steps.op-secrets.outputs.honeycomb_api_secret }}
+          TF_VAR_honeycomb_key_id: ${{ steps.op-secrets.outputs.honeycomb_key_id }}
+          TF_VAR_honeycomb_key_secret: ${{ steps.op-secrets.outputs.honeycomb_key_secret }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
       - name: Deploy
         working-directory: terraform/infrastructure/observability
@@ -538,8 +538,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
           TF_VAR_healthchecksio_api_key: ${{ steps.healthchecksio-api-key.outputs.out }}
-          TF_VAR_honeycomb_key_id: ${{ steps.op-secrets.outputs.honeycomb_api_id }}
-          TF_VAR_honeycomb_key_secret: ${{ steps.op-secrets.outputs.honeycomb_api_secret }}
+          TF_VAR_honeycomb_key_id: ${{ steps.op-secrets.outputs.honeycomb_key_id }}
+          TF_VAR_honeycomb_key_secret: ${{ steps.op-secrets.outputs.honeycomb_key_secret }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
 
   deploy-gateway:

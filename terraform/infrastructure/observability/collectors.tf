@@ -6,11 +6,7 @@ locals {
   base_collector = {
     affinity = local.affinity
     config = {
-      receivers = {
-        oltp = {
-          # https://github.com/open-telemetry/opentelemetry-collector/blob/main/receiver/otlpreceiver/README.md
-        }
-      }
+      receivers = {}
       processers = {
         batch = {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/batchprocessor/README.md
@@ -234,6 +230,9 @@ locals {
               enabled = true
             }
           }
+        }
+        otlp = {
+          # https://github.com/open-telemetry/opentelemetry-collector/blob/main/receiver/otlpreceiver/README.md
         }
       }
       processers = {}

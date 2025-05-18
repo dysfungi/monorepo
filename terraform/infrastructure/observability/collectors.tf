@@ -129,12 +129,12 @@ locals {
             logs = {
               # receivers = ["k8sobjects"]
               processers = ["memory_limiter", "transform/events", "resourcedetection/env", "batch"]
-              # exporters  = ["debug", "otlp/k8s-events"]
+              exporters  = ["debug", "otlp/k8s-events"]
             }
             metrics = {
               # receivers = ["k8s_cluster"]
               # processers = ["resourcedetection/env", "batch"]
-              exporters = ["debug", "otlp/k8s-metrics"]
+              # exporters = ["debug", "otlp/k8s-metrics"]
             }
             traces = null
           }
@@ -219,7 +219,7 @@ locals {
             metrics = {
               receivers = ["otlp"]
               # processers = ["resourcedetection/env", "batch"]
-              exporters = ["debug", "otlp/k8s-metrics"]
+              # exporters = ["debug", "otlp/k8s-metrics"]
             }
             traces = {
               receivers = ["otlp"]

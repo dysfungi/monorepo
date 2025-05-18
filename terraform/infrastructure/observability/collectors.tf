@@ -131,7 +131,7 @@ locals {
           }
           metrics = {
             # receivers = ["k8s_cluster"]
-            # processers = ["resourcedetection/env", "batch"]
+            processers = ["memory_limiter", "resourcedetection/env", "batch"]
             # exporters = ["debug", "otlp/k8s-metrics"]
           }
           traces = null
@@ -210,19 +210,19 @@ locals {
       service = {
         pipelines = {
           logs = {
-            receivers = ["otlp"]
-            # processers = ["resourcedetection/env", "batch"]
-            exporters = ["debug", "otlp/k8s-logs"]
+            receivers  = ["otlp"]
+            processers = ["memory_limiter", "resourcedetection/env", "batch"]
+            exporters  = ["debug", "otlp/k8s-logs"]
           }
           metrics = {
-            receivers = ["otlp"]
-            # processers = ["resourcedetection/env", "batch"]
+            receivers  = ["otlp"]
+            processers = ["memory_limiter", "resourcedetection/env", "batch"]
             # exporters = ["debug", "otlp/k8s-metrics"]
           }
           traces = {
-            receivers = ["otlp"]
-            # processers = ["resourcedetection/env", "batch"]
-            exporters = ["debug", "otlp"]
+            receivers  = ["otlp"]
+            processers = ["memory_limiter", "resourcedetection/env", "batch"]
+            exporters  = ["debug", "otlp"]
           }
         }
       }

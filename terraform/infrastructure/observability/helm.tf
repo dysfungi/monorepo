@@ -10,10 +10,8 @@ resource "helm_release" "opentelemetry_kube_stack" {
   # https://docs.honeycomb.io/send-data/kubernetes/opentelemetry/create-telemetry-pipeline/
   values = [
     yamlencode({
-      clusterName = "frank8s"
-      defaultCRConfig = {
-        affinity = local.affinity
-      }
+      clusterName     = "frank8s"
+      defaultCRConfig = local.base_collector
       collectors      = local.collectors
       instrumentation = local.instrumentation
       extraEnvs = [

@@ -1,4 +1,38 @@
+# https://opentelemetry.io/docs/platforms/kubernetes/getting-started/#overview
+# https://github.com/open-telemetry/opentelemetry-collector/blob/main/README.md
+# https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/README.md
+# https://docs.honeycomb.io/send-data/kubernetes/opentelemetry/create-telemetry-pipeline/#step-4-deploy-collectors
 locals {
+  base_collector = {
+    affinity = local.affinity
+    config = {
+      receivers = {
+        oltp = {
+          # https://github.com/open-telemetry/opentelemetry-collector/blob/main/receiver/otlpreceiver/README.md
+        }
+      }
+      processers = {
+        batch = {
+          # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/batchprocessor/README.md
+        }
+        logdedup = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logdedupprocessor/README.md
+        }
+        memory_limiter = {
+          # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/memorylimiterprocessor/README.md
+        }
+        "resourcedetection/env" = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/resourcedetectionprocessor/README.md
+        }
+      }
+      exporters = {
+        debug = {
+          # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/debugexporter/README.md
+        }
+      }
+    }
+  }
+
   deployment_collector = {
     # https://docs.honeycomb.io/send-data/kubernetes/values-files/values-deployment.yaml
     replicas = 2
@@ -125,20 +159,40 @@ locals {
       service = {
         pipelines = {
           logs = {
-            # receivers = ["k8sobjects"]
-            processers = ["memory_limiter", "transform/events", "resourcedetection/env", "batch"]
-            exporters  = ["debug", "otlp/k8s-events"]
+            receivers = [
+              "k8sobjects",
+            ]
+            processers = [
+              "memory_limiter",
+              "transform/events",
+              "resourcedetection/env",
+              "batch",
+            ]
+            exporters = [
+              "debug",
+              "otlp/k8s-events",
+            ]
           }
           metrics = {
-            # receivers = ["k8s_cluster"]
-            processers = ["memory_limiter", "resourcedetection/env", "batch"]
-            # exporters = ["debug", "otlp/k8s-metrics"]
+            receivers = [
+              "k8s_cluster",
+            ]
+            processers = [
+              "memory_limiter",
+              "resourcedetection/env",
+              "batch",
+            ]
+            exporters = [
+              "debug",
+              # "otlp/k8s-metrics",
+            ]
           }
           traces = null
         }
       }
     }
   }
+
   daemonset_collector = {
     # https://docs.honeycomb.io/send-data/kubernetes/values-files/values-daemonset.yaml
     presets = {
@@ -181,10 +235,7 @@ locals {
           }
         }
       }
-      processers = {
-        batch                   = {}
-        "resourcedetection/env" = {}
-      }
+      processers = {}
       exporters = {
         otlp = {
           endpoint = "api.honeycomb.io:443"
@@ -210,26 +261,52 @@ locals {
       service = {
         pipelines = {
           logs = {
-            receivers  = ["otlp"]
-            processers = ["memory_limiter", "resourcedetection/env", "batch"]
-            exporters  = ["debug", "otlp/k8s-logs"]
+            receivers = [
+              "otlp",
+            ]
+            processers = [
+              "memory_limiter",
+              "resourcedetection/env",
+              "batch",
+            ]
+            exporters = [
+              "debug",
+              "otlp/k8s-logs",
+            ]
           }
           metrics = {
-            receivers  = ["otlp"]
-            processers = ["memory_limiter", "resourcedetection/env", "batch"]
-            # exporters = ["debug", "otlp/k8s-metrics"]
+            receivers = [
+              "otlp",
+            ]
+            processers = [
+              "memory_limiter",
+              "resourcedetection/env",
+              "batch",
+            ]
+            exporters = [
+              "debug",
+              # "otlp/k8s-metrics",
+            ]
           }
           traces = {
-            receivers  = ["otlp"]
-            processers = ["memory_limiter", "resourcedetection/env", "batch"]
-            exporters  = ["debug", "otlp"]
+            receivers = [
+              "otlp",
+            ]
+            processers = [
+              "memory_limiter",
+              "resourcedetection/env",
+              "batch",
+            ]
+            exporters = [
+              "debug",
+              "otlp",
+            ]
           }
         }
       }
     }
   }
-  # https://opentelemetry.io/docs/platforms/kubernetes/getting-started/#overview
-  # https://docs.honeycomb.io/send-data/kubernetes/opentelemetry/create-telemetry-pipeline/#step-4-deploy-collectors
+
   collectors = {
     cluster = local.deployment_collector
     daemon  = local.daemonset_collector

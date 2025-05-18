@@ -246,6 +246,7 @@ resource "helm_release" "opentelemetry_kube_stack" {
           }
         }
       }
+      instrumentation = local.instrumentation
       extraEnvs = [
         {
           name = "HONEYCOMB_API_KEY"

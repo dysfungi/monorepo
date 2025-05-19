@@ -13,6 +13,7 @@ locals {
         amd_epyc_12usd   = "vhp-1c-2gb-amd"
         amd_epyc_18usd   = "vhp-2c-2gb-amd"
         amd_epyc_24usd   = "vhp-2c-4gb-amd"
+        amd_epyc_48usd   = "vhp-4c-8gb-amd"
         intel_xeon_24usd = "vhp-2c-4gb-intel"
       }
       high_frequency = {
@@ -48,12 +49,12 @@ resource "vultr_kubernetes" "k8s" {
   enable_firewall  = true
 
   node_pools {
-    node_quantity = 2
+    node_quantity = 1
     plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_24usd
     label         = "default"
     auto_scaler   = true
-    min_nodes     = 2
-    max_nodes     = 4
+    min_nodes     = 1
+    max_nodes     = 2
   }
 }
 

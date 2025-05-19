@@ -56,6 +56,13 @@ locals {
           timeout   = "1s"
           override  = false
         }
+        transform = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/transformprocessor/README.md
+          error_mode        = "ignore"
+          log_statements    = []
+          metric_statements = []
+          trace_statements  = []
+        }
       }
       exporters = {
         debug = {

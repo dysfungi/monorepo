@@ -8,7 +8,7 @@ locals {
     affinity = local.affinity
     config = {
       receivers = {}
-      processers = {
+      processors = {
         batch = {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/batchprocessor/README.md
         }
@@ -172,7 +172,7 @@ locals {
             receivers = [
               "k8sobjects",
             ]
-            processers = [
+            processors = [
               "memory_limiter",
               "logdedup",
               "probabilistic_sampler/logs",
@@ -190,7 +190,7 @@ locals {
             receivers = [
               "k8s_cluster",
             ]
-            processers = [
+            processors = [
               "memory_limiter",
               "k8sattributes",
               "resourcedetection/env",
@@ -255,7 +255,7 @@ locals {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/receiver/otlpreceiver/README.md
         }
       }
-      processers = {}
+      processors = {}
       exporters = {
         otlp = {
           endpoint = "api.honeycomb.io:443"
@@ -285,7 +285,7 @@ locals {
               "filelog",
               "otlp",
             ]
-            processers = [
+            processors = [
               "memory_limiter",
               "logdedup",
               "probabilistic_sampler/logs",
@@ -305,7 +305,7 @@ locals {
               "prometheus",
               "otlp",
             ]
-            processers = [
+            processors = [
               "memory_limiter",
               "k8sattributes",
               "resourcedetection/env",
@@ -320,7 +320,7 @@ locals {
             receivers = [
               "otlp",
             ]
-            processers = [
+            processors = [
               "memory_limiter",
               "probabilistic_sampler",
               "k8sattributes",

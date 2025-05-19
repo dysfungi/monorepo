@@ -12,6 +12,21 @@ locals {
         batch = {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/batchprocessor/README.md
         }
+        filter = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/filterprocessor/README.md
+          error_mode = "ignore"
+          logs = {
+            # log_record = ["true"]
+          }
+          metrics = {
+            # metric    = ["true"]
+            # datapoint = ["true"]
+          }
+          traces = {
+            # span      = ["true"]
+            # spanevent = ["true"]
+          }
+        }
         logdedup = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logdedupprocessor/README.md
           interval            = "60s"
@@ -45,6 +60,7 @@ locals {
       exporters = {
         debug = {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/debugexporter/README.md
+          # verbosity = "detailed"
         }
       }
     }
@@ -182,6 +198,7 @@ locals {
             ]
             processors = [
               "memory_limiter",
+              "filter",
               "logdedup",
               "probabilistic_sampler/logs",
               "k8sattributes",
@@ -200,6 +217,7 @@ locals {
             ]
             processors = [
               "memory_limiter",
+              "filter",
               "k8sattributes",
               "resourcedetection/env",
               "batch",
@@ -296,6 +314,7 @@ locals {
             ]
             processors = [
               "memory_limiter",
+              "filter",
               "logdedup",
               "probabilistic_sampler/logs",
               "k8sattributes",
@@ -316,6 +335,7 @@ locals {
             ]
             processors = [
               "memory_limiter",
+              "filter",
               "k8sattributes",
               "resourcedetection/env",
               "batch",
@@ -331,6 +351,7 @@ locals {
             ]
             processors = [
               "memory_limiter",
+              "filter",
               "probabilistic_sampler",
               "k8sattributes",
               "resourcedetection/env",

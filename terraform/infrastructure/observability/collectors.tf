@@ -20,6 +20,8 @@ locals {
         }
         memory_limiter = {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/memorylimiterprocessor/README.md
+          check_interval   = "1s"
+          limit_percentage = 85
         }
         probabilistic_sampler = {
           # Traces
@@ -29,10 +31,15 @@ locals {
         }
         "probabilistic_sampler/logs" = {
           sampling_percentage = 10
-          mode                = "proportional"
+          # mode                = "proportional"
+          attribute_source = "record"
+          from_attribute   = "first_observed_timestamp"
         }
         "resourcedetection/env" = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/resourcedetectionprocessor/README.md
+          detectors = ["env"]
+          timeout   = "1s"
+          override  = false
         }
       }
       exporters = {
@@ -45,6 +52,7 @@ locals {
 
   deployment_collector = {
     # https://docs.honeycomb.io/send-data/kubernetes/values-files/values-deployment.yaml
+    enabled  = true
     replicas = 2
     presets = {
       clusterMetrics = {
@@ -210,6 +218,7 @@ locals {
 
   daemonset_collector = {
     # https://docs.honeycomb.io/send-data/kubernetes/values-files/values-daemonset.yaml
+    enabled = true
     presets = {
       kubernetesAttributes = {
         # enables the k8sattributesprocessor and adds it to the traces, metrics, and logs pipelines
@@ -300,9 +309,9 @@ locals {
           }
           metrics = {
             receivers = [
-              "hostmetrics",
-              "kubeletstats",
-              "prometheus",
+              # "hostmetrics",
+              # "kubeletstats",
+              # "prometheus",
               "otlp",
             ]
             processors = [

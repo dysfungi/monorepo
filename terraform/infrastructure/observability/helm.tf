@@ -16,6 +16,22 @@ resource "helm_release" "opentelemetry_kube_stack" {
       defaultCRConfig = local.base_collector
       collectors      = local.collectors
       instrumentation = local.instrumentation
+      opentelemetry-operator = {
+        enabled  = true
+        affinity = local.affinity
+        pdb = {
+          create = true
+        }
+        manager = {
+          image = {
+            # tag = "0.125.0"
+          }
+          collectorImage = {
+            # repository = "otel/opentelemetry-collector"
+            # tag        = "0.126.0"
+          }
+        }
+      }
       extraEnvs = [
         {
           name = "HONEYCOMB_API_KEY"

@@ -45,7 +45,7 @@ locals {
           mode                = "proportional"
         }
         "probabilistic_sampler/logs" = {
-          sampling_percentage = 10
+          sampling_percentage = 20
           # mode                = "proportional"
           attribute_source = "record"
           from_attribute   = "first_observed_timestamp"

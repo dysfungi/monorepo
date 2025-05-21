@@ -22,6 +22,11 @@ resource "helm_release" "gateway" {
       # https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#configure-delayed-pod-termination-for-zero-downtime-upgrades
       nginxGateway = {
         replicaCount = 2
+        config = {
+          logging = {
+            level = "info"
+          }
+        }
         resources = {
           requests = {
             cpu    = "30m"
@@ -48,6 +53,12 @@ resource "helm_release" "gateway" {
         }
       }
       nginx = {
+        config = {
+          # https://docs.nginx.com/nginx-gateway-fabric/reference/api/#gateway.nginx.org/v1alpha1.NginxProxySpec
+          logging = {
+            errorLevel = "info"
+          }
+        }
         resources = {
           requests = {
             cpu    = "10m"

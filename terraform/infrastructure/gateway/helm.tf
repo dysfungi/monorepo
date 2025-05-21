@@ -58,6 +58,13 @@ resource "helm_release" "gateway" {
           logging = {
             errorLevel = "info"
           }
+          telemetry = {
+            exporter = {
+              # endpoint = "opentelemetry-kube-stack-daemon-collector.observability:4317"
+              endpoint = "localhost:4317"
+
+            }
+          }
         }
         resources = {
           requests = {

@@ -287,6 +287,15 @@ locals {
         }
         otlp = {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/receiver/otlpreceiver/README.md
+          protocols = {
+            grpc = {
+              endpoint = "0.0.0.0:4317"
+            }
+            http = {
+              endpoint = "0.0.0.0:4318"
+            }
+
+          }
         }
       }
       processors = {}

@@ -60,9 +60,9 @@ resource "helm_release" "gateway" {
           }
           telemetry = {
             exporter = {
-              # endpoint = "opentelemetry-kube-stack-daemon-collector.observability:4317"
-              endpoint = "localhost:4317"
-
+              # Unable to configure env and use HOST_IP, so relying on service.
+              # https://stackoverflow.com/questions/71773917/unable-to-export-traces-to-opentelemetry-collector-on-kubernetes
+              endpoint = "opentelemetry-kube-stack-daemon-collector.observability:4317"
             }
           }
         }

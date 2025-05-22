@@ -28,3 +28,9 @@ variable "subdomain" {
   type     = string
   nullable = false
 }
+
+variable "trace_sampling" {
+  type     = number
+  nullable = false
+  default  = 100
+}

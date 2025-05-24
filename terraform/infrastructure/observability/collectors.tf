@@ -33,6 +33,11 @@ locals {
           log_count_attribute = "log_count"
           conditions          = ["true"]
         }
+        "logdedup/metrics" = {
+          interval            = "10s"
+          log_count_attribute = "metric_count"
+          conditions          = ["true"]
+        }
         memory_limiter = {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/memorylimiterprocessor/README.md
           check_interval   = "1s"
@@ -54,7 +59,7 @@ locals {
           sampling_percentage = 1
           mode                = "proportional"
           attribute_source    = "record"
-          from_attribute      = "uid"
+          from_attribute      = "first_observed_timestamp"
         }
         "resourcedetection/env" = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/resourcedetectionprocessor/README.md
@@ -231,6 +236,7 @@ locals {
             processors = [
               "memory_limiter",
               "filter",
+              "logdedup/metrics",
               "probabilistic_sampler/metrics",
               "k8sattributes",
               "resourcedetection/env",

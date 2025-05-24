@@ -51,9 +51,9 @@ locals {
         }
         "probabilistic_sampler/logs" = {
           sampling_percentage = 50
-          # mode                = "proportional"
-          attribute_source = "record"
-          from_attribute   = "first_observed_timestamp"
+          mode                = "proportional"
+          attribute_source    = "record"
+          from_attribute      = "first_observed_timestamp"
         }
         "probabilistic_sampler/metrics" = {
           sampling_percentage = 1

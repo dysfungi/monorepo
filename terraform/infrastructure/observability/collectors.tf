@@ -50,6 +50,12 @@ locals {
           attribute_source = "record"
           from_attribute   = "first_observed_timestamp"
         }
+        "probabilistic_sampler/metrics" = {
+          sampling_percentage = 1
+          mode                = "proportional"
+          attribute_source    = "record"
+          from_attribute      = "uid"
+        }
         "resourcedetection/env" = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/resourcedetectionprocessor/README.md
           detectors = ["env"]
@@ -225,13 +231,14 @@ locals {
             processors = [
               "memory_limiter",
               "filter",
+              "probabilistic_sampler/metrics",
               "k8sattributes",
               "resourcedetection/env",
               "batch",
             ]
             exporters = [
               "debug",
-              # "otlp/k8s-metrics",
+              "otlp/k8s-metrics",
             ]
           }
           traces = null

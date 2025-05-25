@@ -6,7 +6,24 @@
 locals {
   base_collector = {
     affinity = local.affinity
+    ports = [
+      {
+        name       = "zpages"
+        protocol   = "TCP"
+        port       = 55679
+        targetPort = 55679
+      }
+    ]
     config = {
+      extensions = {
+        health_check = {
+          endpoint = ":13133"
+        }
+        # memory_limiter = {}
+        zpages = {
+          endpoint = ":55679"
+        }
+      }
       receivers = {}
       processors = {
         batch = {
@@ -68,6 +85,27 @@ locals {
         debug = {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/debugexporter/README.md
           # verbosity = "detailed"
+        }
+      }
+      service = {
+        extensions = [
+          "health_check",
+          # "memory_limiter",
+          "zpages",
+        ]
+        telemetry = {
+          # https://opentelemetry.io/docs/collector/internal-telemetry/#activate-internal-telemetry-in-the-collector
+          logs = {
+            # https://opentelemetry.io/docs/collector/internal-telemetry/#configure-internal-logs
+            level = "DEBUG"
+          }
+          metrics = {
+            # https://opentelemetry.io/docs/collector/internal-telemetry/#configure-internal-metrics
+            level = "normal"
+          }
+          traces = {
+            # https://opentelemetry.io/docs/collector/internal-telemetry/#configure-internal-traces
+          }
         }
       }
     }
@@ -236,7 +274,6 @@ locals {
           }
           traces = null
         }
-        telemetry = {}
       }
     }
   }
@@ -379,7 +416,6 @@ locals {
             ]
           }
         }
-        telemetry = {}
       }
     }
   }

@@ -58,14 +58,16 @@ locals {
         probabilistic_sampler = {
           # Traces
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/probabilisticsamplerprocessor/README.md
-          sampling_percentage = 100
+          hash_seed           = 22
           mode                = "proportional"
+          sampling_percentage = 100
         }
         "probabilistic_sampler/logs" = {
-          sampling_percentage = 50
-          mode                = "proportional"
           attribute_source    = "record"
           from_attribute      = "first_observed_timestamp"
+          hash_seed           = 22
+          mode                = "hash_seed"
+          sampling_percentage = 50
         }
         "resourcedetection/env" = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/resourcedetectionprocessor/README.md

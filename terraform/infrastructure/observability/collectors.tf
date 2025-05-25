@@ -4,6 +4,15 @@
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/README.md
 # https://docs.honeycomb.io/send-data/kubernetes/opentelemetry/create-telemetry-pipeline/#step-4-deploy-collectors
 locals {
+  backends = {
+    otlp_honeycomb = {
+      endpoint = "api.honeycomb.io:443"
+      headers = {
+        x-honeycomb-team = "$${env:HONEYCOMB_API_KEY}"
+      }
+    }
+
+  }
   base_collector = {
     affinity = local.affinity
     ports = [
@@ -12,7 +21,7 @@ locals {
         protocol   = "TCP"
         port       = 55679
         targetPort = 55679
-      }
+      },
     ]
     config = {
       extensions = {
@@ -88,6 +97,12 @@ locals {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/debugexporter/README.md
           # verbosity = "detailed"
         }
+        otlp = local.backends.otlp_honeycomb
+        "otlp/k8s-metrics" = merge(local.backends.otlp_honeycomb, {
+          headers = merge(local.backends.otlp_honeycomb.headers, {
+            x-honeycomb-dataset = "k8s-metrics"
+          })
+        })
       }
       service = {
         extensions = [
@@ -222,20 +237,11 @@ locals {
         }
       }
       exporters = {
-        "otlp/k8s-events" = {
-          endpoint = "api.honeycomb.io:443"
-          headers = {
-            x-honeycomb-team    = "$${env:HONEYCOMB_API_KEY}"
+        "otlp/k8s-events" = merge(local.backends.otlp_honeycomb, {
+          headers = merge(local.backends.otlp_honeycomb.headers, {
             x-honeycomb-dataset = "k8s-events"
-          }
-        }
-        "otlp/k8s-metrics" = {
-          endpoint = "api.honeycomb.io:443"
-          headers = {
-            x-honeycomb-team    = "$${env:HONEYCOMB_API_KEY}"
-            x-honeycomb-dataset = "k8s-metrics"
-          }
-        }
+          })
+        })
       }
       service = {
         pipelines = {
@@ -339,26 +345,11 @@ locals {
       }
       processors = {}
       exporters = {
-        otlp = {
-          endpoint = "api.honeycomb.io:443"
-          headers = {
-            x-honeycomb-team = "$${env:HONEYCOMB_API_KEY}"
-          }
-        }
-        "otlp/k8s-logs" = {
-          endpoint = "api.honeycomb.io:443"
-          headers = {
-            x-honeycomb-team    = "$${env:HONEYCOMB_API_KEY}"
+        "otlp/k8s-logs" = merge(local.backends.otlp_honeycomb, {
+          headers = merge(local.backends.otlp_honeycomb.headers, {
             x-honeycomb-dataset = "k8s-logs"
-          }
-        }
-        "otlp/k8s-metrics" = {
-          endpoint = "api.honeycomb.io:443"
-          headers = {
-            x-honeycomb-team    = "$${env:HONEYCOMB_API_KEY}"
-            x-honeycomb-dataset = "k8s-metrics"
-          }
-        }
+          })
+        })
       }
       service = {
         pipelines = {

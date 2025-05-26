@@ -67,6 +67,7 @@ locals {
         probabilistic_sampler = {
           # Traces
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/probabilisticsamplerprocessor/README.md
+          fail_closed         = true # Only disable to verify sampling failure
           hash_seed           = 22
           mode                = "proportional"
           sampling_percentage = 100
@@ -74,6 +75,7 @@ locals {
         "probabilistic_sampler/logs" = {
           attribute_source    = "record"
           from_attribute      = "first_observed_timestamp"
+          fail_closed         = true # Only disable to verify sampling failure
           hash_seed           = 22
           mode                = "hash_seed"
           sampling_percentage = 50

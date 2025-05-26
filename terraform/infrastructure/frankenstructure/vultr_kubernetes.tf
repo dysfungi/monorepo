@@ -71,7 +71,7 @@ resource "vultr_kubernetes" "k8s" {
 
 resource "vultr_kubernetes_node_pools" "infrastructure" {
   cluster_id    = vultr_kubernetes.k8s.id
-  node_quantity = 1
+  node_quantity = 2
   plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_24usd
   label         = "infrastructure"
   tag           = "infrastructure"

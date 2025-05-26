@@ -13,16 +13,12 @@ locals {
     }
   }
   telemetry_backends = {
-    otlp_honeycomb = merge(local.backends.otlp_honeycomb, {
-      headers = [
-        for key, value in local.backends.otlp_honeycomb.headers
-        : {
-          name  = key
-          value = value
-        }
-      ]
+    # Headers have a different schema:
+    #   headers  = [{name = "key", value = "value"}]
+    otlp_loopback = {
+      endpoint = "http://localhost:4318"
       protocol = "http/protobuf"
-    })
+    }
   }
   base_collector = {
     affinity = local.affinity
@@ -66,9 +62,19 @@ locals {
         }
         logdedup = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logdedupprocessor/README.md
+          # exclude_fields = ["uid"]
+          include_fields = [
+            "attributes.app",
+            "attributes.body",
+            "attributes.name",
+            "attributes.service.name",
+            "attributes.severity",
+            "attributes.trace.span_id",
+            "attributes.trace.trace_id",
+            # "body",
+          ]
           interval            = "60s"
-          log_count_attribute = "log_count"
-          conditions          = ["true"]
+          log_count_attribute = "log.dedupe.count"
         }
         memory_limiter = {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/memorylimiterprocessor/README.md
@@ -85,7 +91,7 @@ locals {
         }
         "probabilistic_sampler/logs" = {
           attribute_source    = "record"
-          from_attribute      = "first_observed_timestamp"
+          from_attribute      = "uid"
           fail_closed         = true # Only disable to verify sampling failure
           hash_seed           = 22
           mode                = "hash_seed"
@@ -101,13 +107,14 @@ locals {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/transformprocessor/README.md
           error_mode = "ignore"
           log_statements = [
-            {
+            { # Add UID attribute.
               context = "log"
               statements = [
                 <<-EOT
                   set(attributes["uid"], UUID())
                   where attributes["uid"] == nil
                 EOT
+                ,
               ]
             },
           ]
@@ -142,7 +149,7 @@ locals {
               {
                 batch = {
                   exporter = {
-                    otlp = local.telemetry_backends.otlp_honeycomb
+                    otlp = local.telemetry_backends.otlp_loopback
                   }
                 }
               },
@@ -155,7 +162,7 @@ locals {
               {
                 periodic = {
                   exporter = {
-                    otlp = local.telemetry_backends.otlp_honeycomb
+                    otlp = local.telemetry_backends.otlp_loopback
                   }
                 }
               },
@@ -167,7 +174,7 @@ locals {
               {
                 batch = {
                   exporter = {
-                    otlp = local.telemetry_backends.otlp_honeycomb
+                    otlp = local.telemetry_backends.otlp_loopback
                   }
                 }
               },

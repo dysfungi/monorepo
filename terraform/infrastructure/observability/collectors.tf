@@ -153,6 +153,15 @@ locals {
           }
           traces = {
             # https://opentelemetry.io/docs/collector/internal-telemetry/#configure-internal-traces
+            processors = [
+              {
+                batch = {
+                  exporter = {
+                    otlp = local.telemetry_backends.otlp_honeycomb
+                  }
+                }
+              },
+            ]
           }
         }
       }

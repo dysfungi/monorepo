@@ -77,7 +77,7 @@ resource "vultr_kubernetes_node_pools" "infrastructure" {
   tag           = "infrastructure"
   auto_scaler   = true
   min_nodes     = 1
-  max_nodes     = 2
+  max_nodes     = 3
 }
 
 # resource "vultr_kubernetes_node_pools" "llm" {

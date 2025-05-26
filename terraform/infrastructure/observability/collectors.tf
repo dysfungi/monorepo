@@ -6,12 +6,23 @@
 locals {
   backends = {
     otlp_honeycomb = {
-      endpoint = "api.honeycomb.io:443"
+      endpoint = "https://api.honeycomb.io:443"
       headers = {
         x-honeycomb-team = "$${env:HONEYCOMB_API_KEY}"
       }
     }
-
+  }
+  telemetry_backends = {
+    otlp_honeycomb = merge(local.backends.otlp_honeycomb, {
+      headers = [
+        for key, value in local.backends.otlp_honeycomb.headers
+        : {
+          name  = key
+          value = value
+        }
+      ]
+      protocol = "http/protobuf"
+    })
   }
   base_collector = {
     affinity = local.affinity
@@ -117,6 +128,15 @@ locals {
           logs = {
             # https://opentelemetry.io/docs/collector/internal-telemetry/#configure-internal-logs
             level = "DEBUG"
+            processors = [
+              {
+                batch = {
+                  exporter = {
+                    otlp = local.telemetry_backends.otlp_honeycomb
+                  }
+                }
+              },
+            ]
           }
           metrics = {
             # https://opentelemetry.io/docs/collector/internal-telemetry/#configure-internal-metrics

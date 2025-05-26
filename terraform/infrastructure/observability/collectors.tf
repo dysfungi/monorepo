@@ -141,6 +141,15 @@ locals {
           metrics = {
             # https://opentelemetry.io/docs/collector/internal-telemetry/#configure-internal-metrics
             level = "normal"
+            readers = [
+              {
+                periodic = {
+                  exporter = {
+                    otlp = local.telemetry_backends.otlp_honeycomb
+                  }
+                }
+              },
+            ]
           }
           traces = {
             # https://opentelemetry.io/docs/collector/internal-telemetry/#configure-internal-traces

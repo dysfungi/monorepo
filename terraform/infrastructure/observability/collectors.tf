@@ -99,8 +99,18 @@ locals {
         }
         transform = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/transformprocessor/README.md
-          error_mode        = "ignore"
-          log_statements    = []
+          error_mode = "ignore"
+          log_statements = [
+            {
+              context = "log"
+              statements = [
+                <<-EOT
+                  set(attributes["uid"], UUID())
+                  where attributes["uid"] == nil
+                EOT
+              ]
+            },
+          ]
           metric_statements = []
           trace_statements  = []
         }
@@ -292,6 +302,7 @@ locals {
             processors = [
               "memory_limiter",
               "filter",
+              "transform",
               "logdedup",
               "probabilistic_sampler/logs",
               "k8sattributes",
@@ -311,6 +322,7 @@ locals {
             processors = [
               "memory_limiter",
               "filter",
+              "transform",
               "k8sattributes",
               "resourcedetection/env",
               "batch",
@@ -401,6 +413,7 @@ locals {
             processors = [
               "memory_limiter",
               "filter",
+              "transform",
               "logdedup",
               "probabilistic_sampler/logs",
               "k8sattributes",
@@ -422,6 +435,7 @@ locals {
             processors = [
               "memory_limiter",
               "filter",
+              "transform",
               "k8sattributes",
               "resourcedetection/env",
               "batch",
@@ -438,6 +452,7 @@ locals {
             processors = [
               "memory_limiter",
               "filter",
+              "transform",
               "probabilistic_sampler",
               "k8sattributes",
               "resourcedetection/env",

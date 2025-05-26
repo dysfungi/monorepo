@@ -15,10 +15,16 @@ locals {
   telemetry_backends = {
     # Headers have a different schema:
     #   headers  = [{name = "key", value = "value"}]
-    otlp_loopback = {
-      endpoint = "http://localhost:4318"
+    otlp_honeycomb = merge(local.backends.otlp_honeycomb, {
+      headers = [
+        for key, value in local.backends.otlp_honeycomb.headers
+        : {
+          name  = key
+          value = value
+        }
+      ]
       protocol = "http/protobuf"
-    }
+    })
   }
   base_collector = {
     affinity = local.affinity
@@ -149,7 +155,7 @@ locals {
               {
                 batch = {
                   exporter = {
-                    otlp = local.telemetry_backends.otlp_loopback
+                    otlp = local.telemetry_backends.otlp_honeycomb
                   }
                 }
               },
@@ -162,7 +168,7 @@ locals {
               {
                 periodic = {
                   exporter = {
-                    otlp = local.telemetry_backends.otlp_loopback
+                    otlp = local.telemetry_backends.otlp_honeycomb
                   }
                 }
               },
@@ -174,7 +180,7 @@ locals {
               {
                 batch = {
                   exporter = {
-                    otlp = local.telemetry_backends.otlp_loopback
+                    otlp = local.telemetry_backends.otlp_honeycomb
                   }
                 }
               },

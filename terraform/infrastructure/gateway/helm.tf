@@ -34,7 +34,7 @@ resource "helm_release" "gateway" {
           }
           limits = {
             cpu    = "100m"
-            memory = "128Mi"
+            memory = "512Mi"
           }
         }
         lifecycle = {

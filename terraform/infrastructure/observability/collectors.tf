@@ -131,7 +131,7 @@ locals {
   deployment_collector = {
     # https://docs.honeycomb.io/send-data/kubernetes/values-files/values-deployment.yaml
     enabled  = true
-    replicas = 2
+    replicas = 1 # A deployment with exactly one replica ensures that we don’t produce duplicate data.
     presets = {
       clusterMetrics = {
         # enables the k8sclusterreceiver and adds it to the metrics pipelines

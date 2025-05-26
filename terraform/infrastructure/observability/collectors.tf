@@ -151,40 +151,40 @@ locals {
           logs = {
             # https://opentelemetry.io/docs/collector/internal-telemetry/#configure-internal-logs
             level = "DEBUG"
-            processors = [
-              {
-                batch = {
-                  exporter = {
-                    otlp = local.telemetry_backends.otlp_honeycomb
-                  }
-                }
-              },
-            ]
+            # processors = [
+            #   {
+            #     batch = {
+            #       exporter = {
+            #         otlp = local.telemetry_backends.otlp_honeycomb
+            #       }
+            #     }
+            #   },
+            # ]
           }
           metrics = {
             # https://opentelemetry.io/docs/collector/internal-telemetry/#configure-internal-metrics
             level = "normal"
-            readers = [
-              {
-                periodic = {
-                  exporter = {
-                    otlp = local.telemetry_backends.otlp_honeycomb
-                  }
-                }
-              },
-            ]
+            # readers = [
+            #   {
+            #     periodic = {
+            #       exporter = {
+            #         otlp = local.telemetry_backends.otlp_honeycomb
+            #       }
+            #     }
+            #   },
+            # ]
           }
           traces = {
             # https://opentelemetry.io/docs/collector/internal-telemetry/#configure-internal-traces
-            processors = [
-              {
-                batch = {
-                  exporter = {
-                    otlp = local.telemetry_backends.otlp_honeycomb
-                  }
-                }
-              },
-            ]
+            # processors = [
+            #   {
+            #     batch = {
+            #       exporter = {
+            #         otlp = local.telemetry_backends.otlp_honeycomb
+            #       }
+            #     }
+            #   },
+            # ]
           }
         }
       }

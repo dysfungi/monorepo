@@ -199,7 +199,7 @@ locals {
         }
       }
       processors = {
-        "transform/events" = {
+        "transform/k8s-events" = {
           error_mode = "ignore"
           log_statements = [
             {
@@ -296,7 +296,7 @@ locals {
               "probabilistic_sampler/logs",
               "k8sattributes",
               "resourcedetection/env",
-              "transform/events",
+              "transform/k8s-events",
               "batch",
             ]
             exporters = [

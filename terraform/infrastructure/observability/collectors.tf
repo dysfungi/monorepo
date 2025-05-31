@@ -64,7 +64,7 @@ locals {
               parse_from = "body"
               parse_to   = "body"
               if         = <<-EOT
-                body matches "^{[\\s\\S]+"
+              body matches "^{[\\s\\S]+"
               EOT
             },
           ]
@@ -143,8 +143,8 @@ locals {
               ]
               statements = [
                 <<-EOT
-                  merge_maps(attributes, body, "upsert")
-                  where body["object"] == nil
+                merge_maps(attributes, body, "upsert")
+                where body["object"] == nil
                 EOT
               ]
             },
@@ -152,8 +152,8 @@ locals {
               context = "log"
               statements = [
                 <<-EOT
-                  set(attributes["uid"], UUID())
-                  where attributes["uid"] == nil
+                set(attributes["uid"], UUID())
+                where attributes["uid"] == nil
                 EOT
                 ,
               ]

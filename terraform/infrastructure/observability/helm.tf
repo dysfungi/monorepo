@@ -14,7 +14,10 @@ resource "helm_release" "opentelemetry_kube_stack" {
     yamlencode({
       clusterName     = "frank8s"
       defaultCRConfig = local.base_collector
-      collectors      = local.collectors
+      collectors = {
+        cluster = local.cluster_collector
+        daemon  = local.daemon_collector
+      }
       instrumentation = local.instrumentation
       opentelemetry-operator = {
         enabled  = true

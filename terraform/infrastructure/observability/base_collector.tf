@@ -68,6 +68,12 @@ locals {
               if         = <<-EOT
               body matches "^{[\\s\\S]+"
               EOT
+              timestamp = {
+                type        = "time_parser"
+                parse_from  = "body.ts"
+                layout_type = "strptime"
+                layout      = "%Y-%m-%dT%H:%M:%S.%LZ"
+              }
             },
           ]
         }

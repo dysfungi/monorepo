@@ -150,6 +150,9 @@ locals {
           # https://opentelemetry.io/docs/collector/internal-telemetry/#activate-internal-telemetry-in-the-collector
           logs = {
             # https://opentelemetry.io/docs/collector/internal-telemetry/#configure-internal-logs
+            # encoding = "console"
+            encoding = "json"
+            # level = "DEBUG"
             level = "INFO"
             # processors = [
             #   {

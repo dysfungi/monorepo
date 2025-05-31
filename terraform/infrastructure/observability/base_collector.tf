@@ -74,6 +74,11 @@ locals {
                 layout_type = "strptime"
                 layout      = "%Y-%m-%dT%H:%M:%S.%LZ"
               }
+              severity = {
+                type           = "severity_parser"
+                parse_from     = "body.level"
+                overwrite_text = false
+              }
             },
           ]
         }

@@ -46,7 +46,13 @@ locals {
           endpoint = ":55679"
         }
       }
-      receivers = {}
+      receivers = {
+        filelog = {
+          exclude = [
+            "/var/log/pods/${local.namespace}_opentelemetry-kube-stack-*_*/otc-container/*.log",
+          ]
+        }
+      }
       processors = {
         batch = {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/processor/batchprocessor/README.md

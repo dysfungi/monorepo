@@ -136,6 +136,18 @@ locals {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/transformprocessor/README.md
           error_mode = "ignore"
           log_statements = [
+            { # Transform body map
+              context = "log"
+              conditions = [
+                "IsMap(body)",
+              ]
+              statements = [
+                <<-EOT
+                  merge_maps(attributes, body, "upsert")
+                  where body["object"] == nil
+                EOT
+              ]
+            },
             { # Add UID attribute.
               context = "log"
               statements = [

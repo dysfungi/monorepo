@@ -365,6 +365,10 @@ locals {
         # enables the kubeletstatsreceiver and adds it to the metrics pipelines
         enabled = true
       }
+      logsCollection = {
+        enabled              = true
+        includeCollectorLogs = false
+      }
     }
     # https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-kube-stack/daemon_scrape_configs.yaml
     # scrape_configs_file = "daemon_scrape_configs.yaml"

@@ -424,7 +424,6 @@ locals {
         pipelines = {
           logs = {
             receivers = [
-              "filelog",
               "otlp",
             ]
             processors = [

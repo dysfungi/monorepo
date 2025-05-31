@@ -49,7 +49,24 @@ locals {
       receivers = {
         filelog = {
           exclude = [
-            "/var/log/pods/${local.namespace}_opentelemetry-kube-stack-*_*/otc-container/*.log",
+            # "/var/log/pods/${local.namespace}_opentelemetry-kube-stack-*_*/otc-container/*.log",
+          ]
+          operators = [
+            { # Parse container logs.
+              # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/container.md
+              type         = "container"
+              id           = "container-parser"
+              max_log_size = 102400
+            },
+            { # Parse JSON body.
+              # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/json_parser.md
+              type       = "json_parser"
+              parse_from = "body"
+              parse_to   = "body"
+              if         = <<-EOT
+                body matches "^{[\\s\\S]+"
+              EOT
+            },
           ]
         }
       }

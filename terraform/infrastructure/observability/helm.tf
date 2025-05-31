@@ -3,7 +3,7 @@ resource "helm_release" "opentelemetry_kube_stack" {
   name             = "opentelemetry-kube-stack"
   repository       = "https://open-telemetry.github.io/opentelemetry-helm-charts"
   chart            = "opentelemetry-kube-stack"
-  version          = "0.5.3"
+  version          = "0.6.1"
   namespace        = local.namespace
   create_namespace = false
 

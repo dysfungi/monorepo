@@ -72,9 +72,7 @@ locals {
               regex = "^time=\"(?P<timestamp>\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d+)\" status=(?P<status_code>\\d+) method=\"(?P<method>[A-Z]+)\" uri=\"(?P<target>.+)\" size_bytes=(?P<response_content_length>\\d+) duration_ms=(?P<duration_ms>\\d+\\.\\d+)$"
               severity = {
                 mapping = {
-                  info  = ["2xx", "3xx"]
-                  warn  = "4xx"
-                  error = ["0", "5xx"]
+                  info = ["0", "2xx", "3xx", "4xx", "5xx"]
                 }
                 overwrite_text = false
                 parse_from     = "attributes.http.status_code"

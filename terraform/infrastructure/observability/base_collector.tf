@@ -56,29 +56,46 @@ locals {
           operators = [
             { # Parse container logs.
               # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/container.md
-              type         = "container"
               id           = "container-parser"
               max_log_size = 102400
+              type         = "container"
             },
             { # Parse JSON body.
               # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/json_parser.md
-              type       = "json_parser"
-              parse_from = "body"
-              parse_to   = "body"
+              id         = "json-parser:body"
               if         = <<-EOT
               body matches "^{[\\s\\S]+"
               EOT
-              timestamp = {
-                type        = "time_parser"
-                parse_from  = "body.ts"
-                layout_type = "strptime"
-                layout      = "%Y-%m-%dT%H:%M:%S.%LZ"
-              }
-              severity = {
-                type           = "severity_parser"
-                parse_from     = "body.level"
-                overwrite_text = false
-              }
+              parse_from = "body"
+              parse_to   = "attributes.log.body"
+              type       = "json_parser"
+            },
+            { # Parse severity from level
+              id             = "severity-parser:log.body.level"
+              if             = "attributes.log?.body?.level != nil"
+              overwrite_text = false
+              parse_from     = "attributes.log.body.level"
+              type           = "severity_parser"
+            },
+            { # Parse timestamp from string ts
+              id          = "timestamp-parser:log.body.ts:as-iso8601"
+              if          = <<-EOT
+              type(attributes.log?.body?.ts) == "string"
+              EOT
+              layout      = "%Y-%m-%dT%H:%M:%S.%LZ"
+              layout_type = "strptime"
+              parse_from  = "attributes.log.body.ts"
+              type        = "time_parser"
+            },
+            { # Parse timestamp from float ts
+              id          = "timestamp-parser:log.body.ts:as-epoch"
+              if          = <<-EOT
+              type(attributes.log?.body?.ts) == "float"
+              EOT
+              layout      = "s.us"
+              layout_type = "epoch"
+              parse_from  = "attributes.log.body.ts"
+              type        = "time_parser"
             },
           ]
         }

@@ -60,8 +60,35 @@ locals {
               max_log_size = 102400
               type         = "container"
             },
-            { # Parse JSON body.
-              # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/json_parser.md
+            # Parse regex body.
+            {
+              id         = "regex-parser:body:httpbin"
+              if         = <<-EOT
+              attributes["log.file.path"] startsWith "/var/log/pods/httpbin_httpbin-"
+              EOT
+              parse_from = "body"
+              parse_to   = "attributes.http"
+              # example: time="2025-06-01T21:36:43.7986" status=200 method="GET" uri="/status/200" size_bytes=0 duration_ms=0.06
+              regex = "^time=\"(?P<timestamp>\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d+)\" status=(?P<status_code>\\d+) method=\"(?P<method>[A-Z]+)\" uri=\"(?P<target>.+)\" size_bytes=(?P<response_content_length>\\d+) duration_ms=(?P<duration_ms>\\d+\\.\\d+)$"
+              severity = {
+                mapping = {
+                  info  = ["2xx", "3xx"]
+                  warn  = "4xx"
+                  error = ["0", "5xx"]
+                }
+                overwrite_text = false
+                parse_from     = "attributes.http.status_code"
+              }
+              timestamp = {
+                layout      = "%Y-%m-%dT%H:%M:%S.%L"
+                layout_type = "strptime"
+                parse_from  = "attributes.http.timestamp"
+              }
+              type = "regex_parser"
+            },
+            # Parse JSON body.
+            # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/json_parser.md
+            {
               id         = "json-parser:body"
               if         = <<-EOT
               body matches "^{[\\s\\S]+"

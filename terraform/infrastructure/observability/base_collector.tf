@@ -70,30 +70,62 @@ locals {
               parse_to   = "attributes.log.body"
               type       = "json_parser"
             },
-            { # Parse severity from level
+            # Parse severity
+            {
               id             = "severity-parser:log.body.level"
               if             = "attributes.log?.body?.level != nil"
               overwrite_text = false
               parse_from     = "attributes.log.body.level"
               type           = "severity_parser"
             },
-            { # Parse timestamp from string ts
-              id          = "timestamp-parser:log.body.ts:as-iso8601"
+            # Parse timestamp
+            {
+              id          = "timestamp-parser:log.body.Timestamp:as-rfc-3339-utc"
               if          = <<-EOT
-              type(attributes.log?.body?.ts) == "string"
+              type(attributes.log?.body?.Timestamp) == "string"
               EOT
               layout      = "%Y-%m-%dT%H:%M:%S.%LZ"
               layout_type = "strptime"
-              parse_from  = "attributes.log.body.ts"
+              parse_from  = "attributes.log.body.Timestamp"
               type        = "time_parser"
             },
-            { # Parse timestamp from float ts
+            {
+              id          = "timestamp-parser:log.body.time:as-rfc-3339-tz"
+              if          = <<-EOT
+              type(attributes.log?.body?.time) == "string"
+              EOT
+              layout      = "%Y-%m-%dT%H:%M:%S.%L%j"
+              layout_type = "strptime"
+              parse_from  = "attributes.log.body.time"
+              type        = "time_parser"
+            },
+            {
+              id          = "timestamp-parser:log.body.timestamp:as-rfc-3339-utc"
+              if          = <<-EOT
+              type(attributes.log?.body?.timestamp) == "string"
+              EOT
+              layout      = "%Y-%m-%dT%H:%M:%SZ"
+              layout_type = "strptime"
+              parse_from  = "attributes.log.body.timestamp"
+              type        = "time_parser"
+            },
+            {
               id          = "timestamp-parser:log.body.ts:as-epoch"
               if          = <<-EOT
               type(attributes.log?.body?.ts) == "float"
               EOT
               layout      = "s.us"
               layout_type = "epoch"
+              parse_from  = "attributes.log.body.ts"
+              type        = "time_parser"
+            },
+            {
+              id          = "timestamp-parser:log.body.ts:as-rfc-3339-utc"
+              if          = <<-EOT
+              type(attributes.log?.body?.ts) == "string"
+              EOT
+              layout      = "%Y-%m-%dT%H:%M:%S.%LZ"
+              layout_type = "strptime"
               parse_from  = "attributes.log.body.ts"
               type        = "time_parser"
             },

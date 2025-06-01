@@ -132,7 +132,7 @@ locals {
             "attributes.trace.trace_id",
             # "body",
           ]
-          interval            = "60s"
+          interval            = "10s"
           log_count_attribute = "log.dedupe.count"
         }
         memory_limiter = {

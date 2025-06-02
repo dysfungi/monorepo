@@ -62,6 +62,25 @@ locals {
             },
             # Parse regex body.
             {
+              id         = "regex-parser:body:calico-node"
+              if         = <<-EOT
+              attributes["log.file.path"] startsWith "/var/log/pods/kube-system_calico-"
+              EOT
+              parse_from = "body"
+              parse_to   = "attributes.log.body"
+              # example: 2025-06-02 00:32:42.687 [INFO][49] felix/int_dataplane.go 2201: Received *proto.HostMetadataV4V6Update update from calculation graph.
+              regex = "^(?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.\\d+) \\[(?P<level>[A-Z]+)\\](?P<msg>.+)$"
+              severity = {
+                parse_from = "attributes.log.body.level"
+              }
+              timestamp = {
+                layout      = "%Y-%m-%d %H:%M:%S.%L"
+                layout_type = "strptime"
+                parse_from  = "attributes.log.body.timestamp"
+              }
+              type = "regex_parser"
+            },
+            {
               id         = "regex-parser:body:httpbin"
               if         = <<-EOT
               attributes["log.file.path"] startsWith "/var/log/pods/httpbin_httpbin-"
@@ -74,8 +93,7 @@ locals {
                 mapping = {
                   info = ["0", "2xx", "3xx", "4xx", "5xx"]
                 }
-                overwrite_text = false
-                parse_from     = "attributes.http.status_code"
+                parse_from = "attributes.http.status_code"
               }
               timestamp = {
                 layout      = "%Y-%m-%dT%H:%M:%S.%L"
@@ -97,11 +115,10 @@ locals {
             },
             # Parse severity
             {
-              id             = "severity-parser:body.level"
-              if             = "attributes.log?.body?.level != nil"
-              overwrite_text = false
-              parse_from     = "attributes.log.body.level"
-              type           = "severity_parser"
+              id         = "severity-parser:body.level"
+              if         = "attributes.log?.body?.level != nil"
+              parse_from = "attributes.log.body.level"
+              type       = "severity_parser"
             },
             # Parse timestamp
             {
@@ -128,6 +145,7 @@ locals {
               id          = "timestamp-parser:body.timestamp:as-rfc-3339-utc"
               if          = <<-EOT
               type(attributes.log?.body?.timestamp) == "string"
+              && attributes.log.body.timestamp endsWith "Z"
               EOT
               layout      = "%Y-%m-%dT%H:%M:%SZ"
               layout_type = "strptime"

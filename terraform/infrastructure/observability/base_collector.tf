@@ -263,6 +263,7 @@ locals {
                 merge_maps(attributes, body, "upsert")
                 where body["object"] == nil
                 EOT
+                ,
               ]
             },
             { # Add UID attribute.
@@ -277,7 +278,28 @@ locals {
             },
           ]
           metric_statements = []
-          trace_statements  = []
+          trace_statements = [
+            {
+              context = "span"
+              statements = [
+                <<-EOT
+                set(attributes["http.fragment"], ExtractPatterns(attributes["http.target"], "[#](?P<fragment>[^?]*)([?].*)?$")["fragment"])
+                where attributes["http.target"] != nil
+                EOT
+                ,
+                <<-EOT
+                set(attributes["http.path"], ExtractPatterns(attributes["http.target"], "^(?P<path>[^?#]+)")["path"])
+                where attributes["http.target"] != nil
+                EOT
+                ,
+                <<-EOT
+                set(attributes["http.query"], ExtractPatterns(attributes["http.target"], "[?](?P<query>[^#]*)([#].*)?$")["query"])
+                where attributes["http.target"] != nil
+                EOT
+                ,
+              ]
+            },
+          ]
         }
       }
       exporters = {

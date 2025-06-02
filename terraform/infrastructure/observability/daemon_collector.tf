@@ -77,11 +77,11 @@ locals {
             processors = [
               "memory_limiter",
               "filter",
+              "k8sattributes",
               "transform",
+              "resourcedetection/env",
               "logdedup",
               "probabilistic_sampler/logs",
-              "k8sattributes",
-              "resourcedetection/env",
               "batch",
             ]
             exporters = [
@@ -99,8 +99,8 @@ locals {
             processors = [
               "memory_limiter",
               "filter",
-              "transform",
               "k8sattributes",
+              "transform",
               "resourcedetection/env",
               "batch",
             ]
@@ -116,10 +116,10 @@ locals {
             processors = [
               "memory_limiter",
               "filter",
-              "transform",
-              "probabilistic_sampler",
               "k8sattributes",
+              "transform",
               "resourcedetection/env",
+              "probabilistic_sampler",
               "batch",
             ]
             exporters = [

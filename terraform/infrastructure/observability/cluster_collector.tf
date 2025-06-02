@@ -123,12 +123,12 @@ locals {
             processors = [
               "memory_limiter",
               "filter",
+              "k8sattributes",
+              "transform/k8s-events",
               "transform",
+              "resourcedetection/env",
               "logdedup",
               "probabilistic_sampler/logs",
-              "k8sattributes",
-              "resourcedetection/env",
-              "transform/k8s-events",
               "batch",
             ]
             exporters = [
@@ -143,8 +143,8 @@ locals {
             processors = [
               "memory_limiter",
               "filter",
-              "transform",
               "k8sattributes",
+              "transform",
               "resourcedetection/env",
               "batch",
             ]

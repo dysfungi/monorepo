@@ -307,8 +307,8 @@ locals {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/debugexporter/README.md
           # verbosity = "detailed"
         }
-        otlp = local.backends.otlp_honeycomb
-        "otlp/k8s-metrics" = merge(local.backends.otlp_honeycomb, {
+        "otlp/honeycomb" = local.backends.otlp_honeycomb
+        "otlp/honeycomb-k8s-metrics" = merge(local.backends.otlp_honeycomb, {
           headers = merge(local.backends.otlp_honeycomb.headers, {
             x-honeycomb-dataset = "k8s-metrics"
           })

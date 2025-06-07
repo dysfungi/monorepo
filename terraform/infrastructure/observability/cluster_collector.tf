@@ -108,7 +108,7 @@ locals {
         }
       }
       exporters = {
-        "otlp/k8s-events" = merge(local.backends.otlp_honeycomb, {
+        "otlp/honeycomb-k8s-events" = merge(local.backends.otlp_honeycomb, {
           headers = merge(local.backends.otlp_honeycomb.headers, {
             x-honeycomb-dataset = "k8s-events"
           })
@@ -133,7 +133,7 @@ locals {
             ]
             exporters = [
               "debug",
-              "otlp/k8s-events",
+              "otlp/honeycomb-k8s-events",
             ]
           }
           metrics = {
@@ -150,7 +150,7 @@ locals {
             ]
             exporters = [
               "debug",
-              # "otlp/k8s-metrics",
+              # "otlp/honeycomb-k8s-metrics",
             ]
           }
           traces = null

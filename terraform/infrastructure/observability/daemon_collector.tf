@@ -62,7 +62,7 @@ locals {
       }
       processors = {}
       exporters = {
-        "otlp/k8s-logs" = merge(local.backends.otlp_honeycomb, {
+        "otlp/honeycomb-k8s-logs" = merge(local.backends.otlp_honeycomb, {
           headers = merge(local.backends.otlp_honeycomb.headers, {
             x-honeycomb-dataset = "k8s-logs"
           })
@@ -86,7 +86,7 @@ locals {
             ]
             exporters = [
               "debug",
-              "otlp/k8s-logs",
+              "otlp/honeycomb-k8s-logs",
             ]
           }
           metrics = {
@@ -106,7 +106,7 @@ locals {
             ]
             exporters = [
               "debug",
-              # "otlp/k8s-metrics",
+              # "otlp/honeycomb-k8s-metrics",
             ]
           }
           traces = {
@@ -124,7 +124,7 @@ locals {
             ]
             exporters = [
               "debug",
-              "otlp",
+              "otlp/honeycomb",
             ]
           }
         }

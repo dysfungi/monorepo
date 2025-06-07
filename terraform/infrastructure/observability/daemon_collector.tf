@@ -91,8 +91,8 @@ locals {
           }
           metrics = {
             receivers = [
-              # "hostmetrics",
-              # "kubeletstats",
+              "hostmetrics",
+              "kubeletstats",
               # "prometheus",
               "otlp",
             ]

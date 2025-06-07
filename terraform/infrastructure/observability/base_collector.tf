@@ -304,20 +304,26 @@ locals {
           trace_statements = [
             {
               context = "span"
+              conditions = [
+                <<-EOT
+                attributes["http"]["target"] != nil
+                EOT
+                ,
+              ]
               statements = [
                 <<-EOT
-                set(attributes["http.fragment"], ExtractPatterns(attributes["http.target"], "[#](?P<fragment>[^?]*)([?].*)?$")["fragment"])
-                where attributes["http.target"] != nil
+                set(attributes["http.fragment"], ExtractPatterns(attributes["http"]["target"], "[#](?P<fragment>[^?]*)([?].*)?$")["fragment"])
+                where attributes["http"]["target"] != nil
                 EOT
                 ,
                 <<-EOT
-                set(attributes["http.path"], ExtractPatterns(attributes["http.target"], "^(?P<path>[^?#]+)")["path"])
-                where attributes["http.target"] != nil
+                set(attributes["http.path"], ExtractPatterns(attributes["http"]["target"], "^(?P<path>[^?#]+)")["path"])
+                where attributes["http"]["target"] != nil
                 EOT
                 ,
                 <<-EOT
-                set(attributes["http.query"], ExtractPatterns(attributes["http.target"], "[?](?P<query>[^#]*)([#].*)?$")["query"])
-                where attributes["http.target"] != nil
+                set(attributes["http.query"], ExtractPatterns(attributes["http"]["target"], "[?](?P<query>[^#]*)([#].*)?$")["query"])
+                where attributes["http"]["target"] != nil
                 EOT
                 ,
               ]

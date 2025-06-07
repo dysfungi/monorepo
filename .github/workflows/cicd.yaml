@@ -491,6 +491,8 @@ jobs:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          grafana_cloud_instance_id: op://Frankenstructure/Grafana Cloud API Key - fungi/username
+          grafana_cloud_api_key: op://Frankenstructure/Grafana Cloud API Key - fungi/credential
           honeycomb_key_id: op://Frankenstructure/Honeycomb.io Management API Key/username
           honeycomb_key_secret: op://Frankenstructure/Honeycomb.io Management API Key/credential
       - id: healthchecksio-api-key
@@ -527,6 +529,8 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          TF_VAR_grafana_cloud_api_key: ${{ steps.op-secrets.outputs.grafana_cloud_api_key }}
+          TF_VAR_grafana_cloud_instance_id: ${{ steps.op-secrets.outputs.grafana_cloud_instance_id }}
           TF_VAR_healthchecksio_api_key: ${{ steps.healthchecksio-api-key.outputs.out }}
           TF_VAR_honeycomb_key_id: ${{ steps.op-secrets.outputs.honeycomb_key_id }}
           TF_VAR_honeycomb_key_secret: ${{ steps.op-secrets.outputs.honeycomb_key_secret }}
@@ -537,6 +541,8 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          TF_VAR_grafana_cloud_api_key: ${{ steps.op-secrets.outputs.grafana_cloud_api_key }}
+          TF_VAR_grafana_cloud_instance_id: ${{ steps.op-secrets.outputs.grafana_cloud_instance_id }}
           TF_VAR_healthchecksio_api_key: ${{ steps.healthchecksio-api-key.outputs.out }}
           TF_VAR_honeycomb_key_id: ${{ steps.op-secrets.outputs.honeycomb_key_id }}
           TF_VAR_honeycomb_key_secret: ${{ steps.op-secrets.outputs.honeycomb_key_secret }}

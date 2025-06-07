@@ -79,7 +79,7 @@ locals {
               "filter",
               "k8sattributes",
               "transform",
-              "resourcedetection/env",
+              "resourcedetection",
               "logdedup",
               "probabilistic_sampler/logs",
               "batch",
@@ -101,11 +101,14 @@ locals {
               "filter",
               "k8sattributes",
               "transform",
-              "resourcedetection/env",
+              "transform/drop_unneeded_resource_attributes",
+              "transform/add_resource_attributes_as_metric_attributes",
+              "resourcedetection",
               "batch",
             ]
             exporters = [
               "debug",
+              "otlphttp/grafana-cloud",
               # "otlp/honeycomb-k8s-metrics",
             ]
           }
@@ -118,7 +121,7 @@ locals {
               "filter",
               "k8sattributes",
               "transform",
-              "resourcedetection/env",
+              "resourcedetection",
               "probabilistic_sampler",
               "batch",
             ]

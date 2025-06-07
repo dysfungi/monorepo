@@ -3,8 +3,18 @@
 # https://github.com/open-telemetry/opentelemetry-collector/blob/main/README.md
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/README.md
 # https://docs.honeycomb.io/send-data/kubernetes/opentelemetry/create-telemetry-pipeline/#step-4-deploy-collectors
+# https://grafana.com/docs/grafana-cloud/monitor-applications/application-observability/collector/opentelemetry-collector/#advanced-manual-setup
 locals {
   backends = {
+    otlphttp_grafana_cloud = {
+      # https://grafana.com/orgs/fungi/stacks/1282220/otlp-info
+      # https://grafana.com/docs/grafana-cloud/send-data/otlp/
+      # https://grafana.com/docs/grafana-cloud/monitor-applications/application-observability/collector/opentelemetry-collector/
+      endpoint = "https://otlp-gateway-prod-us-west-0.grafana.net/otlp"
+      auth = {
+        authenticator = "basicauth/grafana-cloud"
+      }
+    }
     otlp_honeycomb = {
       endpoint = "https://api.honeycomb.io:443"
       headers = {
@@ -39,7 +49,20 @@ locals {
       },
     ]
     config = {
+      connectors = {
+        # grafanacloud = {
+        #   # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/connector/grafanacloudconnector
+        #   host_identifiers = ["host.name"]
+        # }
+      }
       extensions = {
+        "basicauth/grafana-cloud" = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/extension/basicauthextension
+          client_auth = {
+            username = "$${env:GRAFANA_CLOUD_INSTANCE_ID}"
+            password = "$${env:GRAFANA_CLOUD_API_KEY}"
+          }
+        }
         health_check = {
           endpoint = ":13133"
         }
@@ -243,9 +266,9 @@ locals {
           mode                = "hash_seed"
           sampling_percentage = 50
         }
-        "resourcedetection/env" = {
+        resourcedetection = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/resourcedetectionprocessor/README.md
-          detectors = ["env"]
+          detectors = ["env", "system"]
           timeout   = "1s"
           override  = false
         }
@@ -301,13 +324,166 @@ locals {
             },
           ]
         }
+        "transform/drop_unneeded_resource_attributes" = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/transformprocessor
+          error_mode = "ignore"
+          trace_statements = [
+            {
+              context = "resource"
+              statements = [
+                <<-EOT
+                delete_key(attributes, "k8s.pod.start_time")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "os.description")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "os.type")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.command_args")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.executable.path")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.pid")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.runtime.description")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.runtime.name")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.runtime.version")
+                EOT
+                ,
+              ]
+            },
+          ]
+          metric_statements = [
+            {
+              context = "resource"
+              statements = [
+                <<-EOT
+                delete_key(attributes, "k8s.pod.start_time")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "os.description")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "os.type")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.command_args")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.executable.path")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.pid")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.runtime.description")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.runtime.name")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.runtime.version")
+                EOT
+                ,
+              ]
+            },
+          ]
+          log_statements = [
+            {
+              context = "resource"
+              statements = [
+                <<-EOT
+                delete_key(attributes, "k8s.pod.start_time")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "os.description")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "os.type")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.command_args")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.executable.path")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.pid")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.runtime.description")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.runtime.name")
+                EOT
+                ,
+                <<-EOT
+                delete_key(attributes, "process.runtime.version")
+                EOT
+                ,
+              ]
+            },
+          ]
+        }
+        "transform/add_resource_attributes_as_metric_attributes" = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/transformprocessor
+          error_mode = "ignore"
+          metric_statements = [
+            {
+              context = "datapoint"
+              statements = [
+                <<-EOT
+                set(attributes["deployment.environment"], resource.attributes["deployment.environment"])
+                EOT
+                ,
+                <<-EOT
+                set(attributes["service.version"], resource.attributes["service.version"])
+                EOT
+                ,
+              ]
+            },
+          ]
+        }
       }
       exporters = {
         debug = {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/debugexporter/README.md
           # verbosity = "detailed"
         }
-        "otlp/honeycomb" = local.backends.otlp_honeycomb
+        "otlphttp/grafana-cloud" = local.backends.otlphttp_grafana_cloud
+        "otlp/honeycomb"         = local.backends.otlp_honeycomb
         "otlp/honeycomb-k8s-metrics" = merge(local.backends.otlp_honeycomb, {
           headers = merge(local.backends.otlp_honeycomb.headers, {
             x-honeycomb-dataset = "k8s-metrics"
@@ -316,6 +492,7 @@ locals {
       }
       service = {
         extensions = [
+          "basicauth/grafana-cloud",
           "health_check",
           # "memory_limiter",
           "zpages",

@@ -37,6 +37,26 @@ resource "helm_release" "opentelemetry_kube_stack" {
       }
       extraEnvs = [
         {
+          name = "GRAFANA_CLOUD_API_KEY"
+          valueFrom = {
+            secretKeyRef = {
+              name     = "grafana-cloud"
+              key      = "api-key"
+              optional = false
+            }
+          }
+        },
+        {
+          name = "GRAFANA_CLOUD_INSTANCE_ID"
+          valueFrom = {
+            secretKeyRef = {
+              name     = "grafana-cloud"
+              key      = "instance-id"
+              optional = false
+            }
+          }
+        },
+        {
           name = "HONEYCOMB_API_KEY"
           valueFrom = {
             secretKeyRef = {

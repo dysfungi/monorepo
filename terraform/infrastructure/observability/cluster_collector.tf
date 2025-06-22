@@ -16,6 +16,7 @@ locals {
     config = {
       receivers = {
         k8s_cluster = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/k8sclusterreceiver/documentation.md
           collection_interval = "30s"
           metrics = {
             # Disable replicaset metrics by default. These are typically high volume, low signal metrics.

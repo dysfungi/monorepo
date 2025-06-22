@@ -2,16 +2,21 @@ locals {
   daemon_collector = {
     # https://docs.honeycomb.io/send-data/kubernetes/values-files/values-daemonset.yaml
     enabled = true
+    # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-kube-stack#scrape_configs_file-details
+    scrape_configs_file = "" # Disable Prometheus scraping
     presets = {
+      hostMetrics = {
+        enabled = true
+      }
+      kubeletMetrics = {
+        # enables the kubeletstatsreceiver and adds it to the metrics pipelines
+        enabled = true
+      }
       kubernetesAttributes = {
         # enables the k8sattributesprocessor and adds it to the traces, metrics, and logs pipelines
         enabled                  = true
         extractAllPodLabels      = true
         extractAllPodAnnotations = true
-      }
-      kubeletMetrics = {
-        # enables the kubeletstatsreceiver and adds it to the metrics pipelines
-        enabled = true
       }
       logsCollection = {
         enabled              = true
@@ -23,9 +28,10 @@ locals {
     config = {
       receivers = {
         kubeletstats = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/kubeletstatsreceiver/documentation.md
           insecure_skip_verify = true
           collection_interval  = "30s"
-          metric_groups        = ["node", "pod"]
+          metric_groups        = ["node", "pod", "container"]
           metrics = {
             "k8s.node.uptime" = {
               enabled = true
@@ -91,9 +97,6 @@ locals {
           }
           metrics = {
             receivers = [
-              "hostmetrics",
-              "kubeletstats",
-              # "prometheus",
               "otlp",
             ]
             processors = [

@@ -21,7 +21,7 @@ resource "helm_release" "gateway" {
       # https://github.com/nginx/nginx-gateway-fabric/blob/main/charts/nginx-gateway-fabric/values.yaml
       # https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#configure-delayed-pod-termination-for-zero-downtime-upgrades
       nginxGateway = {
-        replicaCount = 2
+        replicas = 2
         config = {
           logging = {
             level = "info"
@@ -53,11 +53,19 @@ resource "helm_release" "gateway" {
         }
       }
       nginx = {
+        # https://docs.nginx.com/nginx-gateway-fabric/reference/api/#gateway.nginx.org/v1alpha2.NginxProxy
+        # https://github.com/nginx/nginx-gateway-fabric/blob/433eba254a328935c9064bd8cbf05d5c457773ce/deploy/crds.yaml#L650
         config = {
-          # https://docs.nginx.com/nginx-gateway-fabric/reference/api/#gateway.nginx.org/v1alpha1.NginxProxySpec
+          # https://docs.nginx.com/nginx-gateway-fabric/reference/api/#gateway.nginx.org/v1alpha2.NginxProxySpec
           logging = {
             errorLevel = "info"
           }
+          # TODO: https://github.com/nginx/nginx-gateway-fabric/blob/433eba254a328935c9064bd8cbf05d5c457773ce/docs/proposals/rewrite-client-ip.md
+          # rewriteClientIP = {
+          #   mode             = "ProxyProtocol"
+          #   setIPRecursively = true
+          #   trustedAddresses = []
+          # }
           telemetry = {
             exporter = {
               # Unable to configure env and use HOST_IP, so relying on service.

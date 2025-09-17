@@ -1,0 +1,4 @@
+[hooks]
+
+[[hooks.enter]]
+script = "direnv export bash"

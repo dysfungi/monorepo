@@ -1,0 +1,1 @@
+(B) Convert direnv to native mise +infra @worktree:.claude/worktrees/direnv-to-mise session:0cf8eab7-1b57-458a-9a85-44218f00bcca agent:claude model:claude-sonnet-4-6

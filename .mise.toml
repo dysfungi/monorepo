@@ -76,4 +76,8 @@ TF_VAR_todoist_email                   = "{{ exec(command=\"op read 'op://Franke
 TF_VAR_vultr_api_key                   = "{{ exec(command=\"op read 'op://Frankenstructure/Vultr API Key/password'\", cache_key='vultr_api_key', cache_duration='24h') }}"
 
 [[hooks.enter]]
-script = ".mise/setup.sh"
+# Use `run` (not `script`) so the path is evaluated by the shell at runtime.
+# `script` resolves relative to CWD, which breaks when entering the project
+# from a subdirectory. MISE_PROJECT_ROOT is injected by mise into the hook
+# environment and always points to the directory containing .mise.toml.
+run = '"$MISE_PROJECT_ROOT/.mise/setup.sh"'

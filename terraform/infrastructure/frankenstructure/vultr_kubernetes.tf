@@ -44,7 +44,7 @@ locals {
 resource "vultr_kubernetes" "k8s" {
   region           = "lax"
   label            = "frank8s"
-  version          = "v1.33.0+3"
+  version          = "v1.36.1+1"
   ha_controlplanes = false
   enable_firewall  = true
 
@@ -71,7 +71,7 @@ resource "vultr_kubernetes" "k8s" {
 
 resource "vultr_kubernetes_node_pools" "infrastructure" {
   cluster_id    = vultr_kubernetes.k8s.id
-  node_quantity = 2
+  node_quantity = 1
   plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_24usd
   label         = "infrastructure"
   tag           = "infrastructure"

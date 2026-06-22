@@ -20,6 +20,19 @@ terraform/infrastructure/frankenstructure
 
 ## github actions
 
+### local testing with `act`
+
+You can run and test GitHub Actions workflows locally using **`act`** (by nektos):
+
+1. Install it via Homebrew:
+   ```bash
+   brew install act
+   ```
+2. Run the pipeline locally (requires Docker):
+   ```bash
+   act push
+   ```
+
 ### 1password secrets
 
 - [Load secrets from GitHub Actions | 1Password Docs][op-github-actions-docs]

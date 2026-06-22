@@ -22,16 +22,12 @@ terraform/infrastructure/frankenstructure
 
 ### local testing with `act`
 
-You can run and test GitHub Actions workflows locally using **`act`** (by nektos):
+You can run and test GitHub Actions workflows locally using **`act`** (by nektos).
+Run the pipeline locally (requires Docker):
 
-1. Install it via Homebrew:
-   ```bash
-   brew install act
-   ```
-2. Run the pipeline locally (requires Docker):
-   ```bash
-   act push
-   ```
+```bash
+act push
+```
 
 ### 1password secrets
 

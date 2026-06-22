@@ -23,9 +23,10 @@ jobs:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
           vultr_api_key: op://Frankenstructure/Vultr API Key/password
-      - uses: defrank/action-vultr@v2024.10.20-1
+      - uses: dysfungi/action-vultr@v2024.10.20-1
         with:
           token: ${{ steps.op-secrets.outputs.vultr_api_key }}
+          version: 3.3.0
       - id: vultr-s3-keys
         env:
           VULTR_API_KEY: ${{ steps.op-secrets.outputs.vultr_api_key }}

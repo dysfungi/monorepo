@@ -28,8 +28,8 @@ terraform/infrastructure/frankenstructure
 ---
 
 [awesome-monorepo]: https://github.com/korfuri/awesome-monorepo?tab=readme-ov-file
-[cicd-workflow-badge]: https://github.com/defrank/monorepo/actions/workflows/cicd.yaml/badge.svg
-[cicd-workflow]: https://github.com/defrank/monorepo/actions/workflows/cicd.yaml
+[cicd-workflow-badge]: https://github.com/dysfungi/monorepo/actions/workflows/cicd.yaml/badge.svg
+[cicd-workflow]: https://github.com/dysfungi/monorepo/actions/workflows/cicd.yaml
 [github-action-op-load-secrets]: https://github.com/marketplace/actions/load-secrets-from-1password
 [healthchecksio-badge]: https://healthchecks.io/b/2/eeb33c94-7b23-4296-9955-9dac2aebca6e.svg
 [healthchecksio-check]: https://healthchecks.io/checks/d6111af4-d2aa-4bd5-ac84-4533b2ce8680/details/

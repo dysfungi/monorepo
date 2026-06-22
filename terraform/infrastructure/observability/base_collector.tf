@@ -495,6 +495,11 @@ locals {
             x-honeycomb-dataset = "k8s-metrics"
           })
         })
+        "otlp/honeycomb-synthetics" = merge(local.backends.otlp_honeycomb, {
+          headers = merge(local.backends.otlp_honeycomb.headers, {
+            x-honeycomb-dataset = "synthetics"
+          })
+        })
       }
       service = {
         extensions = [

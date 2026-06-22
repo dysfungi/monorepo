@@ -29,6 +29,23 @@ locals {
             }
           }
         }
+        httpcheck = {
+          targets = [
+            {
+              endpoint = "http://frank.sh"
+            },
+            {
+              endpoint = "http://api.frank.sh/-/liveness"
+            },
+            {
+              endpoint = "http://httpbin.frank.sh/ip"
+            },
+            {
+              endpoint = "http://miniflux.frank.sh/healthcheck"
+            }
+          ]
+          collection_interval = "15s"
+        }
       }
       processors = {
         "transform/k8s-events" = {
@@ -114,6 +131,11 @@ locals {
             x-honeycomb-dataset = "k8s-events"
           })
         })
+        "otlp/honeycomb-synthetics" = merge(local.backends.otlp_honeycomb, {
+          headers = merge(local.backends.otlp_honeycomb.headers, {
+            x-honeycomb-dataset = "synthetics"
+          })
+        })
       }
       service = {
         pipelines = {
@@ -155,6 +177,20 @@ locals {
               "debug",
               "otlphttp/grafana-cloud",
               # "otlp/honeycomb-k8s-metrics",
+            ]
+          }
+          "metrics/synthetics" = {
+            receivers = [
+              "httpcheck",
+            ]
+            processors = [
+              "memory_limiter",
+              "batch",
+            ]
+            exporters = [
+              "debug",
+              "otlphttp/grafana-cloud",
+              "otlp/honeycomb-synthetics",
             ]
           }
           traces = null

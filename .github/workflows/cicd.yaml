@@ -23,10 +23,9 @@ jobs:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
           vultr_api_key: op://Frankenstructure/Vultr API Key/password
-      - uses: dysfungi/action-vultr@v2024.10.20-1
+      - uses: dysfungi/action-vultr@main
         with:
           token: ${{ steps.op-secrets.outputs.vultr_api_key }}
-          version: 3.3.0
       - id: vultr-s3-keys
         env:
           VULTR_API_KEY: ${{ steps.op-secrets.outputs.vultr_api_key }}
@@ -260,10 +259,9 @@ jobs:
           smtp_server: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/server
           smtp_username: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/username
           todoist_email: op://Frankenstructure/Todoist Project - Frankenstructure/email
-      - uses: dysfungi/action-vultr@v2024.10.20-1
+      - uses: dysfungi/action-vultr@main
         with:
           token: ${{ steps.vultr-api-key.outputs.out }}
-          version: 3.3.0
       - id: kubeconfig-base64
         env:
           VULTR_API_KEY: ${{ steps.vultr-api-key.outputs.out }}

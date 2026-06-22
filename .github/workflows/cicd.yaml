@@ -260,9 +260,10 @@ jobs:
           smtp_server: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/server
           smtp_username: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/username
           todoist_email: op://Frankenstructure/Todoist Project - Frankenstructure/email
-      - uses: defrank/action-vultr@v2024.10.20-1
+      - uses: dysfungi/action-vultr@v2024.10.20-1
         with:
           token: ${{ steps.vultr-api-key.outputs.out }}
+          version: 3.3.0
       - id: kubeconfig-base64
         env:
           VULTR_API_KEY: ${{ steps.vultr-api-key.outputs.out }}

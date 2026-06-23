@@ -2,3 +2,4 @@ x 2026-06-21 Convert direnv to native mise +infra @worktree:.claude/worktrees/di
 x 2026-06-21 Deprecate self-hosted monitoring and migrate synthetics to OpenTelemetry httpcheck @worktree:.worktrees/yolo-monitoring-deprecation session:yolo-monitoring-deprecation agent:gemini model:gemini-1.5-pro
 x 2026-06-21 Restore alternative SMTP and Discord alert notifications configuration
 x 2026-06-21 Create .claude/CLAUDE.md symlink to AGENTS.md @setup
+x 2026-06-22 Fix CI init-secrets vultr-cli object-storage non-JSON +cicd @worktree:.worktree/fix/init-secrets-vultr-json session:pi agent:pi model:claude-sonnet-4.5

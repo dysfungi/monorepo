@@ -1,0 +1,1 @@
+(A) Fix CI init-secrets vultr-cli object-storage non-JSON +cicd @worktree:.worktree/fix/init-secrets-vultr-json session:pi agent:pi model:claude-sonnet-4.5

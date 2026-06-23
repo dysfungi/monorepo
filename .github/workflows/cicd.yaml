@@ -26,6 +26,25 @@ jobs:
       - uses: dysfungi/action-vultr@main
         with:
           token: ${{ steps.op-secrets.outputs.vultr_api_key }}
+      # TEMPORARY DEBUG (revert): capture why `object-storage list` stdout isn't JSON on the runner.
+      # Secret-safe: stdout is capped at 200 bytes (well before any s3 key appears).
+      - name: DEBUG vultr-cli object-storage output
+        env:
+          VULTR_API_KEY: ${{ steps.op-secrets.outputs.vultr_api_key }}
+        run: |
+          set +e
+          echo "=== which / version ==="
+          which vultr-cli; vultr-cli version 2>&1 | head -3
+          echo "=== HOME / config presence ==="
+          echo "HOME=$HOME"; ls -la "$HOME/.vultr-cli.yaml" 2>&1
+          out=$(vultr-cli --output=json object-storage list 2>/dev/null); rc=$?
+          err=$(vultr-cli --output=json object-storage list 2>&1 1>/dev/null)
+          echo "=== stdout: exit=$rc bytes=$(printf '%s' "$out" | wc -c) (first 200, cat -v) ==="
+          printf '%s' "$out" | head -c 200 | cat -v; echo
+          echo "=== stderr (first 200, cat -v) ==="
+          printf '%s' "$err" | head -c 200 | cat -v; echo
+          echo "=== jq parse check on stdout ==="
+          printf '%s' "$out" | jq empty 2>&1 | head -3
       - id: vultr-s3-keys
         env:
           VULTR_API_KEY: ${{ steps.op-secrets.outputs.vultr_api_key }}

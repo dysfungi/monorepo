@@ -36,7 +36,6 @@ KUBECONFIG      = "{{ config_root }}/secrets/frank8s.yaml"
 # ── Remote secrets (24h TTL, cross-terminal) ─────────────────────────────────
 VULTR_API_KEY        = "{{ exec(command=\"op read 'op://Frankenstructure/Vultr API Key/password'\", cache_key='vultr_api_key', cache_duration='24h') }}"
 CLOUDFLARE_API_TOKEN = "{{ exec(command=\"op read 'op://Frankenstructure/Cloudflare API Token - frankenstructure/credential'\", cache_key='cloudflare_token', cache_duration='24h') }}"
-GITHUB_TOKEN         = "{{ exec(command=\"op read 'op://Frankenstructure/GitHub Token - ghcr.io/token'\", cache_key='github_token', cache_duration='24h') }}"
 
 # ── Vultr-derived values (no-TTL cache; replaces secrets/frankenstorage.yaml
 #    and secrets/frankistry.json; requires VULTR_API_KEY in env) ──────────────

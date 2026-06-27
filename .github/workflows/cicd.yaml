@@ -22,35 +22,12 @@ jobs:
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
+          registry_password: op://Frankenstructure/Vultr Container Registry - Frankistry/password
+          registry_urn: op://Frankenstructure/Vultr Container Registry - Frankistry/urn
+          registry_username: op://Frankenstructure/Vultr Container Registry - Frankistry/username
+          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
+          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
           vultr_api_key: op://Frankenstructure/Vultr API Key/password
-      - uses: dysfungi/action-vultr@d177f895ae0ca5ff87fdba3bb27be235b8aab087 # v2024.10.20-1
-        with:
-          token: ${{ steps.op-secrets.outputs.vultr_api_key }}
-      - id: vultr-s3-keys
-        env:
-          VULTR_API_KEY: ${{ steps.op-secrets.outputs.vultr_api_key }}
-        run: >
-          vultr-cli --output=json object-storage list
-          | jq --raw-output >> "$GITHUB_OUTPUT" '
-          .object_storages[]
-          | select(.label == "frankenstorage")
-          | ["s3_access_key=" + .s3_access_key, "s3_secret_key=" + .s3_secret_key]
-          | join("\n")
-          '
-      - id: vultr-registry
-        env:
-          VULTR_API_KEY: ${{ steps.op-secrets.outputs.vultr_api_key }}
-        run: >
-          vultr-cli --output=json container-registry list
-          | jq --raw-output >> "$GITHUB_OUTPUT" '
-          .registries[]
-          | select(.name == "frankistry")
-          | [ "registry_urn=" + .urn
-            , "registry_username=" + .root_user.username
-            , "registry_password=" + .root_user.password
-            ]
-          | join("\n")
-          '
       - id: enc-cloudflare-api-token
         uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
@@ -62,13 +39,13 @@ jobs:
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
-          in: ${{ steps.vultr-s3-keys.outputs.s3_access_key }}
+          in: ${{ steps.op-secrets.outputs.s3_access_key }}
       - id: enc-s3-secret-key
         uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
-          in: ${{ steps.vultr-s3-keys.outputs.s3_secret_key }}
+          in: ${{ steps.op-secrets.outputs.s3_secret_key }}
       - id: enc-vultr-api-key
         uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
@@ -80,19 +57,19 @@ jobs:
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
-          in: ${{ steps.vultr-registry.outputs.registry_password }}
+          in: ${{ steps.op-secrets.outputs.registry_password }}
       - id: enc-vultr-registry-urn
         uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
-          in: ${{ steps.vultr-registry.outputs.registry_urn }}
+          in: ${{ steps.op-secrets.outputs.registry_urn }}
       - id: enc-vultr-registry-username
         uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
-          in: ${{ steps.vultr-registry.outputs.registry_username }}
+          in: ${{ steps.op-secrets.outputs.registry_username }}
     outputs:
       enc_cloudflare_api_token: ${{ steps.enc-cloudflare-api-token.outputs.out }}
       enc_s3_access_key: ${{ steps.enc-s3-access-key.outputs.out }}
@@ -238,12 +215,6 @@ jobs:
       - init-secrets
       - deploy-frankenstructure
     steps:
-      - id: vultr-api-key
-        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.init-secrets.outputs.enc_vultr_api_key }}
       - id: op-secrets
         uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
@@ -254,22 +225,12 @@ jobs:
           dockerconfigjson: op://Frankenstructure/Vultr Container Registry - Frankistry/credential
           grafana_admin_password: op://Frankenstructure/Grafana - frank.sh/password
           healthchecksio_api_key: op://Frankenstructure/Healthchecks.io API Key/credential
+          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
           smtp_password: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/password
           smtp_port: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/port
           smtp_server: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/server
           smtp_username: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/username
           todoist_email: op://Frankenstructure/Todoist Project - Frankenstructure/email
-      - uses: dysfungi/action-vultr@d177f895ae0ca5ff87fdba3bb27be235b8aab087 # v2024.10.20-1
-        with:
-          token: ${{ steps.vultr-api-key.outputs.out }}
-      - id: kubeconfig-base64
-        env:
-          VULTR_API_KEY: ${{ steps.vultr-api-key.outputs.out }}
-        run: >
-          echo -n "out=" >> "$GITHUB_OUTPUT";
-          vultr-cli --output=json kubernetes list
-          | jq --raw-output '.vke_clusters[] | select(.label == "frank8s").id'
-          | xargs -- vultr-cli kubernetes config >> "$GITHUB_OUTPUT"
       - id: enc-discord-webhook-alerts
         uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
@@ -299,7 +260,7 @@ jobs:
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
-          in: ${{ steps.kubeconfig-base64.outputs.out }}
+          in: ${{ steps.op-secrets.outputs.kubeconfig }}
       - id: enc-smtp-password
         uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:

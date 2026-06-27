@@ -37,10 +37,12 @@ KUBECONFIG      = "{{ config_root }}/secrets/frank8s.yaml"
 VULTR_API_KEY        = "{{ exec(command=\"op read 'op://Frankenstructure/Vultr API Key/password'\", cache_key='vultr_api_key', cache_duration='24h') }}"
 CLOUDFLARE_API_TOKEN = "{{ exec(command=\"op read 'op://Frankenstructure/Cloudflare API Token - frankenstructure/credential'\", cache_key='cloudflare_token', cache_duration='24h') }}"
 
-# ── Vultr-derived values (no-TTL cache; replaces secrets/frankenstorage.yaml
-#    and secrets/frankistry.json; requires VULTR_API_KEY in env) ──────────────
-AWS_ACCESS_KEY_ID     = "{{ exec(command='vultr --output=json object-storage list | jq -r \".object_storages[] | select(.label == \\\"frankenstorage\\\") | .s3_access_key\"', cache_key='aws_akid') }}"
-AWS_SECRET_ACCESS_KEY = "{{ exec(command='vultr --output=json object-storage list | jq -r \".object_storages[] | select(.label == \\\"frankenstorage\\\") | .s3_secret_key\"', cache_key='aws_secret') }}"
+# ── S3 backend creds (24h TTL; sourced from 1Password, was vultr-derived) ─────
+AWS_ACCESS_KEY_ID     = "{{ exec(command=\"op read 'op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key'\", cache_key='aws_akid', cache_duration='24h') }}"
+AWS_SECRET_ACCESS_KEY = "{{ exec(command=\"op read 'op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key'\", cache_key='aws_secret', cache_duration='24h') }}"
+
+# ── Vultr-derived values (no-TTL cache; replaces secrets/frankistry.json;
+#    requires VULTR_API_KEY in env) ─────────────────────────────────────────
 REGISTRY              = "{{ exec(command='vultr --output=json container-registry list | jq -r \".registries[] | select(.name == \\\"frankistry\\\") | .urn\"', cache_key='registry_urn') }}"
 
 # ── OpenTofu / Terraform variables ───────────────────────────────────────────

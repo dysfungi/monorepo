@@ -724,6 +724,7 @@ jobs:
           automate_postgres_password: op://Frankenstructure/Postgres - AutoMate/password
           automate_todoist_client_id: op://Frankenstructure/Todoist App - AutoMate/username
           automate_todoist_client_secret: op://Frankenstructure/Todoist App - AutoMate/credential
+          automate_todoist_verification_token: op://Frankenstructure/Todoist App - AutoMate/verification token
       - id: kubeconfig-base64
         uses: cloudposse/github-action-secret-outputs@main
         with:

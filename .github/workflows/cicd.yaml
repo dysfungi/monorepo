@@ -183,6 +183,9 @@ jobs:
       - run: echo "Deploying to production!"
 
   deploy-frankenstructure:
+    concurrency:
+      group: ${{ github.workflow }}-deploy-frankenstructure
+      cancel-in-progress: false
     environment: production
     needs:
       - check-deploy-prod
@@ -350,6 +353,9 @@ jobs:
       enc_vultr_registry_username: ${{ needs.init-secrets.outputs.enc_vultr_registry_username }}
 
   deploy-observability:
+    concurrency:
+      group: ${{ github.workflow }}-deploy-observability
+      cancel-in-progress: false
     environment: production
     needs:
       - check-deploy-prod
@@ -422,6 +428,9 @@ jobs:
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
 
   deploy-gateway:
+    concurrency:
+      group: ${{ github.workflow }}-deploy-gateway
+      cancel-in-progress: false
     environment: production
     needs:
       - check-deploy-prod
@@ -489,6 +498,9 @@ jobs:
       - run: echo "Deployed foundational infrastructure!"
 
   deploy-httpbin:
+    concurrency:
+      group: ${{ github.workflow }}-deploy-httpbin
+      cancel-in-progress: false
     environment: production
     needs:
       - secrets
@@ -535,6 +547,9 @@ jobs:
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
 
   deploy-miniflux:
+    concurrency:
+      group: ${{ github.workflow }}-deploy-miniflux
+      cancel-in-progress: false
     environment: production
     needs:
       - secrets
@@ -608,6 +623,9 @@ jobs:
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
 
   deploy-node-red:
+    concurrency:
+      group: ${{ github.workflow }}-deploy-node-red
+      cancel-in-progress: false
     environment: production
     needs:
       - secrets
@@ -658,6 +676,9 @@ jobs:
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
 
   deploy-ollama:
+    concurrency:
+      group: ${{ github.workflow }}-deploy-ollama
+      cancel-in-progress: false
     environment: production
     needs:
       - secrets
@@ -704,6 +725,9 @@ jobs:
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
 
   deploy-automate-api:
+    concurrency:
+      group: ${{ github.workflow }}-deploy-automate-api
+      cancel-in-progress: false
     environment: production
     needs:
       - secrets

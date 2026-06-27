@@ -68,7 +68,7 @@ locals {
         }
         serviceMonitorSelector = {
           matchLabels = {
-            "app.kubernetes.io/component" = "__match-nothing__"
+            "app.kubernetes.io/component" = "match-nothing"
           }
         }
         scrapeInterval = "30s"

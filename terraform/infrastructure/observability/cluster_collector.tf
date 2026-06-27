@@ -3,19 +3,6 @@ locals {
     # https://docs.honeycomb.io/send-data/kubernetes/values-files/values-deployment.yaml
     enabled  = true
     replicas = 1 # A deployment with exactly one replica ensures that we don’t produce duplicate data.
-
-    # Override ONLY the cluster collector onto the contrib distro: the default
-    # otel/opentelemetry-collector-k8s distro does NOT bundle the tlscheck
-    # receiver, while contrib is a superset (every k8s-distro component plus
-    # tlscheck). Pinned to 0.120.0 to match the operator-default collector
-    # version the other collectors (daemon/scrape) resolve to, so the only
-    # change here is the distro, not the version. daemon/scrape stay on the
-    # k8s distro to minimize blast radius. The chart renders this map into
-    # spec.image as "<repository>:<tag>".
-    image = {
-      repository = "otel/opentelemetry-collector-contrib"
-      tag        = "0.120.0"
-    }
     presets = {
       clusterMetrics = {
         # enables the k8sclusterreceiver and adds it to the metrics pipelines
@@ -60,31 +47,6 @@ locals {
           # Synthetic uptime checks do not need 15s resolution; 60s cuts the
           # httpcheck datapoint volume 4x while staying well within alerting SLOs.
           collection_interval = "60s"
-        }
-        tlscheck = {
-          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.120.0/receiver/tlscheckreceiver/README.md
-          # SSL/TLS certificate-expiry monitoring. Requires the contrib distro
-          # (see the cluster collector `image` override above); the k8s distro
-          # lacks this receiver. Emits ONE gauge metric per target,
-          # `tlscheck.time_left` (seconds until the x.509 NotAfter; negative once
-          # expired). v0.120.0 schema: each target takes a full `url` (NOT a
-          # host:port `endpoint`). Cert expiry is slow-moving, so a long 300s
-          # interval keeps datapoint volume tiny.
-          targets = [
-            {
-              url = "https://frank.sh"
-            },
-            {
-              url = "https://api.frank.sh"
-            },
-            {
-              url = "https://httpbin.frank.sh"
-            },
-            {
-              url = "https://miniflux.frank.sh"
-            }
-          ]
-          collection_interval = "300s"
         }
       }
       processors = {
@@ -228,11 +190,6 @@ locals {
           "metrics/synthetics" = {
             receivers = [
               "httpcheck",
-              # tlscheck (cert-expiry, `tlscheck.time_left`) lands in the same
-              # synthetics dataset as httpcheck. This pipeline has NO metric-name
-              # filter (no "filter/metrics-infra"), so the tlscheck metric is not
-              # dropped on export.
-              "tlscheck",
             ]
             processors = [
               "memory_limiter",

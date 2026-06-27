@@ -3,6 +3,27 @@ locals {
     # https://docs.honeycomb.io/send-data/kubernetes/values-files/values-deployment.yaml
     enabled  = true
     replicas = 1 # A deployment with exactly one replica ensures that we don’t produce duplicate data.
+
+    # DELIBERATE VERSION SKEW (cluster collector ONLY): override the image onto
+    # the contrib distro at 0.122.0. Two independent reasons, both verified
+    # against upstream source rather than assumed:
+    #   1. Distro: the operator-default otel/opentelemetry-collector-k8s distro
+    #      does NOT bundle the tlscheck receiver; contrib does. The chart renders
+    #      this {repository,tag} map into the OpenTelemetryCollector CR's
+    #      spec.image string as "<repository>:<tag>"
+    #      (opentelemetry-kube-stack templates/collector.yaml).
+    #   2. Version: tlscheck was only added to the contrib *distribution build*
+    #      (cmd/otelcontribcol/builder-config.yaml) at v0.122.0. At v0.118-0.121
+    #      the receiver source dir existed but was NOT compiled into the released
+    #      image -- which is why the earlier contrib:0.120.0 attempt crashlooped
+    #      with `unknown type: "tlscheck"`. 0.122.0 is the MINIMUM image that
+    #      actually contains the receiver, so skew from the 0.120.0 fleet is kept
+    #      to +2 minors. daemon/scrape collectors stay on the k8s distro to
+    #      minimize blast radius.
+    image = {
+      repository = "otel/opentelemetry-collector-contrib"
+      tag        = "0.122.0"
+    }
     presets = {
       clusterMetrics = {
         # enables the k8sclusterreceiver and adds it to the metrics pipelines
@@ -47,6 +68,37 @@ locals {
           # Synthetic uptime checks do not need 15s resolution; 60s cuts the
           # httpcheck datapoint volume 4x while staying well within alerting SLOs.
           collection_interval = "60s"
+        }
+        tlscheck = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.122.0/receiver/tlscheckreceiver/README.md
+          # SSL/TLS certificate-expiry monitoring. Requires the contrib distro at
+          # >= 0.122.0 (see the `image` override above); the k8s distro lacks this
+          # receiver and contrib only compiled it into the released image at
+          # 0.122.0. Emits ONE gauge per target, `tlscheck.time_left` (seconds
+          # until the x.509 NotAfter; negative once expired).
+          #
+          # SCHEMA NOTE: as of 0.122.0 each target is a TCP address -- `endpoint`
+          # is "host:port" with NO scheme (a "://" scheme is rejected at config
+          # validation). This differs from the pre-0.122 `url` field; since the
+          # only image that actually ships the receiver is >= 0.122.0, the
+          # host:port form is the correct (and only) option. 443 is the TLS port.
+          targets = [
+            {
+              endpoint = "frank.sh:443"
+            },
+            {
+              endpoint = "api.frank.sh:443"
+            },
+            {
+              endpoint = "httpbin.frank.sh:443"
+            },
+            {
+              endpoint = "miniflux.frank.sh:443"
+            }
+          ]
+          # Cert expiry is slow-moving, so a long 300s interval keeps datapoint
+          # volume tiny.
+          collection_interval = "300s"
         }
       }
       processors = {
@@ -190,6 +242,11 @@ locals {
           "metrics/synthetics" = {
             receivers = [
               "httpcheck",
+              # tlscheck (cert-expiry, `tlscheck.time_left`) mirrors httpcheck
+              # exactly: same pipeline, same exporter. This pipeline has NO
+              # metric-name filter (no "filter/metrics-infra"), so the tlscheck
+              # metric is not dropped on export.
+              "tlscheck",
             ]
             processors = [
               "memory_limiter",

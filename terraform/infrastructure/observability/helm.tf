@@ -17,6 +17,7 @@ resource "helm_release" "opentelemetry_kube_stack" {
       collectors = {
         cluster = local.cluster_collector
         daemon  = local.daemon_collector
+        scrape  = local.scrape_collector
       }
       instrumentation = local.instrumentation
       opentelemetry-operator = {

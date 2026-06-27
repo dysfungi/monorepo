@@ -5,22 +5,37 @@
 # when `targetAllocator.enabled = true` and a `prometheus` receiver is present.
 #
 # Exporter/extension inheritance: this collector intentionally does NOT redeclare
-# `otlphttp/grafana-cloud` (exporter), `memory_limiter`/`batch` (processors), or
-# `basicauth/grafana-cloud` (extension). The opentelemetry-kube-stack chart layers
-# every collector on top of `defaultCRConfig` (= local.base_collector) -- the same
-# inheritance the cluster_collector and daemon_collector pipelines already rely on
-# (they reference these names without defining them). The merge is therefore
-# confirmed, not assumed; see base_collector.tf for the definitions.
+# `otlp/honeycomb-k8s-metrics` (exporter), `filter/metrics-dotnet`/`memory_limiter`/
+# `batch` (processors), or `basicauth/grafana-cloud` (extension). The
+# opentelemetry-kube-stack chart layers every collector on top of `defaultCRConfig`
+# (= local.base_collector) -- the same inheritance the cluster_collector and
+# daemon_collector pipelines already rely on (they reference these names without
+# defining them). The merge is therefore confirmed, not assumed; see
+# base_collector.tf for the definitions.
 #
 # targetAllocator schema is the OpenTelemetryCollector spec.targetAllocator field
 # (sibling to mode/replicas/config), per opentelemetry-kube-stack 0.6.1 values.yaml.
-# Empty-object selectors `{}` mean match-all (v1beta1 requires the keys be present
-# even when empty); omitting them would match nothing.
+# Discovery is scoped to the single automate-api PodMonitor via an explicit label
+# selector (see prometheusCR below); the CRD's prometheusCR does not support a
+# namespace selector, so the PodMonitor carries an `otel-scrape = automate` label.
 locals {
   scrape_collector = {
     enabled  = true
     mode     = "statefulset"
     replicas = 1
+
+    # The target allocator + prometheus receiver are memory-hungry relative to
+    # the chart/operator defaults; bump the floor and ceiling so the StatefulSet
+    # stops OOM-restarting. (No explicit resources block existed previously --
+    # these values replace the inherited defaults.)
+    resources = {
+      requests = {
+        memory = "128Mi"
+      }
+      limits = {
+        memory = "512Mi"
+      }
+    }
 
     # Collector pods scrape the discovered targets; this SA carries the
     # nodes/services/endpoints/pods read permissions (see scrape_collector_rbac.tf).
@@ -38,10 +53,25 @@ locals {
       serviceAccount = kubernetes_service_account.scrape_target_allocator.metadata[0].name
       prometheusCR = {
         enabled = true
-        # Explicit empty objects = match ALL Pod/ServiceMonitors cluster-wide.
-        podMonitorSelector     = {}
-        serviceMonitorSelector = {}
-        scrapeInterval         = "30s"
+        # Scope discovery to ONLY the automate-api PodMonitor. The CRD's
+        # prometheusCR does NOT support podMonitorNamespaceSelector (only
+        # podMonitorSelector + serviceMonitorSelector, both label selectors); a
+        # namespace selector here is silently ignored, so the allocator would
+        # otherwise discover every monitor cluster-wide and OOM. We therefore
+        # scope by an explicit label set on the PodMonitor itself (otel-scrape =
+        # automate; see fsharp/api/automate/terraform/monitors.tf). ServiceMonitors
+        # are matched by an impossible label so none are scraped.
+        podMonitorSelector = {
+          matchLabels = {
+            "otel-scrape" = "automate"
+          }
+        }
+        serviceMonitorSelector = {
+          matchLabels = {
+            "app.kubernetes.io/component" = "__match-nothing__"
+          }
+        }
+        scrapeInterval = "30s"
       }
     }
 
@@ -57,10 +87,11 @@ locals {
       }
       processors = {
         # Inherited from base_collector (defaultCRConfig); listed here only so the
-        # pipeline references resolve. memory_limiter + batch are defined there.
+        # pipeline references resolve. memory_limiter, batch, and
+        # filter/metrics-dotnet are defined there.
       }
       exporters = {
-        # Inherited from base_collector: "debug" and "otlphttp/grafana-cloud".
+        # Inherited from base_collector: "debug" and "otlp/honeycomb-k8s-metrics".
       }
       service = {
         pipelines = {
@@ -70,11 +101,15 @@ locals {
             ]
             processors = [
               "memory_limiter",
+              # Allowlist down to just the .NET exception counter; drop the rest.
+              "filter/metrics-dotnet",
               "batch",
             ]
             exporters = [
               "debug",
-              "otlphttp/grafana-cloud",
+              # Grafana Cloud unrouted; route the curated dotnet metric to
+              # Honeycomb (k8s-metrics dataset).
+              "otlp/honeycomb-k8s-metrics",
             ]
           }
         }

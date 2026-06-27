@@ -85,9 +85,9 @@ locals {
               "filter",
               "k8sattributes",
               "transform",
+              "filter/logs",
               "resourcedetection",
               "logdedup",
-              "probabilistic_sampler/logs",
               "batch",
             ]
             exporters = [
@@ -106,13 +106,15 @@ locals {
               "transform",
               "transform/drop_unneeded_resource_attributes",
               "transform/add_resource_attributes_as_metric_attributes",
+              "filter/metrics-infra",
               "resourcedetection",
               "batch",
             ]
             exporters = [
               "debug",
-              "otlphttp/grafana-cloud",
-              # "otlp/honeycomb-k8s-metrics",
+              # Grafana Cloud unrouted; curated infra metrics now go to Honeycomb
+              # (k8s-metrics dataset) via the "filter/metrics-infra" allowlist.
+              "otlp/honeycomb-k8s-metrics",
             ]
           }
           traces = {

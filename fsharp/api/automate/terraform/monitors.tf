@@ -6,6 +6,13 @@ resource "kubernetes_manifest" "api_pod_monitor" {
     "metadata" = {
       "name"      = kubernetes_deployment.api.metadata[0].name
       "namespace" = local.namespace
+      # The observability scrape collector's targetAllocator prometheusCR scopes
+      # PodMonitor discovery by this label (podMonitorSelector). The CRD does not
+      # support podMonitorNamespaceSelector, so namespace-scoping is impossible
+      # there; this explicit label is how the allocator finds only this monitor.
+      "labels" = {
+        "otel-scrape" = "automate"
+      }
     }
     "spec" = {
       "podTargetLabels" = [

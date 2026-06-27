@@ -44,7 +44,9 @@ locals {
               endpoint = "http://miniflux.frank.sh/healthcheck"
             }
           ]
-          collection_interval = "15s"
+          # Synthetic uptime checks do not need 15s resolution; 60s cuts the
+          # httpcheck datapoint volume 4x while staying well within alerting SLOs.
+          collection_interval = "60s"
         }
       }
       processors = {
@@ -149,9 +151,13 @@ locals {
               "k8sattributes",
               "transform/k8s-events",
               "transform",
+              # NOTE: "filter/logs" is intentionally OMITTED here. It lives in the
+              # daemon logs pipeline (intended log-volume reduction). This cluster
+              # pipeline carries k8s EVENTS (k8sobjects -> k8s-events dataset). The
+              # filter's "service.name == nil -> drop INFO" fallback would drop all
+              # Normal k8s events, which are low-volume (~611/day) and useful.
               "resourcedetection",
               "logdedup",
-              "probabilistic_sampler/logs",
               "batch",
             ]
             exporters = [
@@ -170,13 +176,15 @@ locals {
               "transform",
               "transform/drop_unneeded_resource_attributes",
               "transform/add_resource_attributes_as_metric_attributes",
+              "filter/metrics-infra",
               "resourcedetection",
               "batch",
             ]
             exporters = [
               "debug",
-              "otlphttp/grafana-cloud",
-              # "otlp/honeycomb-k8s-metrics",
+              # Grafana Cloud unrouted; curated cluster metrics now go to
+              # Honeycomb (k8s-metrics dataset) via "filter/metrics-infra".
+              "otlp/honeycomb-k8s-metrics",
             ]
           }
           "metrics/synthetics" = {
@@ -189,7 +197,7 @@ locals {
             ]
             exporters = [
               "debug",
-              "otlphttp/grafana-cloud",
+              # Grafana Cloud unrouted; synthetics already export to Honeycomb.
               "otlp/honeycomb-synthetics",
             ]
           }

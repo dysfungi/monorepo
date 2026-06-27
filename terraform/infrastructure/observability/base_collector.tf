@@ -73,8 +73,19 @@ locals {
       }
       receivers = {
         filelog = {
+          # Drop low-value, high-volume pod logs at the source (before any
+          # processing/export). Calico alone accounted for ~29% of log volume;
+          # the collector's own stdout, httpbin, and gpu-operator are similarly
+          # noisy and low-signal. Paths mirror the chart's filelog `include`
+          # glob form: /var/log/pods/<namespace>_<pod>_*/<container>/*.log.
+          # Calico may run in either calico-system or kube-system, so both are
+          # matched.
           exclude = [
-            # "/var/log/pods/${local.namespace}_opentelemetry-kube-stack-*_*/otc-container/*.log",
+            "/var/log/pods/calico-system_*/*/*.log",
+            "/var/log/pods/kube-system_*calico*/*/*.log",
+            "/var/log/pods/${local.namespace}_*opentelemetry*/*/*.log",
+            "/var/log/pods/httpbin_*/*/*.log",
+            "/var/log/pods/gpu-operator_*/*/*.log",
           ]
           operators = [
             { # Parse container logs.
@@ -229,6 +240,67 @@ locals {
             # spanevent = ["true"]
           }
         }
+        "filter/logs" = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/filterprocessor/README.md
+          # Drop INFO/DEBUG records for the highest-volume services while
+          # preserving low-volume INFO elsewhere. A record is dropped when ANY
+          # listed OTTL condition is true. severity_number == 0 (unset/
+          # unclassified) is explicitly KEPT so unparsed logs are never silently
+          # discarded. Must run after k8sattributes/transform so service.name is
+          # populated on the resource.
+          error_mode = "ignore"
+          logs = {
+            log_record = [
+              <<-EOT
+              severity_number != 0 and severity_number < SEVERITY_NUMBER_WARN and (resource.attributes["service.name"] == "automate" or resource.attributes["service.name"] == "nginx-gateway-fabric" or resource.attributes["service.name"] == "prod-web-nginx")
+              EOT
+              ,
+              # Fallback for records without a service.name (e.g. raw k8s pod
+              # logs in the k8s-logs dataset and Normal k8s events): drop
+              # INFO/DEBUG, keep WARN+ and unclassified.
+              <<-EOT
+              severity_number != 0 and severity_number < SEVERITY_NUMBER_WARN and resource.attributes["service.name"] == nil
+              EOT
+              ,
+            ]
+          }
+        }
+        "filter/metrics-infra" = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/filterprocessor/README.md
+          # Allowlist: keep only a deliberately tiny set of infra metrics
+          # (kubeletstats + k8s_cluster) and drop everything else to protect the
+          # Honeycomb event budget. A metric is dropped when the condition is
+          # true, so we drop everything NOT in the allowed set.
+          # kubeletstats v0.120 renamed the CPU metrics utilization -> usage; the
+          # allowlist tracks the current names (k8s.node.cpu.usage /
+          # k8s.pod.cpu.usage). hostMetrics `system.*` are intentionally NOT in
+          # this allowlist -- node-level CPU/memory are already covered by
+          # kubeletstats `k8s.node.*`, so `system.*` are dropped before export.
+          error_mode = "ignore"
+          metrics = {
+            metric = [
+              <<-EOT
+              not (metric.name == "k8s.node.cpu.usage" or metric.name == "k8s.node.memory.usage" or metric.name == "k8s.pod.cpu.usage" or metric.name == "k8s.pod.memory.usage" or metric.name == "k8s.container.restarts" or metric.name == "k8s.pod.phase")
+              EOT
+              ,
+            ]
+          }
+        }
+        "filter/metrics-dotnet" = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/filterprocessor/README.md
+          # Allowlist for the scrape collector: keep only the .NET runtime
+          # exception counter scraped from the automate-api PodMonitor and drop
+          # all other scraped Prometheus metrics.
+          error_mode = "ignore"
+          metrics = {
+            metric = [
+              <<-EOT
+              not IsMatch(metric.name, "systemruntime_exception_count")
+              EOT
+              ,
+            ]
+          }
+        }
         logdedup = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logdedupprocessor/README.md
           # exclude_fields = ["uid"]
@@ -256,16 +328,14 @@ locals {
           fail_closed         = true # Only disable to verify sampling failure
           hash_seed           = 22
           mode                = "proportional"
-          sampling_percentage = 100
+          sampling_percentage = 20
         }
-        "probabilistic_sampler/logs" = {
-          attribute_source    = "record"
-          from_attribute      = "uid"
-          fail_closed         = true # Only disable to verify sampling failure
-          hash_seed           = 22
-          mode                = "hash_seed"
-          sampling_percentage = 50
-        }
+        # NOTE: "probabilistic_sampler/logs" was intentionally removed. In
+        # hash_seed mode it dropped ~50% of log records WITHOUT writing a
+        # Honeycomb SampleRate attribute, so the surviving records billed as
+        # unsampled and the drop was invisible to queries (misleading volume +
+        # broken counts). Log volume is now reduced explicitly via filelog
+        # `exclude` and "filter/logs" instead.
         resourcedetection = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/resourcedetectionprocessor/README.md
           detectors = ["env", "system"]
@@ -488,6 +558,10 @@ locals {
           # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/debugexporter/README.md
           # verbosity = "detailed"
         }
+        # Intentionally defined but not routed to any pipeline; re-add to a
+        # pipeline's exporters array to re-enable Grafana Cloud. The
+        # "basicauth/grafana-cloud" extension and its secret/creds are likewise
+        # kept intact so this is a one-line re-enable.
         "otlphttp/grafana-cloud" = local.backends.otlphttp_grafana_cloud
         "otlp/honeycomb"         = local.backends.otlp_honeycomb
         "otlp/honeycomb-k8s-metrics" = merge(local.backends.otlp_honeycomb, {

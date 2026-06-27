@@ -2,9 +2,9 @@
 #
 # CACHING STRATEGY:
 #   Remote secrets (op read, curl): 24h TTL via exec() cache_key+cache_duration.
-#   Vultr-derived values (AWS_*, REGISTRY): no-TTL exec() cache_key (same semantics
-#     as the former secrets/frankenstorage.yaml and secrets/frankistry.json files,
-#     but shared cross-terminal via ~/.cache/mise instead of per-repo files).
+#     This includes the formerly vultr-derived values (AWS_*, REGISTRY), now read
+#     from 1Password instead of the deleted secrets/frankenstorage.yaml and
+#     secrets/frankistry.json files; cache is shared cross-terminal via ~/.cache/mise.
 #   All cache is per-machine in ~/.cache/mise and shared across all terminals.
 #   To force refresh: `mise cache clear` (all), or per-key: not supported directly.
 #   To refresh kubeconfig: rm secrets/frank8s.yaml (hooks.enter re-creates it).
@@ -12,7 +12,6 @@
 # QUOTING NOTE: exec(command=...) values use TOML double-quoted strings so that
 #   op:// references containing spaces can be wrapped in single quotes within the
 #   shell command, e.g. exec(command="op read 'op://vault/item with spaces/field'").
-#   Vultr jq commands use backslash-escaped inner double quotes.
 #
 # WHAT MOVED WHERE vs the old .envrc:
 #   Secret fetches  → [env] exec() with cache_key (this file)
@@ -41,9 +40,8 @@ CLOUDFLARE_API_TOKEN = "{{ exec(command=\"op read 'op://Frankenstructure/Cloudfl
 AWS_ACCESS_KEY_ID     = "{{ exec(command=\"op read 'op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key'\", cache_key='aws_akid', cache_duration='24h') }}"
 AWS_SECRET_ACCESS_KEY = "{{ exec(command=\"op read 'op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key'\", cache_key='aws_secret', cache_duration='24h') }}"
 
-# ── Vultr-derived values (no-TTL cache; replaces secrets/frankistry.json;
-#    requires VULTR_API_KEY in env) ─────────────────────────────────────────
-REGISTRY              = "{{ exec(command='vultr --output=json container-registry list | jq -r \".registries[] | select(.name == \\\"frankistry\\\") | .urn\"', cache_key='registry_urn') }}"
+# ── Container registry URN (24h TTL; sourced from 1Password, was vultr-derived) ─
+REGISTRY              = "{{ exec(command=\"op read 'op://Frankenstructure/Vultr Container Registry - Frankistry/urn'\", cache_key='registry_urn', cache_duration='24h') }}"
 
 # ── OpenTofu / Terraform variables ───────────────────────────────────────────
 TF_VAR_automate_dropbox_client_id      = "{{ exec(command=\"op read 'op://Frankenstructure/Dropbox App - Automatox/username'\", cache_key='tf_dropbox_id', cache_duration='24h') }}"

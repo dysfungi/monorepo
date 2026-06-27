@@ -1,0 +1,1 @@
+(B) Phase 0 pin CI actions +ci @worktree:.claude/worktrees/ci-1password-hardening agent:claude model:claude-opus-4-8

@@ -16,14 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: op-secrets
-        uses: 1password/load-secrets-action@v4
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
           vultr_api_key: op://Frankenstructure/Vultr API Key/password
-      - uses: dysfungi/action-vultr@main
+      - uses: dysfungi/action-vultr@d177f895ae0ca5ff87fdba3bb27be235b8aab087 # v2024.10.20-1
         with:
           token: ${{ steps.op-secrets.outputs.vultr_api_key }}
       - id: vultr-s3-keys
@@ -52,43 +52,43 @@ jobs:
           | join("\n")
           '
       - id: enc-cloudflare-api-token
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
       - id: enc-s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.vultr-s3-keys.outputs.s3_access_key }}
       - id: enc-s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.vultr-s3-keys.outputs.s3_secret_key }}
       - id: enc-vultr-api-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.op-secrets.outputs.vultr_api_key }}
       - id: enc-vultr-registry-password
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.vultr-registry.outputs.registry_password }}
       - id: enc-vultr-registry-urn
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.vultr-registry.outputs.registry_urn }}
       - id: enc-vultr-registry-username
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
@@ -107,8 +107,8 @@ jobs:
       - lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
           dotnet-version: 9.0.202
       - name: Test
@@ -121,7 +121,7 @@ jobs:
       - init-secrets
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - id: app-version
         working-directory: fsharp/api/automate
         run: >
@@ -137,19 +137,19 @@ jobs:
         env:
           APP_VERSION: ${{ steps.app-version.outputs.out }}
       - id: vultr-registry-password
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.init-secrets.outputs.enc_vultr_registry_password }}
       - id: vultr-registry-urn
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.init-secrets.outputs.enc_vultr_registry_urn }}
       - id: vultr-registry-username
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -189,28 +189,28 @@ jobs:
       - init-secrets
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: opentofu/setup-opentofu@v1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
       - id: cloudflare-api-token
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.init-secrets.outputs.enc_cloudflare_api_token }}
       - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.init-secrets.outputs.enc_s3_access_key }}
       - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.init-secrets.outputs.enc_s3_secret_key }}
       - id: vultr-api-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -239,13 +239,13 @@ jobs:
       - deploy-frankenstructure
     steps:
       - id: vultr-api-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.init-secrets.outputs.enc_vultr_api_key }}
       - id: op-secrets
-        uses: 1password/load-secrets-action@v4
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
           export-env: false
         env:
@@ -259,7 +259,7 @@ jobs:
           smtp_server: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/server
           smtp_username: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/username
           todoist_email: op://Frankenstructure/Todoist Project - Frankenstructure/email
-      - uses: dysfungi/action-vultr@main
+      - uses: dysfungi/action-vultr@d177f895ae0ca5ff87fdba3bb27be235b8aab087 # v2024.10.20-1
         with:
           token: ${{ steps.vultr-api-key.outputs.out }}
       - id: kubeconfig-base64
@@ -271,61 +271,61 @@ jobs:
           | jq --raw-output '.vke_clusters[] | select(.label == "frank8s").id'
           | xargs -- vultr-cli kubernetes config >> "$GITHUB_OUTPUT"
       - id: enc-discord-webhook-alerts
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.op-secrets.outputs.discord_webhook_alerts }}
       - id: enc-dockerconfigjson
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.op-secrets.outputs.dockerconfigjson }}
       - id: enc-grafana-admin-password
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.op-secrets.outputs.grafana_admin_password }}
       - id: enc-healthchecksio-api-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.op-secrets.outputs.healthchecksio_api_key }}
       - id: enc-kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.kubeconfig-base64.outputs.out }}
       - id: enc-smtp-password
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.op-secrets.outputs.smtp_password }}
       - id: enc-smtp-port
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.op-secrets.outputs.smtp_port }}
       - id: enc-smtp-server
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.op-secrets.outputs.smtp_server }}
       - id: enc-smtp-username
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
           in: ${{ steps.op-secrets.outputs.smtp_username }}
       - id: enc-todoist-email
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: encode
@@ -356,10 +356,10 @@ jobs:
       - secrets
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: opentofu/setup-opentofu@v1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
       - id: op-secrets
-        uses: 1password/load-secrets-action@v4
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
           export-env: false
         env:
@@ -369,13 +369,13 @@ jobs:
           honeycomb_key_id: op://Frankenstructure/Honeycomb.io Management API Key/username
           honeycomb_key_secret: op://Frankenstructure/Honeycomb.io Management API Key/credential
       - id: healthchecksio-api-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_healthchecksio_api_key }}
       - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -385,13 +385,13 @@ jobs:
           base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
       - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_s3_access_key }}
       - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -428,16 +428,16 @@ jobs:
       - secrets
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: opentofu/setup-opentofu@v1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
       - id: cloudflare-api-token
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_cloudflare_api_token }}
       - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -447,13 +447,13 @@ jobs:
           base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
       - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_s3_access_key }}
       - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -495,10 +495,10 @@ jobs:
       - deployed-foundation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: opentofu/setup-opentofu@v1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
       - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -508,13 +508,13 @@ jobs:
           base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
       - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_s3_access_key }}
       - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -541,10 +541,10 @@ jobs:
       - deployed-foundation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: opentofu/setup-opentofu@v1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
       - id: op-secrets
-        uses: 1password/load-secrets-action@v4
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
           export-env: false
         env:
@@ -553,7 +553,7 @@ jobs:
           miniflux_admin_username: op://Frankenstructure/Miniflux - frank.sh/username
           miniflux_postgres_password: op://Frankenstructure/Postgres - Miniflux/password
       - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -563,19 +563,19 @@ jobs:
           base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
       - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_s3_access_key }}
       - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
       - id: vultr-api-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -614,10 +614,10 @@ jobs:
       - deployed-foundation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: opentofu/setup-opentofu@v1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
       - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -627,13 +627,13 @@ jobs:
           base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
       - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_s3_access_key }}
       - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -664,10 +664,10 @@ jobs:
       - deployed-foundation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: opentofu/setup-opentofu@v1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
       - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -677,13 +677,13 @@ jobs:
           base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
       - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_s3_access_key }}
       - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -711,10 +711,10 @@ jobs:
       - build-automate-api
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: opentofu/setup-opentofu@v1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
       - id: op-secrets
-        uses: 1password/load-secrets-action@v4
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
           export-env: false
         env:
@@ -726,13 +726,13 @@ jobs:
           automate_todoist_client_secret: op://Frankenstructure/Todoist App - AutoMate/credential
           automate_todoist_verification_token: op://Frankenstructure/Todoist App - AutoMate/verification token
       - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_kubeconfig_base64 }}
       - id: dockerconfigjson
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
@@ -742,19 +742,19 @@ jobs:
           base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
       - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_s3_access_key }}
       - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode
           in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
       - id: vultr-api-key
-        uses: cloudposse/github-action-secret-outputs@main
+        uses: cloudposse/github-action-secret-outputs@935a902398ad32ec2c82b7d067e861e180fbdde2 # 0.1.2
         with:
           secret: ${{ secrets.GPG_PASSPHRASE }}
           op: decode

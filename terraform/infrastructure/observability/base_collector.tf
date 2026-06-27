@@ -277,10 +277,11 @@ locals {
           # this allowlist -- node-level CPU/memory are already covered by
           # kubeletstats `k8s.node.*`, so `system.*` are dropped before export.
           error_mode = "ignore"
+          # OTTL metric context uses `name`, not `metric.name`.
           metrics = {
             metric = [
               <<-EOT
-              not (metric.name == "k8s.node.cpu.usage" or metric.name == "k8s.node.memory.usage" or metric.name == "k8s.pod.cpu.usage" or metric.name == "k8s.pod.memory.usage" or metric.name == "k8s.container.restarts" or metric.name == "k8s.pod.phase")
+              not (name == "k8s.node.cpu.usage" or name == "k8s.node.memory.usage" or name == "k8s.pod.cpu.usage" or name == "k8s.pod.memory.usage" or name == "k8s.container.restarts" or name == "k8s.pod.phase")
               EOT
               ,
             ]
@@ -295,7 +296,7 @@ locals {
           metrics = {
             metric = [
               <<-EOT
-              not IsMatch(metric.name, "systemruntime_exception_count")
+              not IsMatch(name, "systemruntime_exception_count")
               EOT
               ,
             ]

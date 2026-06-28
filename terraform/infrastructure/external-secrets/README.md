@@ -132,9 +132,9 @@ kubectl -n <namespace> get secret <target.name> -o jsonpath='{.data}' | tr ',' '
 
 ## Notes
 
-- **GitOps only.** This stack applies via CI on push to `main`
-  (`deploy-external-secrets` job). Do not `tofu apply` locally — the Vultr S3
-  backend has `use_lockfile` enabled. Local `init` / `validate` / `plan` is fine.
+- **GitOps standard.** This stack normally applies via CI on push to `main`
+  (`deploy-external-secrets` job). Local `tofu apply` is also safe — the Vultr S3
+  backend has `use_lockfile` enabled, so state locking serializes writes.
 
 [eso]: https://external-secrets.io/
 [reloader]: https://github.com/stakater/Reloader

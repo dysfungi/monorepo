@@ -49,8 +49,9 @@ in-flight apply is never cancelled. Distinct stacks still deploy in parallel.
 
 ### operational notes
 
-- Applies run through CI on push to `main` (GitOps). Local `tofu init/validate/plan`
-  is fine — plan takes and releases the lock cleanly — but avoid local `tofu apply`.
+- Applies normally run through CI on push to `main` (GitOps). Local `tofu apply`
+  is also safe — `use_lockfile` locking serializes writes, so a local apply and a
+  CI apply cannot corrupt state by racing (one waits on the lock).
 - If a run dies mid-apply and leaves a stale lock, clear it with
   `tofu force-unlock <LOCK_ID>` (the `LOCK_ID` is printed in the
   "Error acquiring the state lock" message), only after confirming no apply is

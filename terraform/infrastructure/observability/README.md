@@ -130,9 +130,9 @@ ADR-lite, 2026-06.
   k8s label values, and missing-image-component errors only surface when the
   collector starts. **Always** verify pod health after a change:
   `kubectl -n observability get pods` (no `CrashLoopBackOff`).
-- **GitOps only.** Stacks apply via CI on push to `main`. Do not `tofu apply`
-  locally — the Vultr S3 backend has `use_lockfile` enabled. Local
-  `init` / `validate` / `plan` for authoring is fine.
+- **GitOps standard.** Stacks normally apply via CI on push to `main`. Local
+  `tofu apply` is also safe — the Vultr S3 backend has `use_lockfile` enabled, so
+  state locking serializes writes.
 - **Provider-lock skew.** The committed `kubernetes` provider lock (`~> 2.32`)
   lags the version that wrote state (2.38), so local `tofu plan` needs
   `init -upgrade`; CI applies fine.

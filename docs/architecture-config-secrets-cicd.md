@@ -14,8 +14,9 @@ Four tools carry the weight:
   secrets from 1Password on demand and caches them.
 - **`doit`** (`dodo.py`) — workspace task runner (`setup`, `lint`, `build`,
   `start`).
-- **Terraform / OpenTofu** — infrastructure and apps, applied via GitHub Actions
-  GitOps (never `tofu apply` locally).
+- **Terraform / OpenTofu** — infrastructure and apps, normally applied via
+  GitHub Actions GitOps on push to `main`; local `tofu apply` is also safe
+  because S3 state locking (`use_lockfile`) serializes writes.
 
 Secrets leave 1Password through exactly **three consumption paths**, each
 authenticating differently but sharing one address format
@@ -278,8 +279,9 @@ flowchart TD
 
 ### GitOps & state
 
-- **Apply on push to `main` only.** Never `tofu apply` locally — local
-  `init` / `validate` / `plan` for authoring is fine.
+- **Applied by CI on push to `main` (GitOps)** as the standard path. Local
+  `tofu apply` is also safe — `use_lockfile` state locking serializes writes —
+  so it is no longer prohibited.
 - **Remote state: Vultr Object Storage** (S3-compatible, `sjc1.vultrobjects.com`,
   bucket `frankenstructure`, region `us-west-1`) with **`use_lockfile = true`**
   for state locking (Vultr honors S3 conditional writes).

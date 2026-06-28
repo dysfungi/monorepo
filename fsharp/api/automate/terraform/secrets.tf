@@ -31,20 +31,21 @@ resource "kubernetes_secret" "env" {
     name      = "automate-env"
     namespace = local.namespace
   }
+  # OAuth client credentials (DROPBOX_/TODOIST_) are NOT here: they are synced
+  # from 1Password by the ESO ExternalSecret "automate-onepassword" (see
+  # external_secret_automate.tf). The api Deployment mounts both Secrets via
+  # env_from, so the app sees an identical merged environment. DB connection
+  # details and static config stay terraform-managed because they derive from
+  # other terraform resources (vultr_database_*, module.route).
   data = {
-    DATABASE_HOST              = data.vultr_database.pg.host
-    DATABASE_NAME              = vultr_database_db.automate_app.name
-    DATABASE_PASSWORD          = vultr_database_user.automate_api.password
-    DATABASE_PORT              = data.vultr_database.pg.port
-    DATABASE_SSL_MODE          = local.dbsslmode
-    DATABASE_USERNAME          = vultr_database_user.automate_api.username
-    DROPBOX_CLIENT_ID          = var.automate_dropbox_client_id
-    DROPBOX_CLIENT_SECRET      = var.automate_dropbox_client_secret
-    DROPBOX_REDIRECT_BASE_URL  = "https://${module.route.primary_hostname}"
-    LOGGING_FORMAT             = "plain"
-    LOGGING_LEVEL              = "Information"
-    TODOIST_CLIENT_ID          = var.automate_todoist_client_id
-    TODOIST_CLIENT_SECRET      = var.automate_todoist_client_secret
-    TODOIST_VERIFICATION_TOKEN = var.automate_todoist_verification_token
+    DATABASE_HOST             = data.vultr_database.pg.host
+    DATABASE_NAME             = vultr_database_db.automate_app.name
+    DATABASE_PASSWORD         = vultr_database_user.automate_api.password
+    DATABASE_PORT             = data.vultr_database.pg.port
+    DATABASE_SSL_MODE         = local.dbsslmode
+    DATABASE_USERNAME         = vultr_database_user.automate_api.username
+    DROPBOX_REDIRECT_BASE_URL = "https://${module.route.primary_hostname}"
+    LOGGING_FORMAT            = "plain"
+    LOGGING_LEVEL             = "Information"
   }
 }

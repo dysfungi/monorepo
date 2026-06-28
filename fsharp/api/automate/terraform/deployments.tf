@@ -117,6 +117,15 @@ resource "kubernetes_deployment" "api" {
               optional = false
             }
           }
+          # OAuth client credentials synced from 1Password by ESO. envFrom merges
+          # keys 1:1 into the container env, so the app sees DROPBOX_/TODOIST_*
+          # alongside the automate-env keys exactly as before the split.
+          env_from {
+            secret_ref {
+              name     = "automate-onepassword"
+              optional = false
+            }
+          }
         }
 
         container {

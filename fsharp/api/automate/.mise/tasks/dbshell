@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+#MISE description="Open an interactive psql shell (dev=compose, prod=ephemeral container)"
+"""Open an interactive psql shell against the AutoMate database (doit→mise Phase 2).
+
+INTENT
+    Faithful port of the AutoMate ``dodo.py`` ``dbshell`` task. It drops the user
+    into ``psql`` connected to either the local docker-compose Postgres (``dev``)
+    or the Vultr managed database (``prod``).
+
+ARCHITECTURE
+    dev  -> docker compose up --detach -- postgres          (ensure it is running)
+            docker compose exec --interactive --tty -- postgres \\
+              psql --username=pgadmin automate_app           (interactive)
+    prod -> docker run --interactive --rm --tty -- postgres:16-alpine \\
+              psql "$(<dburl prod>)"                          (interactive)
+
+    The dev "up" step runs to completion first (subprocess); the interactive psql
+    step then replaces this process via ``os.execvp`` so it owns a real TTY.
+
+DESIGN DECISIONS / WHY
+    * DRY prod URL: the prod connection string is resolved by invoking the sibling
+      ``dburl`` file task with ``ENV=prod`` inside the ``$(...)`` subshell, rather
+      than duplicating the vultr|jq pipeline — single source of truth, matching
+      dodo.py where both share ``dburl_action``.
+    * Env resolution mirrors the other db tasks: ``--env`` ``#USAGE`` flag
+      (``usage_env`` under ``mise run``) → ``ENV`` var → ``dev``.
+    * The dev "up" uses ``subprocess.run`` (not exec) so it can finish before the
+      interactive exec; failure there exits loudly before opening the shell.
+"""
+
+# WHY this shebang (deviation from the repo's usual `uv run` convention):
+# mise file tasks are re-invoked by the runner; a bare `#!/usr/bin/env -S uv run`
+# recursively re-invokes uv (~101x) and dies. This task is stdlib-only, so a
+# plain python3 shebang is correct.
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+DEV = "dev"
+PROD = "prod"
+
+# Sibling dburl file task — reused (not duplicated) to resolve the prod URL.
+DBURL_SCRIPT = Path(__file__).resolve().with_name("dburl")
+
+DEV_UP_CMD = "docker compose up --detach -- postgres"
+DEV_SHELL_CMD = (
+    "docker compose exec --interactive --tty -- "
+    "postgres psql --username=pgadmin automate_app"
+)
+PROD_SHELL_CMD = (
+    "docker run --interactive --rm --tty -- postgres:16-alpine "
+    f'psql "$(ENV=prod python3 \'{DBURL_SCRIPT}\')"'
+)
+
+
+def resolve_env() -> str:
+    return os.environ.get("usage_env") or os.environ.get("ENV") or DEV
+
+
+def main() -> int:
+    env = resolve_env()
+    if env == PROD:
+        os.execvp("/bin/sh", ["/bin/sh", "-c", PROD_SHELL_CMD])
+        return 0  # unreachable
+    if env == DEV:
+        # Ensure the local Postgres is up before attaching; fail loudly if not.
+        subprocess.run(["/bin/sh", "-c", DEV_UP_CMD], check=True)
+        os.execvp("/bin/sh", ["/bin/sh", "-c", DEV_SHELL_CMD])
+        return 0  # unreachable
+
+    sys.stderr.write(f"dbshell: unsupported env {env!r} (expected dev|prod)\n")
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+#USAGE flag "-e --env <env>" help="environment (dev|prod)" default="dev"

@@ -65,24 +65,34 @@ repos:
   # PYTHON #
   ###########
 
+  # `.mise/tasks/` holds mise file tasks (Python). They carry load-bearing
+  # `#MISE`/`#USAGE` magic comments that mise parses ONLY with no space after
+  # `#`; black rewrites them to `# MISE`/`# USAGE` and silently breaks flag
+  # parsing + descriptions. The `#USAGE` lines are also intentionally long.
+  # Exclude the dir from the standard-Python hooks (doit→mise migration).
+  # The `(^|/)` anchor matches `.mise/tasks/` at ANY depth — both the root dir
+  # and per-project ones (e.g. fsharp/api/automate/.mise/tasks/) added in Phase 2+.
   - repo: https://github.com/psf/black
     rev: 24.10.0
     hooks:
       - id: black
+        exclude: '(^|/)\.mise/tasks/'
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
       - id: isort
         name: isort (python)
+        exclude: '(^|/)\.mise/tasks/'
   - repo: https://github.com/PyCQA/flake8
     rev: 7.1.1
     hooks:
       - id: flake8
+        exclude: '(^|/)\.mise/tasks/'
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.14.0
     hooks:
       - id: mypy
-        exclude: "tests/"
+        exclude: '((^|/)\.mise/tasks/|tests/)'
         args:
           - "--ignore-missing-imports"
           - "--explicit-package-bases"
@@ -116,13 +126,16 @@ repos:
 
   - repo: local
     hooks:
-      - id: doit-autoupgrade
-        name: doit autoupgrade
+      # Replaces the former `doit autoupgrade` hook (doit→mise migration, Phase 4).
+      # Runs the root mise `autoupgrade` task (tofu init -upgrade in every dir that
+      # holds a .terraform.lock.hcl). `language: system` invokes the `mise` binary
+      # from PATH; the old hook used `language: python` + `additional_dependencies:
+      # doit`, which was the only place doit was still pinned.
+      - id: mise-autoupgrade
+        name: mise run autoupgrade
         stages: [pre-push, manual]
-        language: python
-        additional_dependencies:
-          - doit
-        entry: doit autoupgrade
+        language: system
+        entry: mise run autoupgrade
         always_run: true
         pass_filenames: false
 
@@ -132,11 +145,25 @@ repos:
 
   - repo: local
     hooks:
-      - id: doit-ls
-        name: doit ls
-        language: python
-        additional_dependencies:
-          - doit
-        entry: doit ls
+      # Faithful reproduction of the former `doit ls` sanity check (doit→mise
+      # migration, Phase 4). The old `doit ls` ran the root dodo.py custom `ls`
+      # task — "List all projects" — NOT doit's built-in task lister, and needed
+      # NO secrets. The faithful mise equivalent is the project-listing `ls` task
+      # (`.mise/tasks/ls`), whose output (the 3 monorepo projects) matches `doit
+      # ls` verbatim.
+      #
+      # WHY invoke the script directly instead of `mise run ls`: `mise run ls`
+      # activates the dir and renders the root `[env]`, which shells out to `op
+      # read`/`vultr-cli` for 1Password secrets — verified to FAIL outright on a cold
+      # cache (template render error, non-zero exit). That would make every
+      # commit depend on a live, unlocked 1Password — strictly worse than `doit
+      # ls`. Running `python3 .mise/tasks/ls` directly is stdlib-only project
+      # discovery: secret-free, non-interactive, fast (<0.05s). The script
+      # resolves the repo root via git top-level when MISE_PROJECT_ROOT is unset,
+      # so it works under pre-commit (which does not activate mise).
+      - id: mise-ls
+        name: mise ls (list projects)
+        language: system
+        entry: python3 .mise/tasks/ls
         always_run: true
         pass_filenames: false

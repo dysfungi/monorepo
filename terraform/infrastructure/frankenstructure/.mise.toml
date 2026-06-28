@@ -1,0 +1,42 @@
+# mise tasks for the frankenstructure infra stack (doit→mise migration, Phase 3).
+#
+# 1:1 port of the stack's former dodo.py (removed in Phase 4). The `.mise.toml`
+# in this directory is also the opt-in marker that makes it a discoverable
+# project (see `.mise/tasks/ls` and the root [monorepo] config).
+#
+# INHERITANCE: this nested config inherits the root .mise.toml [env] (1Password
+# secrets, every TF_VAR_*, VULTR_API_KEY, AWS_*, REGISTRY). Those are NOT
+# re-declared here — `tofu` and `vultr-cli` pick them up from the inherited env.
+#
+# WORKING DIR: mise runs each task from this file's directory
+# (terraform/infrastructure/frankenstructure) by default. The .tf files live
+# directly here (no `terraform/` subdir), so bare `tofu plan/apply/init` resolve.
+#
+# COMMAND FIDELITY: command strings mirror what dodo.py's helper functions emit
+# (_tofu/_vultr/_jq). Redundant empty separators and superfluous quoting are
+# normalized to clean, equivalent forms; jq filter bodies are kept byte-for-byte.
+#
+# COPY TASKS: copy_k8s_id / copy_registry_id / copy_storage_id are logic-bearing
+# (vultr|jq plumbing + pbcopy/pbpaste) and live as separate Python file tasks
+# under .mise/tasks/ (auto-discovered), one per dodo.py task for 1:1 parity.
+
+# ── tofu lifecycle ───────────────────────────────────────────────────────────
+[tasks.build]
+description = "Preview infra changes (tofu plan) — discovered by //...:build fan-out"
+run = "tofu plan"
+
+[tasks.plan]
+description = "Preview infra changes (tofu plan)"
+run = "tofu plan"
+
+[tasks.deploy]
+description = "Apply infra changes non-interactively (tofu apply -auto-approve)"
+run = "tofu apply -auto-approve"
+
+[tasks.setup]
+description = "Initialize the stack's tofu working dir (tofu init)"
+run = "tofu init"
+
+# NOTE: copy_k8s_id / copy_registry_id / copy_storage_id are file tasks under
+# .mise/tasks/ (auto-discovered); they hold the vultr|jq|pbcopy plumbing and are
+# not redeclared here.

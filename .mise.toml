@@ -21,6 +21,14 @@
 #   SMTP_CONFIG block → dropped (was dead code; never exported)
 #   watch_file → dropped (no equivalent; use `mise cache clear` to refresh)
 
+# ── Task runner: mise monorepo mode (doit→mise migration) ────────────────────
+# `monorepo_root` and `min_version` are TOP-LEVEL keys (NOT under [settings] —
+# placing monorepo_root under [settings] silently WARNs and breaks every //path
+# task reference). mise is now the sole task runner; doit/dodo.py were removed
+# in Phase 4.
+min_version = "2026.6.12"
+monorepo_root = true
+
 [tools]
 # Dev toolchain — single source of truth (was Brewfile + .tool-versions).
 # Pinned to major.minor; `mise install` provisions a dev machine.
@@ -102,3 +110,73 @@ TF_VAR_vultr_api_key                   = "{{ exec(command=\"op read 'op://Franke
 # from a subdirectory. MISE_PROJECT_ROOT is injected by mise into the hook
 # environment and always points to the directory containing .mise.toml.
 run = '"$MISE_PROJECT_ROOT/.mise/setup.sh"'
+
+# ── Monorepo task discovery (doit→mise migration) ────────────────────────────
+# config_roots tells mise where per-project .mise.toml files live so that
+# `//...:<task>` fans out across them. A project is a `$LANGUAGE/$CATEGORY/$PROJECT`
+# (depth 3) directory that opts in by carrying its own `.mise.toml`; that marker
+# is also what `.mise/tasks/ls` gates discovery on (post-Phase-4, replacing the
+# old `dodo.py` gate).
+[monorepo]
+config_roots = ["*/*/*"]
+
+# ── Root tasks (ported from the now-removed root dodo.py) ─────────────────────
+# `ls` and `dbshell` are file tasks under .mise/tasks/ (auto-discovered).
+[tasks.setup]
+description = "Bootstrap root tooling, then fan out to each project's setup"
+# `mise install` (provisions the [tools] toolchain — tofu, dotnet, kubectl, …)
+# + `pre-commit install` is the root half of setup. It MUST run before the
+# project setups because those projects need the tools `mise install` provides.
+# The Brewfile/.tool-versions were removed on main; [tools] is the single source
+# of truth, so `mise install` (NOT `brew bundle`) is the correct bootstrap.
+# `depends_post` (NOT `depends`) gives root-first ordering: the `run` body
+# executes first, then mise fans out to every project's `setup` via //...:setup.
+# mise's task DAG dedupes the root self-edge the recursive selector would
+# otherwise introduce, so there is no infinite recursion.
+depends_post = ["//...:setup"]
+run = '''
+mise install
+pre-commit install
+'''
+
+# build/start fan out via `depends`, NOT `run = "mise run //...:build"`. The
+# `//...` recursive selector INCLUDES this root config, so a root task named
+# `build` whose run re-invokes `mise run //...:build` matches itself and recurses
+# infinitely (verified: it loops until killed). `depends` is the correct idiom —
+# mise's task DAG dedupes the root self-edge and still fans out to every
+# descendant project's `build`/`start` (same pattern as `setup` above). These
+# have no root body, so ordering is irrelevant; `depends` (not `depends_post`)
+# is fine here.
+[tasks.build]
+description = "Build all (or filtered) projects via the monorepo fan-out"
+depends = ["//...:build"]
+
+[tasks.start]
+description = "Run all (or filtered) projects via the monorepo fan-out"
+depends = ["//...:start"]
+
+[tasks.lint]
+description = "Run linters using pre-commit across all files"
+# dodo.py also ran an interactive `git add --patch` first; dropped here as a
+# doit-ism — the pre-commit invocation below is the load-bearing command.
+run = "pre-commit run --all-files --show-diff-on-failure"
+
+[tasks.autoupgrade]
+description = "tofu init -upgrade in every dir containing a .terraform.lock.hcl"
+# Faithful port of dodo.py autoupgrade (find .terraform.lock.hcl → init -upgrade
+# per dir). Uses `tofu -chdir` instead of pushd; tofu is the repo's mandated CLI.
+run = '''
+find . -type f -name .terraform.lock.hcl -print0 | while IFS= read -r -d "" lock; do
+  dir="$(dirname "$lock")"
+  echo "==> tofu -chdir=$dir init -upgrade"
+  tofu -chdir="$dir" init -upgrade
+done
+'''
+
+[tasks.cleanpy]
+description = "Remove reproducible Python __pycache__ directories"
+run = "find . -type d -name __pycache__ -prune -exec rm -rf {} +"
+
+[tasks.cwd]
+description = "Print the working directory of task execution"
+run = "pwd"

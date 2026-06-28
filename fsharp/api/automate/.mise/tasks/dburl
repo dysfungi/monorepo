@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+#MISE description="Print the AutoMate Postgres connection URL (--env dev|prod)"
+"""Print the AutoMate Postgres connection URL (doit→mise migration, Phase 2).
+
+INTENT
+    Faithful port of the AutoMate ``dodo.py`` ``dburl`` task (``dburl_action``),
+    which prints a libpq connection string for either the local docker-compose
+    Postgres (``dev``) or the Vultr managed database (``prod``).
+
+ARCHITECTURE
+    dev  -> printf 'postgres://pgadmin:postgres@%s/automate_app?sslmode=disable'
+              "$(docker compose port postgres 5432)"
+    prod -> vultr-cli --output=json database list | jq --raw-output
+              '.databases[] | select(.label=="postgres") |
+               "postgres://\\(.user):\\(.password)@\\(.public_host):\\(.port)/automate_app?sslmode=require"'
+
+    The chosen pipeline is handed to ``/bin/sh -c`` via ``os.execvp`` so its
+    stdout IS this task's stdout — callers (dbshell/dbmigrate/dbrollback prod)
+    capture it with ``$(...)`` exactly as dodo.py did.
+
+DESIGN DECISIONS / WHY
+    * EXEC, don't subprocess+print: replacing the process keeps stdout a clean
+      single URL line for command-substitution capture, and forwards the dev
+      ``docker compose port`` / prod ``vultr|jq`` exit status unchanged.
+    * Env resolution mirrors the other db tasks: the ``--env`` ``#USAGE`` flag
+      arrives as ``usage_env`` when run via ``mise run``; when this file is run
+      directly (e.g. ``ENV=prod python3 .mise/tasks/dburl`` from a prod db task),
+      it falls back to the ``ENV`` var, then ``dev``.
+"""
+
+# WHY this shebang (deviation from the repo's usual `uv run` convention):
+# mise file tasks are re-invoked by the runner; a bare `#!/usr/bin/env -S uv run`
+# recursively re-invokes uv (~101x) and dies. This task is stdlib-only, so a
+# plain python3 shebang is correct.
+
+import os
+import sys
+
+DEV = "dev"
+PROD = "prod"
+
+# dev: build the URL from the docker-compose-published host:port. `%s` is filled
+# by the `docker compose port` subshell (single `%s`: doit collapsed dodo.py's
+# escaped `%%s` to `%s` at run time; the effective shell command is reproduced).
+DEV_CMD = (
+    "printf 'postgres://pgadmin:postgres@%s/automate_app?sslmode=disable\\n' "
+    '"$(docker compose port postgres 5432)"'
+)
+
+# prod: resolve from Vultr. jq filter kept byte-for-byte equivalent to dodo.py's
+# dburl_action(prod) — note the hard-coded `/automate_app` db name.
+PROD_JQ = (
+    '.databases[] | select(.label=="postgres") | '
+    '"postgres://\\(.user):\\(.password)@\\(.public_host):\\(.port)/'
+    'automate_app?sslmode=require"'
+)
+PROD_CMD = f"vultr-cli --output=json database list | jq --raw-output '{PROD_JQ}'"
+
+
+def resolve_env() -> str:
+    return os.environ.get("usage_env") or os.environ.get("ENV") or DEV
+
+
+def main() -> int:
+    env = resolve_env()
+    if env == PROD:
+        cmd = PROD_CMD
+    elif env == DEV:
+        cmd = DEV_CMD
+    else:
+        sys.stderr.write(f"dburl: unsupported env {env!r} (expected dev|prod)\n")
+        return 1
+
+    os.execvp("/bin/sh", ["/bin/sh", "-c", cmd])
+    return 0  # unreachable; execvp never returns on success
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+#USAGE flag "-e --env <env>" help="environment (dev|prod)" default="dev"

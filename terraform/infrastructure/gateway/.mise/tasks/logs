@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+#MISE description="Tail external-dns and nginx-gateway-fabric logs in the gateway namespace"
+"""Tail the gateway external-dns and nginx logs (doit→mise migration, Phase 3).
+
+INTENT
+    Faithful port of the gateway ``dodo.py`` ``logs`` task (a ``@task.with_params``
+    generator). It runs ``kubectl logs`` against two label selectors — external-dns
+    and nginx-gateway-fabric — in the ``gateway`` namespace, threading through the
+    same CLI flags dodo.py exposed.
+
+ARCHITECTURE
+    For each component dodo.py emits, via its _kubectl/_optize helpers:
+      kubectl logs --namespace=gateway --selector=<sel>
+        --follow=<bool> --prefix=<bool> --since=<str> --tail=<int>
+        (--all-containers=true | --container=<name>)
+    The two invocations (external-dns, then nginx) run sequentially, matching
+    ``doit logs`` (which runs both sub-yields).
+
+    FLAG VALUE FIDELITY: dodo.py's _optize renders booleans as the literal
+    ``--follow=true`` / ``--follow=false`` (kubectl accepts both) and always emits
+    --since/--tail with their defaults (``0s`` / ``-1``). This script reproduces
+    that exactly so the wire commands match dodo.py byte-for-byte.
+
+    CONTAINER SELECTION: mirrors dodo.py's ``_gen_extra`` — ``--all-containers``
+    wins when set; otherwise ``--container`` defaults to the component name
+    (external-dns / nginx) unless ``--container`` overrides it.
+
+DESIGN DECISIONS / WHY
+    * FIXED legacy dodo.py bug: dodo.py declared a ``--previous`` param but its
+      ``logs`` function pulled ``previous`` out of the kwargs and never passed it
+      to kubectl — so ``--previous`` was a no-op upstream. It is now forwarded:
+      when set, ``--previous=true`` is appended to the kubectl argv for BOTH
+      selectors (external-dns + nginx), consistent with how ``--follow`` /
+      ``--prefix`` are forwarded. Unlike those always-emitted flags, ``--previous``
+      is appended only when set (kubectl defaults it to false), so omitting the
+      flag leaves the wire command unchanged. This is an intentional behavior
+      change, not a faithful port.
+    * ``--follow`` caveat (also present upstream): following blocks on the first
+      (external-dns) stream, so the nginx stream only starts once external-dns
+      ends — identical to ``doit logs -f``. Target one stream by editing the
+      command if you need a single follow.
+    * Plain ``python3`` shebang (not ``uv run``): mise re-invokes file tasks; a
+      bare ``uv run`` shebang recurses. Stdlib-only, so ``python3`` is correct.
+    * Params arrive as ``usage_*`` env vars (see #USAGE block); bool flags are set
+      to ``"true"`` when present and unset when absent; ``--since`` / ``--tail``
+      always arrive with their defaults injected by mise.
+"""
+
+import os
+import subprocess
+import sys
+
+NAMESPACE = "gateway"
+# (selector, default container name) per dodo.py's two yields, in order.
+COMPONENTS = [
+    ("app.kubernetes.io/name=external-dns", "external-dns"),
+    ("app.kubernetes.io/name=nginx-gateway-fabric", "nginx"),
+]
+
+
+def _truthy(name: str) -> bool:
+    return os.environ.get(name, "").lower() == "true"
+
+
+def build_command(selector: str, default_container: str) -> list[str]:
+    follow = _truthy("usage_follow")
+    prefix = _truthy("usage_prefix")
+    previous = _truthy("usage_previous")
+    all_containers = _truthy("usage_all_containers")
+    since = os.environ.get("usage_since", "0s")
+    tail = os.environ.get("usage_tail", "-1")
+    container = os.environ.get("usage_container") or None
+
+    # Flag order mirrors dodo.py: namespace, selector, follow, prefix, since, tail,
+    # then the container/all-containers extra (bools rendered as true/false).
+    argv = [
+        "kubectl",
+        "logs",
+        f"--namespace={NAMESPACE}",
+        f"--selector={selector}",
+        f"--follow={'true' if follow else 'false'}",
+        f"--prefix={'true' if prefix else 'false'}",
+        f"--since={since}",
+        f"--tail={tail}",
+    ]
+    # FIX (was a no-op upstream): forward --previous when set. Appended only when
+    # truthy so the default invocation matches dodo.py's wire command byte-for-byte.
+    if previous:
+        argv.append("--previous=true")
+    if all_containers:
+        argv.append("--all-containers=true")
+    else:
+        argv.append(f"--container={container or default_container}")
+    return argv
+
+
+def main() -> int:
+    for selector, default_container in COMPONENTS:
+        argv = build_command(selector, default_container)
+        result = subprocess.run(argv)
+        if result.returncode != 0:
+            sys.stderr.write(
+                f"logs: kubectl failed ({result.returncode}) for selector {selector!r}\n"
+            )
+            return result.returncode
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+#USAGE flag "-a --all-containers" help="Get all containers' logs in the pod(s)."
+#USAGE flag "-c --container <container>" help="Print the logs of this container."
+#USAGE flag "-f --follow" help="Specify if the logs should be streamed."
+#USAGE flag "-p --prefix" help="Prefix each log line with the log source (pod/container name)."
+#USAGE flag "--previous" help="Print logs for the previous container instance (forwarded to kubectl when set)."
+#USAGE flag "-s --since <since>" help="Only return logs newer than a relative duration (e.g. 2m, 3h)." default="0s"
+#USAGE flag "-t --tail <tail>" help="Lines of recent log file to display." default="-1"

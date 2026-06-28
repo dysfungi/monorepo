@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+#MISE description="Copy the frankenstorage object-storage id to the clipboard (pbcopy), then pbpaste"
+"""Copy the frankenstorage object-storage id from Vultr to the clipboard (Phase 3).
+
+INTENT
+    Faithful 1:1 port of the frankenstructure ``dodo.py`` ``copy_storage_id`` task.
+
+ARCHITECTURE
+    dodo.py defines this task as TWO sequential actions:
+      1. ``vultr-cli --output=json object-storage list
+           | jq --raw-output
+             '.object_storages[] | select(.label == "frankenstorage").id'
+           | pbcopy``
+      2. ``pbpaste``
+    Each doit action is its own shell invocation; this script reproduces that by
+    running each command string in order via ``/bin/sh -c`` and failing loudly if
+    any returns non-zero. Action 1 places the id on the macOS clipboard; action 2
+    echoes it back to stdout for visual confirmation.
+
+DESIGN DECISIONS / WHY
+    * Plain ``python3`` shebang (not ``uv run``): mise file tasks are re-invoked
+      by the runner and a bare ``uv run`` shebang recursively re-invokes uv. This
+      task is stdlib-only, so ``python3`` is correct.
+"""
+
+import subprocess
+import sys
+
+# jq filter kept byte-for-byte equivalent to dodo.py's copy_storage_id action.
+ACTIONS = [
+    'vultr-cli --output=json object-storage list '
+    "| jq --raw-output '.object_storages[] | select(.label == \"frankenstorage\").id' "
+    "| pbcopy",
+    "pbpaste",
+]
+
+
+def main() -> int:
+    for cmd in ACTIONS:
+        result = subprocess.run(["/bin/sh", "-c", cmd])
+        if result.returncode != 0:
+            sys.stderr.write(
+                f"copy_storage_id: action failed ({result.returncode}): {cmd}\n"
+            )
+            return result.returncode
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

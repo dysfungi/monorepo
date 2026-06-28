@@ -6,14 +6,14 @@ understand why a deploy ran (or didn't).
 
 ## Overview
 
-Four tools carry the weight:
+Three tools carry the weight:
 
 - **1Password** (vault [`Frankenstructure`](#source-of-truth)) — the single
   source of truth for every secret.
-- **`mise`** (`.mise.toml`) — local developer environment and config; reads
-  secrets from 1Password on demand and caches them.
-- **`doit`** (`dodo.py`) — workspace task runner (`setup`, `lint`, `build`,
-  `start`).
+- **`mise`** (`.mise.toml`) — local developer environment, config, and the
+  workspace task runner (`setup`, `lint`, `build`, `start`). Reads secrets from
+  1Password on demand and caches them; monorepo mode fans tasks out to
+  per-project configs.
 - **Terraform / OpenTofu** — infrastructure and apps, normally applied via
   GitHub Actions GitOps on push to `main`; local `tofu apply` is also safe
   because S3 state locking (`use_lockfile`) serializes writes.
@@ -290,19 +290,22 @@ to be a no-op after first success:
 2. `docker login ghcr.io` (uses `GITHUB_USERNAME` / `GITHUB_TOKEN`).
 3. `docker login` to the Vultr container registry (`frankistry`).
 
-### `doit` task runner
+### `mise` task runner
 
-`dodo.py` (pydoit) defines workspace tasks and auto-discovers per-project
-sub-tasks. Current projects: `automate` (F#/api), `frankenstructure` and
-`gateway` (Terraform/infra).
+The root `.mise.toml` defines workspace tasks; mise monorepo mode discovers
+per-project `.mise.toml` files and fans tasks out to them. A directory becomes a
+"project" by carrying its own `.mise.toml`. Current projects: `automate`
+(F#/api), `frankenstructure` and `gateway` (Terraform/infra). Configs must be
+`mise trust`ed once before tasks run.
 
-| Command      | Purpose                                                       |
-| ------------ | ------------------------------------------------------------- |
-| `doit ls`    | List projects and sub-tasks (the default task).               |
-| `doit setup` | Root setup (`mise install`, `pre-commit install`) + projects. |
-| `doit lint`  | Run all linters via `pre-commit`.                             |
-| `doit build` | Build projects (filter with `$LANGUAGE/$CATEGORY/$PROJECT`).  |
-| `doit start` | Run projects.                                                 |
+| Command               | Purpose                                                                    |
+| --------------------- | -------------------------------------------------------------------------- |
+| `mise run ls`         | List projects (filter with `--lang`/`--cat`/`--name`).                     |
+| `mise tasks ls --all` | List every task (root + all projects).                                     |
+| `mise run setup`      | Root setup (`mise install`, `pre-commit install`), then projects.          |
+| `mise run lint`       | Run all linters via `pre-commit`.                                          |
+| `mise run build`      | Build all projects (`//...:build`); one via `//fsharp/api/automate:build`. |
+| `mise run start`      | Run all projects.                                                          |
 
 ---
 

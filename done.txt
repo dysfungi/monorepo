@@ -8,3 +8,4 @@ x 2026-06-27 Fix dodo.py project discovery (exclude dotfile dirs) +tooling @work
 x 2026-06-27 Scope CI deploy jobs with per-stack path filters +ci @worktree:.claude/worktrees/ci-path-filters session:01de0b96-1587-41f3-a4d4-fc50ab5edb64 agent:claude model:claude-opus-4-8
 x 2026-06-27 Fix changes job checkout so dorny works on push +ci @worktree:.claude/worktrees/ci-changes-checkout session:01de0b96-1587-41f3-a4d4-fc50ab5edb64 agent:claude model:claude-opus-4-8
 x 2026-06-28 E2 Honeycomb alert triggers + deadman +observability @worktree:.claude/worktrees/alert-coverage session:8185ccc4-5994-4831-b817-8fca22eac321 agent:claude model:claude-opus-4-8
+x 2026-06-28 (B) Migrate Brewfile + .tool-versions tooling into mise [tools] +tooling @worktree:.claude/worktrees/9ffd2926.brewfile-to-mise session:9ffd2926 agent:claude model:claude-opus-4-8

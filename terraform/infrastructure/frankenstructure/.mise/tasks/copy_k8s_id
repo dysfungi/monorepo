@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+#MISE description="Copy the frank8s VKE cluster id to the clipboard (pbcopy), then pbpaste"
+"""Copy the frank8s Kubernetes (VKE) cluster id from Vultr to the clipboard (Phase 3).
+
+INTENT
+    Port of the frankenstructure ``dodo.py`` ``copy_k8s_id`` task, with the
+    long-standing missing-``pbcopy`` bug FIXED (see DESIGN DECISIONS). No longer a
+    strict 1:1 port — the fix is intentional.
+
+ARCHITECTURE
+    Defined as TWO sequential actions, mirroring its ``copy_registry_id`` /
+    ``copy_storage_id`` siblings:
+      1. ``vultr-cli --output=json kubernetes list
+           | jq --raw-output '.vke_clusters[] | select(.label == "frank8s").id'
+           | pbcopy``
+      2. ``pbpaste``
+    Each action is its own shell invocation; this script reproduces that by
+    running each command string in order via ``/bin/sh -c`` and failing loudly if
+    any returns non-zero. Action 1 places the id on the macOS clipboard; action 2
+    echoes it back to stdout for visual confirmation.
+
+DESIGN DECISIONS / WHY
+    * FIXED legacy dodo.py bug: dodo.py's ``copy_k8s_id`` pipeline did NOT end in
+      ``pbcopy`` (unlike its ``copy_registry_id`` / ``copy_storage_id`` siblings),
+      so action 1 merely PRINTED the cluster id and action 2's ``pbpaste`` echoed
+      stale clipboard contents. The task name is ``copy_*`` and its siblings all
+      pipe to ``pbcopy``; the trailing ``| pbcopy`` is now restored so the id
+      actually lands on the clipboard, making behavior consistent with the
+      siblings. This is an intentional behavior change, not a faithful port.
+    * Plain ``python3`` shebang (not ``uv run``): mise file tasks are re-invoked
+      by the runner and a bare ``uv run`` shebang recursively re-invokes uv. This
+      task is stdlib-only, so ``python3`` is correct.
+"""
+
+import subprocess
+import sys
+
+# jq filter kept byte-for-byte equivalent to dodo.py's copy_k8s_id action; the
+# trailing `| pbcopy` is the FIX restoring sibling-consistent clipboard behavior.
+ACTIONS = [
+    'vultr-cli --output=json kubernetes list '
+    "| jq --raw-output '.vke_clusters[] | select(.label == \"frank8s\").id' "
+    "| pbcopy",
+    "pbpaste",
+]
+
+
+def main() -> int:
+    for cmd in ACTIONS:
+        result = subprocess.run(["/bin/sh", "-c", cmd])
+        if result.returncode != 0:
+            sys.stderr.write(f"copy_k8s_id: action failed ({result.returncode}): {cmd}\n")
+            return result.returncode
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -12,16 +12,25 @@ This repository is a monorepo organized by language at the first level and funct
 
 ---
 
-## Task Runner (`doit` / `dodo.py`)
+## Task Runner (`mise`)
 
-A root `dodo.py` file defines workspace-wide tasks using `pydoit`.
+Workspace tasks are defined with [`mise`](https://mise.jdx.dev) tasks. The root
+`.mise.toml` declares workspace-wide tasks and uses monorepo mode to fan out to
+per-project `.mise.toml` files (a directory opts in to being a "project" by
+adding one). Configs must be trusted once with `mise trust` before tasks run.
+
 Common commands:
 
-- `doit ls`: List all available tasks and projects.
-- `doit setup`: Run root setup (`mise install`, `pre-commit install`) and project-specific setups.
-- `doit lint`: Run linters via `pre-commit` on all files.
-- `doit build`: Build projects (can filter with `$LANGUAGE/$CATEGORY/$PROJECT`).
-- `doit start`: Run projects.
+- `mise run ls`: List all projects (filter with `--lang`/`--cat`/`--name`).
+- `mise tasks ls --all`: List every task (root + all projects). Plain
+  `mise tasks ls` at the monorepo root shows only the root tasks.
+- `mise run setup`: Root setup (`mise install`, `pre-commit install`) first, then
+  each project's setup.
+- `mise run lint`: Run linters via `pre-commit` on all files.
+- `mise run build`: Build all projects. Address one project with
+  `mise run //fsharp/api/automate:build`, or fan out explicitly with
+  `mise run //...:build`.
+- `mise run start`: Run all projects.
 
 ---
 

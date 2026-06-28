@@ -1,0 +1,98 @@
+# mise tasks for the gateway infra stack (doit→mise migration, Phase 3).
+#
+# 1:1 port of the stack's former dodo.py (removed in Phase 4). The `.mise.toml`
+# in this directory is also the opt-in marker that makes it a discoverable
+# project (see `.mise/tasks/ls` and the root [monorepo] config).
+#
+# INHERITANCE: this nested config inherits the root .mise.toml [env] (1Password
+# secrets, every TF_VAR_*, VULTR_API_KEY, AWS_*, REGISTRY, KUBECONFIG). Those are
+# NOT re-declared here — `tofu`, `kubectl`, and `vultr-cli` pick them up.
+#
+# WORKING DIR: mise runs each task from this file's directory
+# (terraform/infrastructure/gateway) by default. The .tf files and tests/ live
+# directly here, so bare `tofu …` and `tests/…` paths resolve.
+#
+# COMMAND FIDELITY: command strings mirror what dodo.py's helper functions emit
+# (_tofu/_kubectl). dodo.py over-quotes every positional/flag value via _optize;
+# those redundant quotes are normalized to clean, equivalent forms here, except
+# where a value carries shell-significant characters (e.g. the kubectl selectors).
+#
+# NAMESPACE: dodo.py's NAMESPACE = "gateway" is inlined as --namespace=gateway.
+#
+# PARAM TASKS: `logs` and `shell` (dodo.py @task.with_params) carry CLI flags and
+# branching logic, so they live as Python file tasks under .mise/tasks/ with
+# #USAGE flag declarations (auto-discovered) rather than inline here.
+#
+# MULTI-YIELD COLLAPSE: dodo.py's get_config / debug_staging_cert / test are
+# generator tasks whose sub-yields all run when you invoke the parent task. Each
+# is collapsed into a single mise task that runs the sub-groups in sequence —
+# observably identical to `doit <task>`.
+
+# ── tofu lifecycle ───────────────────────────────────────────────────────────
+[tasks.build]
+description = "Preview gateway changes (tofu plan) — discovered by //...:build fan-out"
+run = "tofu plan"
+
+[tasks.deploy]
+description = "Apply gateway changes non-interactively (tofu apply -auto-approve)"
+run = "tofu apply -auto-approve"
+
+[tasks.setup]
+description = "Initialize the stack's tofu working dir (tofu init)"
+run = "tofu init"
+
+# ── nginx config dump (dodo get_config:nginx) ────────────────────────────────
+[tasks.get_config]
+description = "Dump the live nginx-gateway config to configs/nginx.conf"
+run = '''
+mkdir -p configs
+kubectl exec --namespace=gateway --container=nginx svc/nginx-gateway -- nginx -T | tee configs/nginx.conf
+echo
+'''
+
+# ── cert-manager staging debug (dodo debug_staging_cert:{certificate,
+#    certificaterequest,order,challenge}) ──────────────────────────────────────
+[tasks.debug_staging_cert]
+description = "Dump cert-manager Certificate/Request/Order/Challenge state for staging"
+run = '''
+kubectl get --namespace=gateway certificate
+kubectl describe --namespace=gateway certificate
+echo
+kubectl get --namespace=gateway certificaterequest
+kubectl describe --namespace=gateway certificaterequest
+echo
+kubectl get --namespace=gateway order
+kubectl describe --namespace=gateway order
+echo
+kubectl get --namespace=gateway challenge
+kubectl describe --namespace=gateway challenge
+dig -t TXT _acme-challenge.letsencrypt-test.staging.api.frank.sh
+echo
+'''
+
+# ── cert-manager / certificate smoke test (dodo test:{cert-manager,certificate})
+#    FIXED legacy dodo.py bug: dodo.py also tried to yield a third `nginx-config`
+#    sub-task, but its guard checked for name "nginx-gateway" while shell() yields
+#    name "nginx", so that branch was DEAD upstream and never ran. The dead branch
+#    is intentionally DROPPED here (not revived) — only the two live sub-tasks
+#    remain. This is an intentional behavior change, not a faithful port. The
+#    `clean` actions are doit cleanup hooks; dodo runs the same delete as the
+#    final action anyway, so it is kept inline.
+[tasks.test]
+description = "Apply+describe the cert-manager and certificate test manifests, then delete"
+run = '''
+test -f tests/test-cert-manager.yaml || { echo "test: missing tests/test-cert-manager.yaml" >&2; exit 1; }
+kubectl apply --filename=tests/test-cert-manager.yaml
+sleep 10
+kubectl describe --namespace=cert-manager-test certificate
+kubectl delete --filename=tests/test-cert-manager.yaml
+test -f tests/test-certificate.yaml || { echo "test: missing tests/test-certificate.yaml" >&2; exit 1; }
+kubectl apply --filename=tests/test-certificate.yaml
+sleep 10
+kubectl describe --filename=tests/test-certificate.yaml
+kubectl delete --filename=tests/test-certificate.yaml
+'''
+
+# NOTE: `logs` and `shell` are param-driven file tasks under .mise/tasks/
+# (auto-discovered); they hold the #USAGE flags + branching and are not
+# redeclared here.

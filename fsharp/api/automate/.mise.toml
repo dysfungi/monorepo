@@ -1,0 +1,157 @@
+# mise tasks for the F# AutoMate project (doit→mise migration).
+#
+# 1:1 port of the project's former dodo.py (removed in Phase 4). The `.mise.toml`
+# in this directory is also the opt-in marker that makes it a discoverable
+# project (see `.mise/tasks/ls` and the root [monorepo] config).
+#
+# INHERITANCE: this nested config inherits the root .mise.toml [env] (1Password
+# secrets, TF_VAR_*, REGISTRY, AWS_*). Those are NOT re-declared here.
+#
+# WORKING DIR: mise runs each task from this file's directory
+# (fsharp/api/automate) by default, so the relative `docker compose`, `dotnet`,
+# `tofu -chdir=terraform`, `scripts/…`, and `.mise/tasks/…` paths all resolve.
+#
+# COMMAND FIDELITY: command strings mirror what dodo.py's helper functions emit
+# (e.g. compose() -> `docker compose <cmd> <opts> -- <args>`). Redundant empty
+# `--` separators and absolute paths are normalized to clean, equivalent forms.
+#
+# APP VERSION: deploy/plan/gen_version compute the image version FRESH per run
+# via `scripts/app_version.py` and export it as APP_VERSION + TF_VAR_app_version
+# inline (a cached [env] exec() would freeze the epoch — see that script's WHY).
+#
+# ENV BRANCHING: dbmigrate/dbrollback select dev/prod from `${ENV:-dev}` (dodo's
+# global `env` doit var). dbshell/dburl are file tasks under .mise/tasks/ and use
+# a `--env` #USAGE flag (arriving as `usage_env`), falling back to ENV.
+
+# ── Build / test ─────────────────────────────────────────────────────────────
+[tasks.build]
+description = "Build all docker-compose images (compose build)"
+run = "docker compose build"
+
+[tasks.test]
+description = "Run the .NET test project (dotnet test)"
+alias = "tests"
+run = "dotnet test AutoMate.Tests/AutoMate.Tests.fsproj"
+
+[tasks.outdated]
+description = "List outdated NuGet package references (dotnet list package --outdated)"
+run = "dotnet list package --outdated"
+
+# ── docker-compose lifecycle ─────────────────────────────────────────────────
+[tasks.up]
+description = "Start the full stack detached and wait for health (compose up)"
+run = "docker compose up --detach --wait"
+
+[tasks.down]
+description = "Stop the stack and remove orphan containers (compose down)"
+run = "docker compose down --remove-orphans"
+
+[tasks.cleandocker]
+description = "Stop the stack, removing orphans AND volumes (compose down -v)"
+run = "docker compose down --remove-orphans --volumes"
+
+[tasks.iterate]
+description = "Rebuild+start api-debug & unit tests detached, then follow logs"
+run = '''
+docker compose up --build --detach --remove-orphans --wait -- api-debug api-unit-tests
+docker compose logs --follow
+'''
+
+[tasks.web]
+description = "Open the running api in a browser (depends: up)"
+depends = ["up"]
+run = 'python -m webbrowser -t "http://$(docker compose port api 8080)"'
+
+# ── dotnet watch (hot reload) ────────────────────────────────────────────────
+[tasks."watch:run"]
+description = "Hot-reload run the API project (dotnet watch run)"
+run = "dotnet watch run --project=AutoMate/AutoMate.fsproj"
+
+[tasks."watch:test"]
+description = "Hot-reload the test project (dotnet watch test)"
+# `cd` into the test dir first: dotnet/sdk#45761 (watch test + --project is buggy).
+run = "cd AutoMate.Tests && dotnet watch test"
+
+# ── docker-based watch (containerized hot reload) ────────────────────────────
+[tasks."dockerwatch:run"]
+description = "Rebuild+run api-debug in docker with orphan cleanup (compose up)"
+run = "docker compose up --build --remove-orphans -- api-debug"
+
+[tasks."dockerwatch:test"]
+description = "Rebuild+run api-unit-tests in docker, one-shot (compose run)"
+run = "docker compose run --build --rm --remove-orphans -- api-unit-tests"
+
+# ── Versioning ───────────────────────────────────────────────────────────────
+[tasks.version]
+description = "Print the BASE fsproj version (e.g. 0.3.1)"
+# dodo's `version` prints the bare <Version> — NOT the branch/epoch-suffixed one.
+run = "python3 scripts/app_version.py --base"
+
+[tasks.gen_version]
+description = "Print the FULL image version, fresh: {base}-{branch}.{epoch}"
+# dodo's `gen_version` echoes the suffixed APP_VERSION set by _setup:app_version.
+run = '''
+v="$(python3 scripts/app_version.py)"
+export APP_VERSION="$v" TF_VAR_app_version="$v"
+echo "$APP_VERSION"
+'''
+
+# ── Image publish / deploy ───────────────────────────────────────────────────
+[tasks.push]
+description = "Push all compose images (depends: build)"
+# dodo's `push` carries NO app_version setup (only task_dep build) — ported 1:1.
+depends = ["build"]
+run = "docker compose push"
+
+[tasks.deploy]
+description = "Build, push api, then tofu init+apply with a fresh app_version"
+run = '''
+v="$(python3 scripts/app_version.py)"
+export APP_VERSION="$v" TF_VAR_app_version="$v"
+docker compose build
+docker compose push -- api
+tofu -chdir=terraform init -migrate-state
+tofu -chdir=terraform apply -auto-approve
+'''
+
+[tasks.plan]
+description = "tofu plan with a fresh app_version exported"
+run = '''
+v="$(python3 scripts/app_version.py)"
+export APP_VERSION="$v" TF_VAR_app_version="$v"
+tofu -chdir=terraform plan
+'''
+
+# ── Project setup ────────────────────────────────────────────────────────────
+[tasks.setup]
+description = "Initialize the project's tofu working dir (tofu init)"
+# Discovered by the root `//...:setup` fan-out.
+run = "tofu -chdir=terraform init"
+
+# ── Database migrations (dev/prod via ${ENV:-dev}) ───────────────────────────
+[tasks.dbmigrate]
+description = "Apply DB migrations up (ENV=prod adds --url from dburl)"
+run = '''
+env="${ENV:-dev}"
+if [ "$env" = "prod" ]; then
+  url="$(ENV=prod python3 .mise/tasks/dburl)"
+  docker compose run --rm -- dbmigrate --url="$url" up --strict --verbose
+else
+  docker compose run --rm -- dbmigrate up --strict --verbose
+fi
+'''
+
+[tasks.dbrollback]
+description = "Roll DB migrations down (ENV=prod adds --url from dburl)"
+run = '''
+env="${ENV:-dev}"
+if [ "$env" = "prod" ]; then
+  url="$(ENV=prod python3 .mise/tasks/dburl)"
+  docker compose run --rm -- dbmigrate --url="$url" down --verbose
+else
+  docker compose run --rm -- dbmigrate down --verbose
+fi
+'''
+
+# NOTE: `dbshell` and `dburl` are file tasks under .mise/tasks/ (auto-discovered);
+# they hold the dev/prod branching logic and are not redeclared here.

@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+#MISE description="Open an interactive psql shell against the prod database (env=prod only)"
+"""Open an interactive psql shell against the prod database (doit→mise Phase 1).
+
+INTENT
+    Faithful port of the root ``dodo.py`` ``dbshell`` task, which is guarded by
+    ``@task.onlyif(is_prod)`` — it exists only for ``env=prod``. It resolves the
+    Postgres connection URL from Vultr at runtime and drops the user into ``psql``
+    running inside an ephemeral ``postgres:16-alpine`` container.
+
+ARCHITECTURE
+    1. Guard: refuse unless the environment resolves to ``prod`` (early exit).
+    2. Build the exact shell pipeline dodo.py built:
+         docker run --interactive --rm --tty -- postgres:16-alpine "psql" \
+           "$(vultr-cli --output=json database list | jq --raw-output \
+             '.databases[] | select(.label=="postgres") | \
+              "postgres://\\(.user):\\(.password)@\\(.public_host):\\(.port)/\\(.dbname)?sslmode=require"')"
+    3. ``exec`` into ``/bin/sh -c`` so the interactive container replaces this
+       process (psql needs a real TTY; replacing the process is the cleanest way
+       to hand it over).
+
+DESIGN DECISIONS / WHY
+    - Prod-only is enforced loudly: any non-prod env prints an actionable error
+      to stderr and exits non-zero, mirroring dodo.py's ``onlyif(is_prod)``.
+    - The environment is read from the ``--env`` ``#USAGE`` flag (arrives as
+      ``usage_env``) or the ``ENV`` env var, defaulting to ``dev``.
+    - The Vultr URL is resolved inside the ``$(...)`` subshell at exec time, so
+      the credential never lands in this process's argv or memory.
+"""
+
+# WHY this shebang (deviation from the repo's usual `uv run` convention):
+# mise file tasks are re-invoked by the runner; a bare `#!/usr/bin/env -S uv run`
+# recursively re-invokes uv (~101x) and dies. This task is stdlib-only, so a
+# plain python3 shebang is correct. Use `-S uv run --script` ONLY when real
+# PEP 723 deps are needed.
+
+import os
+import sys
+
+PROD = "prod"
+
+# The jq filter that turns `vultr database list` JSON into a libpq URL. Kept
+# byte-for-byte equivalent to dodo.py's dburl_action(prod).
+JQ_FILTER = (
+    '.databases[] | select(.label=="postgres") | '
+    '"postgres://\\(.user):\\(.password)@\\(.public_host):\\(.port)/'
+    '\\(.dbname)?sslmode=require"'
+)
+
+DBSHELL_CMD = (
+    "docker run --interactive --rm --tty -- postgres:16-alpine "
+    '"psql" "$(vultr-cli --output=json database list | '
+    f"jq --raw-output '{JQ_FILTER}')\""
+)
+
+
+def resolve_env() -> str:
+    return os.environ.get("usage_env") or os.environ.get("ENV") or "dev"
+
+
+def main() -> int:
+    env = resolve_env()
+    if env != PROD:
+        sys.stderr.write(
+            f"dbshell: refusing to run — only env=prod is supported "
+            f"(got env={env!r}). Re-run with `--env prod` or ENV=prod.\n"
+        )
+        return 1
+
+    # Replace this process with the interactive container.
+    os.execvp("/bin/sh", ["/bin/sh", "-c", DBSHELL_CMD])
+    return 0  # unreachable; execvp never returns on success
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+#USAGE flag "-e --env <env>" help="environment (only prod is supported)" default="dev"

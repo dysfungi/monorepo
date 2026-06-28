@@ -1,0 +1,201 @@
+#!/usr/bin/env python3
+#MISE description="List all projects (filter with --cat/--lang/--name, sort with --sortby)"
+"""List every project in the monorepo as a padded table (doit→mise Phase 1).
+
+INTENT
+    Faithful port of the root ``dodo.py`` ``ls`` task. Discovers projects by
+    globbing ``$LANGUAGE/$CATEGORY/$PROJECT`` (depth-3) directories from the
+    repo root and prints them as a column-aligned table, with optional
+    case-insensitive substring filters on category/language/name and a
+    configurable sort key.
+
+ARCHITECTURE
+    - Discovery globs ``*/*/*/`` (depth-3 ``$LANGUAGE/$CATEGORY/$PROJECT``),
+      drops ``node_modules``/``__pycache__`` hits, drops any hit whose
+      language/category/project component is a dotfile dir (this is what keeps
+      ``.claude/worktrees/<wt>/`` full checkouts — which each carry their own
+      ``.mise.toml`` at depth 3 — from being mis-discovered as projects), and
+      requires a ``.mise.toml`` to exist in the leaf. The ``.mise.toml`` marker
+      is the post-migration opt-in for a directory to count as a project; it
+      replaced the old ``dodo.py`` gate when doit was removed (Phase 4). A
+      project must add a ``.mise.toml`` to appear here and to receive the
+      ``//...:<task>`` fan-out.
+    - The repo root is resolved with precedence ``MISE_PROJECT_ROOT`` (injected
+      by mise, always the dir containing the root .mise.toml) → git top-level →
+      cwd. The git fallback lets a DIRECT ``python3 .mise/tasks/ls`` invocation
+      (the secret-free ``mise-ls`` pre-commit hook) work from any subdir WITHOUT
+      activating mise — which would render the root ``[env]`` and shell out to
+      ``op``/``vultr-cli`` for 1Password secrets. ``mise run ls`` still resolves via
+      ``MISE_PROJECT_ROOT`` exactly as before.
+
+DESIGN DECISIONS / WHY
+    - Flag values arrive as ``usage_<name>`` environment variables (mise's
+      contract for ``#USAGE`` flags); we read those rather than parsing argv.
+    - The display-language map and the lowercased ``sub-task name`` column
+      reproduce dodo.py's output verbatim so existing muscle memory / docs hold.
+    - Unknown languages raise ``KeyError`` loudly (same as dodo.py) rather than
+      silently rendering a raw dir name.
+"""
+
+# WHY this shebang (deviation from the repo's usual `uv run` convention):
+# mise file tasks are re-invoked by the runner; a bare `#!/usr/bin/env -S uv run`
+# recursively re-invokes uv (~101x) and dies. This task is stdlib-only, so a
+# plain python3 shebang is correct. Use `-S uv run --script` ONLY when real
+# PEP 723 deps are needed.
+
+import os
+import subprocess
+import sys
+from operator import attrgetter
+from pathlib import Path
+
+# dodo.py's display-language map (language dir name -> pretty label).
+DISPLAY_LANGUAGE = {
+    "clojure": "Clojure",
+    "elixir": "Elixir",
+    "elm": "Elm",
+    "fsharp": "F#",
+    "go": "Go",
+    "haskell": "Haskell",
+    "ocaml": "OCaml",
+    "python": "Python",
+    "reasonml": "ReasonML",
+    "rust": "Rust",
+    "terraform": "Terraform",  # HCL, TF
+}
+
+PART_IGNORES = {"node_modules", "__pycache__"}
+
+
+class Project:
+    """A `$LANGUAGE/$CATEGORY/$PROJECT` directory in the monorepo."""
+
+    def __init__(self, path: Path):
+        self.path = path
+        self.name = path.name
+        self.category = path.parent.name
+        self.language = path.parent.parent.name
+
+    # Short aliases used as sort keys (mirror dodo.py's .cat/.lang properties).
+    @property
+    def cat(self) -> str:
+        return self.category
+
+    @property
+    def lang(self) -> str:
+        return self.language
+
+    @property
+    def display_lang(self) -> str:
+        return DISPLAY_LANGUAGE[self.language]
+
+    @property
+    def subtask_name(self) -> str:
+        return "/".join(
+            s.lower() for s in (self.display_lang, self.category, self.name)
+        )
+
+
+def repo_root() -> Path:
+    # MISE_PROJECT_ROOT wins when invoked via `mise run ls`. Outside mise (e.g.
+    # the secret-free pre-commit hook), fall back to the git top-level so the
+    # discovery glob anchors at the repo root from any subdir; cwd is the last
+    # resort if git is unavailable.
+    env_root = os.environ.get("MISE_PROJECT_ROOT")
+    if env_root:
+        return Path(env_root)
+    try:
+        top = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        if top:
+            return Path(top)
+    except (OSError, subprocess.CalledProcessError):
+        pass
+    return Path(os.getcwd())
+
+
+def discover(root: Path) -> list[Project]:
+    """Discover projects by the ``.mise.toml`` opt-in marker (ports the former
+    dodo.py ``Project.all()``, swapping its ``dodo.py`` gate for ``.mise.toml``)."""
+    projects = []
+    for directory in root.glob("*/*/*/"):
+        components = (directory, directory.parent, directory.parent.parent)
+        if PART_IGNORES & set(directory.parts):
+            continue
+        if any(d.name.startswith(".") for d in components):
+            continue
+        if not (directory / ".mise.toml").exists():
+            continue
+        projects.append(Project(directory))
+    return projects
+
+
+def main() -> int:
+    category = os.environ.get("usage_cat") or None
+    language = os.environ.get("usage_lang") or None
+    name = os.environ.get("usage_name") or None
+
+    # `--sortby` accepts a comma-separated subset of {cat, lang, name}; "name"
+    # is always appended as the final tiebreaker (matches dodo.py).
+    raw_sortby = os.environ.get("usage_sortby", "") or ""
+    sortby = [s.strip() for s in raw_sortby.split(",") if s.strip()]
+    sortby.append("name")
+
+    projects = [
+        p
+        for p in discover(repo_root())
+        if (not category or category.lower() in p.cat.lower())
+        and (not language or language.lower() in p.lang.lower())
+        and (not name or name.lower() in p.name.lower())
+    ]
+
+    head_name, head_lang, head_cat, head_subtask = (
+        "project name",
+        "language",
+        "category",
+        "sub-task name",
+    )
+
+    def get_max(values, header: str) -> int:
+        return max((len(v) for v in (*values, header)), default=len(header))
+
+    max_name = get_max([p.name for p in projects], head_name)
+    max_lang = get_max([p.display_lang for p in projects], head_lang)
+    max_cat = get_max([p.category for p in projects], head_cat)
+    max_subtask = get_max([p.subtask_name for p in projects], head_subtask)
+
+    header = " | ".join(
+        [
+            format(head_name, f"{max_name}"),
+            format(head_lang, f"{max_lang}"),
+            format(head_cat, f"{max_cat}"),
+            format(head_subtask, f"{max_subtask}"),
+        ]
+    )
+    print(header)
+    print("-" * len(header))
+    for p in sorted(projects, key=attrgetter(*sortby)):
+        print(
+            " | ".join(
+                [
+                    format(p.name, f"{max_name}"),
+                    format(p.display_lang, f"{max_lang}"),
+                    format(p.category, f"{max_cat}"),
+                    format(p.subtask_name, f"{max_subtask}"),
+                ]
+            )
+        )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+#USAGE flag "-c --cat <cat>" help="case-insensitive substring match on category"
+#USAGE flag "-l --lang <lang>" help="case-insensitive substring match on language"
+#USAGE flag "-n --name <name>" help="case-insensitive substring match on name"
+#USAGE flag "-s --sortby <sortby>" help="comma-separated sort keys: cat,lang,name (name always appended)" default=""

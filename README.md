@@ -5,13 +5,13 @@
 
 ## Prerequisites & Tooling
 
-The dev toolchain is managed by [`mise`](https://mise.jdx.dev/) — `mise install` provisions every pinned tool in `.mise.toml [tools]` (kubectl, helm, opentofu, dotnet, python, vultr-cli, etc.). `doit setup` runs `mise install` + `pre-commit install`.
+The dev toolchain is managed by [`mise`](https://mise.jdx.dev/) — `mise install` provisions every pinned tool in `.mise.toml [tools]` (kubectl, helm, opentofu, dotnet, python, vultr-cli, etc.). `mise run setup` runs `mise install` + `pre-commit install`.
 
 A few things mise cannot bootstrap and must be installed manually first:
 
 - **mise** itself — the toolchain manager ([install docs](https://mise.jdx.dev/getting-started.html)).
 - **1Password CLI (`op`)** — `.mise.toml` loads secrets from 1Password on shell enter.
-- **Docker** (with `docker compose`) — used by `.mise/setup.sh` and several `doit` tasks.
+- **Docker** (with `docker compose`) — used by `.mise/setup.sh` and several `mise` tasks.
 
 Linters/formatters (black, isort, flake8, mypy, prettier, gitlint, yamllint, yamlfmt, shellcheck, fantomas) are installed automatically by `pre-commit` in isolated environments — no manual setup needed.
 

@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+#MISE description="Open an interactive shell (or run a command) in the nginx-gateway nginx container"
+"""Exec into the gateway nginx container (doit→mise migration, Phase 3).
+
+INTENT
+    Faithful port of the gateway ``dodo.py`` ``shell`` task (a ``@task.with_params``
+    generator wrapped in ``tools.Interactive``). It ``kubectl exec``s into the
+    ``nginx`` container of the ``deployment/nginx-gateway`` deployment, either
+    dropping into an interactive login shell or running a supplied command.
+
+ARCHITECTURE
+    dodo.py builds, via its _kubectl helper:
+      kubectl exec --container=nginx --namespace=gateway --stdin=true --tty=true
+        deployment/nginx-gateway -- <command...>
+    where ``<command...>`` defaults to ``<shell> --interactive --login`` (shell
+    defaults to ``/bin/sh``) when no command is given. This script reproduces that
+    argv and ``exec``s ``kubectl`` directly so the interactive TTY is handed over
+    cleanly (the container session replaces this process) — the file-task analogue
+    of doit's ``tools.Interactive``.
+
+DESIGN DECISIONS / WHY
+    * EXEC, don't subprocess: an interactive shell needs a real TTY; replacing the
+      process with kubectl is the cleanest hand-off and forwards kubectl's exit
+      status unchanged.
+    * COMMAND PARAM (minor, documented deviation): dodo.py's ``--command`` was a
+      repeatable list param (``-c x -c y``). mise #USAGE flags don't model a
+      repeatable list cleanly, so ``--command`` here is a single string that is
+      ``shlex``-split into argv (e.g. ``--command "nginx -T"``). Equivalent for
+      every real invocation, including dodo.py's own ``test`` task which used
+      ``command=["nginx", "-T"]``.
+    * Plain ``python3`` shebang (not ``uv run``): mise re-invokes file tasks; a
+      bare ``uv run`` shebang recurses. Stdlib-only, so ``python3`` is correct.
+    * Params arrive as ``usage_*`` env vars; ``--shell`` always carries its
+      ``/bin/sh`` default, injected by mise.
+"""
+
+import os
+import shlex
+import sys
+
+NAMESPACE = "gateway"
+
+
+def resolve_command() -> list[str]:
+    raw = os.environ.get("usage_command", "").strip()
+    if raw:
+        return shlex.split(raw)
+    # dodo.py default: [<shell>, "--interactive", "--login"].
+    shell = os.environ.get("usage_shell") or "/bin/sh"
+    return [shell, "--interactive", "--login"]
+
+
+def main() -> int:
+    command = resolve_command()
+    argv = [
+        "kubectl",
+        "exec",
+        "--container=nginx",
+        f"--namespace={NAMESPACE}",
+        "--stdin=true",
+        "--tty=true",
+        "deployment/nginx-gateway",
+        "--",
+        *command,
+    ]
+    # Replace this process with the interactive kubectl exec session.
+    os.execvp("kubectl", argv)
+    return 0  # unreachable; execvp never returns on success
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+#USAGE flag "-c --command <command>" help="Command to execute in container (shell-word string)."
+#USAGE flag "-s --shell <shell>" help="Path to or name of shell executable." default="/bin/sh"

@@ -66,11 +66,27 @@ KUBECONFIG      = "{{ config_root }}/secrets/frank8s.yaml"
 VULTR_API_KEY        = "{{ exec(command=\"op read 'op://Frankenstructure/Vultr API Key/password'\", cache_key='vultr_api_key', cache_duration='24h') }}"
 CLOUDFLARE_API_TOKEN = "{{ exec(command=\"op read 'op://Frankenstructure/Cloudflare API Token - frankenstructure/credential'\", cache_key='cloudflare_token', cache_duration='24h') }}"
 
-# ── Vultr-derived values (no-TTL cache; replaces secrets/frankenstorage.yaml
-#    and secrets/frankistry.json; requires VULTR_API_KEY in env) ──────────────
-AWS_ACCESS_KEY_ID     = "{{ exec(command='vultr-cli --output=json object-storage list | jq -r \".object_storages[] | select(.label == \\\"frankenstorage\\\") | .s3_access_key\"', cache_key='aws_akid') }}"
-AWS_SECRET_ACCESS_KEY = "{{ exec(command='vultr-cli --output=json object-storage list | jq -r \".object_storages[] | select(.label == \\\"frankenstorage\\\") | .s3_secret_key\"', cache_key='aws_secret') }}"
-REGISTRY              = "{{ exec(command='vultr-cli --output=json container-registry list | jq -r \".registries[] | select(.name == \\\"frankistry\\\") | .urn\"', cache_key='registry_urn') }}"
+# ── Vultr-derived values (week-cached; replace secrets/frankenstorage.yaml and
+#    secrets/frankistry.json; require VULTR_API_KEY — rendered above — in env) ──
+#  ROBUST OFF-PATH INVOCATION: vultr-cli is a mise [tools] binary, but [tools]
+#    are NOT on PATH while [env] itself renders, so a bare `vultr-cli` is "command
+#    not found" and its pipe to jq silently yields "" (the bug this replaces).
+#    The mise shim can't be used either: the shim is a symlink back to mise, so
+#    calling it mid-render RE-ENTERS mise (re-renders [env] → recursion) and
+#    aborts ("failed to parse template"). Same for `mise x` / `mise which`. We
+#    therefore invoke the RAW install binary by absolute path — PATH-independent
+#    and mise-independent (no re-entry). `latest` tracks the highest installed
+#    version; the [tools] pin above is the source of truth. (jq resolves off the
+#    mise PATH via system/homebrew.)
+#  CACHE: cache_duration='168h' (~1 week) — avoids a Vultr API call every shell.
+#  FAIL-LOUD / NEVER-CACHE-EMPTY: `jq -er` exits non-zero on empty input (failed
+#    lookup) or no-match; `|| exit 1` and the `[ -n ]` guard propagate it. mise's
+#    exec runs under `sh -c -o errexit`, and a non-zero exec exit makes mise
+#    REFUSE to cache — critical with a 1-week TTL, where a cached "" would persist
+#    for a week. Only a real, non-empty value is ever printed (and thus cached).
+AWS_ACCESS_KEY_ID     = "{{ exec(command='v=$(\"${MISE_DATA_DIR:-$HOME/.local/share/mise}/installs/github-vultr-vultr-cli/latest/vultr-cli\" --output=json object-storage list | jq -er \".object_storages[] | select(.label == \\\"frankenstorage\\\") | .s3_access_key\") || exit 1; [ -n \"$v\" ] || exit 1; printf %s \"$v\"', cache_key='aws_akid', cache_duration='168h') }}"
+AWS_SECRET_ACCESS_KEY = "{{ exec(command='v=$(\"${MISE_DATA_DIR:-$HOME/.local/share/mise}/installs/github-vultr-vultr-cli/latest/vultr-cli\" --output=json object-storage list | jq -er \".object_storages[] | select(.label == \\\"frankenstorage\\\") | .s3_secret_key\") || exit 1; [ -n \"$v\" ] || exit 1; printf %s \"$v\"', cache_key='aws_secret', cache_duration='168h') }}"
+REGISTRY              = "{{ exec(command='v=$(\"${MISE_DATA_DIR:-$HOME/.local/share/mise}/installs/github-vultr-vultr-cli/latest/vultr-cli\" --output=json container-registry list | jq -er \".registries[] | select(.name == \\\"frankistry\\\") | .urn\") || exit 1; [ -n \"$v\" ] || exit 1; printf %s \"$v\"', cache_key='registry_urn', cache_duration='168h') }}"
 
 # ── OpenTofu / Terraform variables ───────────────────────────────────────────
 TF_VAR_automate_dropbox_client_id      = "{{ exec(command=\"op read 'op://Frankenstructure/Dropbox App - Automatox/username'\", cache_key='tf_dropbox_id', cache_duration='24h') }}"

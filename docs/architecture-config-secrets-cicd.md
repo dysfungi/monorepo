@@ -185,6 +185,83 @@ Representative mapping:
 
 ---
 
+## 1Password Connect for ESO (Family-plan daily-cap fix)
+
+> Supersedes the `onepasswordSDK` description in
+> [the in-cluster path](#c-in-cluster-runtime--external-secrets-operator-eso) and
+> [Secret-zero](#secret-zero-bootstrapping-eso) above: ESO no longer reads
+> 1Password's cloud API directly.
+
+**Problem.** On the 1Password **Families** plan, service-account rate limits are
+**1,000 read+write/day per _account_** — account-wide and shared across every
+token, **not** per-token. ESO reconciling 3 ExternalSecrets (9 keys) every `1h`
+burned ~216+ reads/day around the clock (~22% of the cap, 24/7); combined with CI
+bursts this exhausted the daily cap, and CI started failing with **HTTP 429** from
+`1password/load-secrets-action`. Diagnose with
+`op service-account ratelimit --format=json` (the `account` / `read_write` row).
+
+**Fix.** ESO now reads through **1Password Connect** (Secrets Automation),
+self-hosted in the `frank8s` cluster (ns `external-secrets`, Helm chart `connect`
+from `https://1password.github.io/connect-helm-charts`). Connect caches the vault
+in-cluster and serves reads from that cache, so ESO reads **no longer count
+against the per-account daily cap** — only 1Password's internal stability limits
+apply. Connect is confirmed available on the Families plan.
+
+The `ClusterSecretStore` `onepassword` switched from the **`onepasswordSDK`**
+provider to the **`onepassword`** Connect provider; the **3 ExternalSecrets are
+unchanged** (they reference the store by name):
+
+```yaml
+# cluster_secret_store.yaml
+spec:
+  provider:
+    onepassword:
+      connectHost: "http://onepassword-connect:8080"
+      vaults: { Frankenstructure: 1 }
+      auth:
+        secretRef:
+          connectTokenSecretRef:
+            name: onepassword-connect-token
+            key: token
+            namespace: external-secrets
+```
+
+### New secret-zero
+
+Connect needs two bootstrap credentials ESO cannot source through itself — the
+`1password-credentials.json` file and a Connect access token — stored at:
+
+- `op://Frankenstructure/1Password Connect - Secrets Automation/credentials_json`
+- `op://Frankenstructure/1Password Connect - Secrets Automation/credential`
+
+CI injects them into the `deploy-external-secrets` job as
+`TF_VAR_op_connect_credentials_json` / `TF_VAR_op_connect_token`, which become two
+`kubernetes_secret`s (`onepassword-connect-credentials`,
+`onepassword-connect-token`).
+
+> The credentials-file content is stored **verbatim** —
+> `kubernetes_secret.data` base64-encodes it and k8s decodes back to raw JSON on
+> mount, so **do not pre-base64** the value.
+
+The legacy `onepassword-sdk-token` Secret (`var.op_service_account_token`)
+**remains for now** and can be dropped once Connect is verified healthy in
+production.
+
+### CI keeps its service accounts
+
+CI still uses service accounts (`load-secrets-action`) for its own `op://` reads;
+with ESO off the cloud path, CI now has the full ~1,000/day to itself. The
+`OP_SERVICE_ACCOUNT_TOKEN` GitHub secret stays (it authenticates CI's own
+`load-secrets-action`). To shave PR-time reads, `build-automate-api`'s secret
+fetch + docker login are now gated to `main`
+(`if: github.ref_name == 'main'`).
+
+> **Deferred (optional):** a day-keyed encrypted GitHub Actions cache for CI
+> secret loading would make re-run storms free, but is **not yet implemented** —
+> it needs an `OP_CACHE_KEY` repo secret.
+
+---
+
 ## Config management
 
 ### `.mise.toml`

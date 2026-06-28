@@ -53,12 +53,8 @@ provider "healthchecksio" {
 }
 
 provider "honeycombio" {
-  # v2 Management key (api_key_id/secret) powers environment/key management; the
-  # v1 Configuration key (api_key) is required for triggers and recipients. The
-  # provider accepts both simultaneously.
   api_key_id     = var.honeycomb_key_id
   api_key_secret = var.honeycomb_key_secret
-  api_key        = var.honeycomb_api_key
 }
 
 # https://registry.terraform.io/providers/kbst/kustomization/latest/docs#example-usage

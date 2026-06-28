@@ -39,8 +39,7 @@ jq = "1.8"
 "pipx:pre-commit" = "4.6"
 "pipx:s3cmd" = "2.4"
 "pipx:httpie" = "3.2"  # binary: http / https
-rust = "stable"        # provides cargo so cargo:rust-parallel builds on a clean machine
-"cargo:rust-parallel" = "1.23"
+"ubi:aaronriekenberg/rust-parallel" = "1.23"  # prebuilt release binary (no rust toolchain / no compile)
 "github:vultr/vultr-cli" = "3.10"  # binary: vultr-cli (call sites updated from `vultr`)
 
 [settings]

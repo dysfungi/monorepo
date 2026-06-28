@@ -21,6 +21,28 @@
 #   SMTP_CONFIG block → dropped (was dead code; never exported)
 #   watch_file → dropped (no equivalent; use `mise cache clear` to refresh)
 
+[tools]
+# Dev toolchain — single source of truth (was Brewfile + .tool-versions).
+# Pinned to major.minor; `mise install` provisions a dev machine.
+# pre-commit-managed linters (black, isort, flake8, mypy, prettier, gitlint,
+# yamllint, yamlfmt, shellcheck-py, fantomas) are NOT here — pre-commit vendors
+# them in isolated envs. CI uses GitHub setup-* actions, not mise.
+python = "3.12"        # consolidates .tool-versions; matches CI setup-python
+dotnet = "9.0"         # full SDK (net9.0 target); drives `dotnet tool restore` (fantomas)
+kubectl = "1.36"
+helm = "4.2"
+k9s = "0.51"
+opentofu = "1.12"      # binary: tofu
+trivy = "0.71"
+dbmate = "2.33"
+jq = "1.8"
+"pipx:pre-commit" = "4.6"
+"pipx:s3cmd" = "2.4"
+"pipx:httpie" = "3.2"  # binary: http / https
+rust = "stable"        # provides cargo so cargo:rust-parallel builds on a clean machine
+"cargo:rust-parallel" = "1.23"
+"github:vultr/vultr-cli" = "3.10"  # binary: vultr-cli (call sites updated from `vultr`)
+
 [settings]
 experimental = true  # required for exec() template caching in [env]
 
@@ -39,9 +61,9 @@ CLOUDFLARE_API_TOKEN = "{{ exec(command=\"op read 'op://Frankenstructure/Cloudfl
 
 # ── Vultr-derived values (no-TTL cache; replaces secrets/frankenstorage.yaml
 #    and secrets/frankistry.json; requires VULTR_API_KEY in env) ──────────────
-AWS_ACCESS_KEY_ID     = "{{ exec(command='vultr --output=json object-storage list | jq -r \".object_storages[] | select(.label == \\\"frankenstorage\\\") | .s3_access_key\"', cache_key='aws_akid') }}"
-AWS_SECRET_ACCESS_KEY = "{{ exec(command='vultr --output=json object-storage list | jq -r \".object_storages[] | select(.label == \\\"frankenstorage\\\") | .s3_secret_key\"', cache_key='aws_secret') }}"
-REGISTRY              = "{{ exec(command='vultr --output=json container-registry list | jq -r \".registries[] | select(.name == \\\"frankistry\\\") | .urn\"', cache_key='registry_urn') }}"
+AWS_ACCESS_KEY_ID     = "{{ exec(command='vultr-cli --output=json object-storage list | jq -r \".object_storages[] | select(.label == \\\"frankenstorage\\\") | .s3_access_key\"', cache_key='aws_akid') }}"
+AWS_SECRET_ACCESS_KEY = "{{ exec(command='vultr-cli --output=json object-storage list | jq -r \".object_storages[] | select(.label == \\\"frankenstorage\\\") | .s3_secret_key\"', cache_key='aws_secret') }}"
+REGISTRY              = "{{ exec(command='vultr-cli --output=json container-registry list | jq -r \".registries[] | select(.name == \\\"frankistry\\\") | .urn\"', cache_key='registry_urn') }}"
 
 # ── OpenTofu / Terraform variables ───────────────────────────────────────────
 TF_VAR_automate_dropbox_client_id      = "{{ exec(command=\"op read 'op://Frankenstructure/Dropbox App - Automatox/username'\", cache_key='tf_dropbox_id', cache_duration='24h') }}"

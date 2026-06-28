@@ -335,7 +335,7 @@ def setup() -> Generator[dict, None, None]:
     yield {
         "name": "root",
         "actions": [
-            "brew bundle",
+            "mise install",
             "pre-commit install",
         ],
         "title": tools.title_with_actions,
@@ -607,7 +607,7 @@ def vultr(resource: str, command: str, *args, output: str = "json", **options) -
     output = options.pop("o", output)
     pos_params = _positionize(args)
     opt_params = _optize(options)
-    return f"vultr --output={output} {resource} {command} {opt_params} {pos_params}"
+    return f"vultr-cli --output={output} {resource} {command} {opt_params} {pos_params}"
 
 
 @contextmanager

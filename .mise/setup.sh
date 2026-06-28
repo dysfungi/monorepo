@@ -30,9 +30,9 @@ mkdir -p "$REPO_ROOT/secrets"
 # Fetch only on first entry (or after manual deletion to force refresh).
 KUBECONFIG_PATH="$REPO_ROOT/secrets/frank8s.yaml"
 if ! test -e "$KUBECONFIG_PATH"; then
-    vultr --output=json kubernetes list \
+    vultr-cli --output=json kubernetes list \
         | jq --raw-output '.vke_clusters[] | select(.label == "frank8s").id' \
-        | xargs vultr kubernetes config \
+        | xargs vultr-cli kubernetes config \
         | base64 --decode > "$KUBECONFIG_PATH"
     chmod 600 "$KUBECONFIG_PATH"
 fi
@@ -51,7 +51,7 @@ fi
 # Fetch login creds inline; guard on existing docker auth entry.
 REGISTRY_HOST="${REGISTRY%%/*}"   # strip path, keep hostname
 if ! jq -e --arg h "$REGISTRY_HOST" '.auths[$h]' ~/.docker/config.json &>/dev/null; then
-    REGISTRY_JSON="$(vultr --output=json container-registry list \
+    REGISTRY_JSON="$(vultr-cli --output=json container-registry list \
         | jq '.registries[] | select(.name == "frankistry")')"
     docker login \
         --username "$(jq --raw-output '.root_user.username' <<< "$REGISTRY_JSON")" \

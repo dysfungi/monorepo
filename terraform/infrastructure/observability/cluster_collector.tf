@@ -229,8 +229,15 @@ locals {
             ]
             exporters = [
               "debug",
-              # Grafana Cloud unrouted; synthetics already export to Honeycomb.
+              # Dual-export synthetics (httpcheck + tlscheck) to BOTH backends.
+              # Honeycomb remains the primary store; Grafana Cloud is re-routed
+              # here (phase 1a) so GC alert rules can query synthetic
+              # availability/latency/SSL-expiry. The "otlphttp/grafana-cloud"
+              # exporter and "basicauth/grafana-cloud" extension are inherited
+              # from defaultCRConfig (base_collector.tf) via the chart's
+              # deep-merge; GC creds are injected by helm.tf extraEnvs.
               "otlp/honeycomb-synthetics",
+              "otlphttp/grafana-cloud",
             ]
           }
           traces = null

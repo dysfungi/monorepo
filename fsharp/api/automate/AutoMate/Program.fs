@@ -21,7 +21,7 @@ let configureLogging (config: Config.LoggingConfig) (log: ILoggingBuilder) =
 
   match config.Format with
   | Config.LogFormat.Json -> log.AddJsonConsole()
-  | Config.LogFormat.Plain -> log.AddConsole()
+  | Config.LogFormat.Plain -> log.AddSimpleConsole(fun o -> o.SingleLine <- true)
   |> ignore
 
   log.SetMinimumLevel(config.Level) |> ignore

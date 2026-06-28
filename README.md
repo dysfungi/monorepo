@@ -34,6 +34,11 @@ act push
 - [Load secrets from GitHub Actions | 1Password Docs][op-github-actions-docs]
 - [Load secrets from 1Password | GitHub Actions][github-action-op-load-secrets]
 
+> **Architecture:** see
+> [docs/architecture-config-secrets-cicd.md](docs/architecture-config-secrets-cicd.md)
+> for how config, secrets (1Password → CI / `mise` / ESO), and CI/CD fit
+> together.
+
 ## deployments
 
 Infrastructure and applications deploy via GitHub Actions

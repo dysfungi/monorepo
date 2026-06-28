@@ -17,6 +17,13 @@ terraform {
       source  = "hashicorp/helm"
       version = "~> 2.15"
     }
+    # The kbst kustomization provider applies single custom-resource instances
+    # (here, the ESO ExternalSecret) without the plan-time CRD dry-run that
+    # kubernetes_manifest performs. See external_secret_miniflux.tf for details.
+    kustomization = {
+      source  = "kbst/kustomization"
+      version = "~> 0.9"
+    }
     vultr = {
       source  = "vultr/vultr"
       version = "~> 2.21"
@@ -46,4 +53,9 @@ provider "vultr" {
   api_key     = var.vultr_api_key
   rate_limit  = 100
   retry_limit = 3
+}
+
+# https://registry.terraform.io/providers/kbst/kustomization/latest/docs#example-usage
+provider "kustomization" {
+  kubeconfig_path = var.kubeconfig_path
 }

@@ -237,8 +237,11 @@ data "honeycombio_query_specification" "pod_crashloop" {
   }
   filter {
     column = "reason"
-    op     = "="
-    value  = "CrashLoopBackOff"
+    op     = "in"
+    # Live k8s-events data shows the "CrashLoopBackOff" reason never fires; the
+    # kubelet emits "BackOff" for restart backoff. Match both so the trigger
+    # actually fires, then use the threshold to demand sustained backoff.
+    value = "CrashLoopBackOff,BackOff"
   }
   breakdowns = ["regarding.name"]
   time_range = 1800
@@ -246,15 +249,17 @@ data "honeycombio_query_specification" "pod_crashloop" {
 
 resource "honeycombio_trigger" "pod_crashloop" {
   name        = "Pod crashloop"
-  description = "🟡 A Kubernetes object reported a CrashLoopBackOff event in the last 30m."
+  description = "🟡 A Kubernetes object reported >3 BackOff/CrashLoopBackOff events in the last 30m."
   dataset     = "k8s-events"
   query_json  = data.honeycombio_query_specification.pod_crashloop.json
   alert_type  = "on_change"
   frequency   = 900
 
   threshold {
+    # >3 backoff events in the 30m window: cut single-restart noise, fire on
+    # sustained crashlooping.
     op    = ">"
-    value = 0
+    value = 3
   }
 
   recipient {

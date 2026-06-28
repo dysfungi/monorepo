@@ -63,6 +63,7 @@ TF_VAR_healthchecksio_api_key          = "{{ exec(command=\"op read 'op://Franke
 TF_VAR_home_ip                         = "{{ exec(command='curl --silent icanhazip.com', cache_key='home_ip', cache_duration='24h') }}"
 TF_VAR_honeycomb_key_id                = "{{ exec(command=\"op read 'op://Frankenstructure/Honeycomb.io Management API Key/username'\", cache_key='tf_honeycomb_id', cache_duration='24h') }}"
 TF_VAR_honeycomb_key_secret            = "{{ exec(command=\"op read 'op://Frankenstructure/Honeycomb.io Management API Key/credential'\", cache_key='tf_honeycomb_secret', cache_duration='24h') }}"
+TF_VAR_honeycomb_api_key               = "{{ exec(command=\"op read 'op://Frankenstructure/Honeycomb.io Configuration API Key/credential'\", cache_key='tf_honeycomb_api_key', cache_duration='24h') }}"
 TF_VAR_kubeconfig_path                 = "{{ config_root }}/secrets/frank8s.yaml"
 TF_VAR_miniflux_admin_username         = "{{ exec(command=\"op read 'op://Frankenstructure/Miniflux - frank.sh/username'\", cache_key='tf_miniflux_user', cache_duration='24h') }}"
 TF_VAR_miniflux_admin_password         = "{{ exec(command=\"op read 'op://Frankenstructure/Miniflux - frank.sh/password'\", cache_key='tf_miniflux_pw', cache_duration='24h') }}"

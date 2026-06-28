@@ -189,6 +189,7 @@ jobs:
           # grafana_cloud_* removed: now sourced by ESO from 1Password.
           honeycomb_key_id: op://Frankenstructure/Honeycomb.io Management API Key/username
           honeycomb_key_secret: op://Frankenstructure/Honeycomb.io Management API Key/credential
+          honeycomb_api_key: op://Frankenstructure/Honeycomb.io Configuration API Key/credential
           healthchecksio_api_key: op://Frankenstructure/Healthchecks.io API Key/credential
           kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
           s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
@@ -206,6 +207,7 @@ jobs:
           TF_VAR_healthchecksio_api_key: ${{ steps.op-secrets.outputs.healthchecksio_api_key }}
           TF_VAR_honeycomb_key_id: ${{ steps.op-secrets.outputs.honeycomb_key_id }}
           TF_VAR_honeycomb_key_secret: ${{ steps.op-secrets.outputs.honeycomb_key_secret }}
+          TF_VAR_honeycomb_api_key: ${{ steps.op-secrets.outputs.honeycomb_api_key }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
       - name: Deploy
         working-directory: terraform/infrastructure/observability
@@ -216,6 +218,7 @@ jobs:
           TF_VAR_healthchecksio_api_key: ${{ steps.op-secrets.outputs.healthchecksio_api_key }}
           TF_VAR_honeycomb_key_id: ${{ steps.op-secrets.outputs.honeycomb_key_id }}
           TF_VAR_honeycomb_key_secret: ${{ steps.op-secrets.outputs.honeycomb_key_secret }}
+          TF_VAR_honeycomb_api_key: ${{ steps.op-secrets.outputs.honeycomb_api_key }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
 
   deploy-gateway:

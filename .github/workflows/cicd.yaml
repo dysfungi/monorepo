@@ -90,6 +90,7 @@ jobs:
         env:
           APP_VERSION: ${{ steps.app-version.outputs.out }}
       - id: op-secrets
+        if: github.ref_name == 'main'
         uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
           export-env: false
@@ -99,6 +100,7 @@ jobs:
           registry_urn: op://Frankenstructure/Vultr Container Registry - Frankistry/urn
           registry_username: op://Frankenstructure/Vultr Container Registry - Frankistry/username
       - name: Docker login
+        if: github.ref_name == 'main'
         run: >
           docker login
           --username "$REGISTRY_USERNAME"

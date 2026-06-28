@@ -49,12 +49,20 @@ fi
 
 # --- docker login: frankistry (Vultr container registry) -----------------
 # Fetch login creds inline; guard on existing docker auth entry.
+# WHY the empty guard: REGISTRY is a cached [env] exec() (vultr-cli/op). On a cold
+# mise cache it can resolve empty; `docker login … ""` then defaults to Docker Hub
+# and fails with "malformed HTTP Authorization header". Skip loudly instead.
+# WHY login with REGISTRY_HOST (bare host) not REGISTRY (full URN, host/frankistry):
+# docker writes the auth key as the server arg. Logging in with the URN but guarding
+# on the bare host means the guard never matches → re-login every directory enter.
 REGISTRY_HOST="${REGISTRY%%/*}"   # strip path, keep hostname
-if ! jq -e --arg h "$REGISTRY_HOST" '.auths[$h]' ~/.docker/config.json &>/dev/null; then
+if [ -z "$REGISTRY_HOST" ]; then
+    echo "setup.sh: REGISTRY empty (cold mise cache or vultr/op hiccup); skipping frankistry docker login" >&2
+elif ! jq -e --arg h "$REGISTRY_HOST" '.auths[$h]' ~/.docker/config.json &>/dev/null; then
     REGISTRY_JSON="$(vultr-cli --output=json container-registry list \
         | jq '.registries[] | select(.name == "frankistry")')"
     docker login \
         --username "$(jq --raw-output '.root_user.username' <<< "$REGISTRY_JSON")" \
         --password-stdin <<< "$(jq --raw-output '.root_user.password' <<< "$REGISTRY_JSON")" \
-        "$REGISTRY"
+        "$REGISTRY_HOST"
 fi

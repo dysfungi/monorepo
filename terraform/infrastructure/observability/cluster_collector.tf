@@ -25,7 +25,10 @@ locals {
       receivers = {
         k8s_cluster = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/k8sclusterreceiver/documentation.md
-          collection_interval = "30s"
+          # Honeycomb bills per datapoint. 300s (vs 30s) keeps ALL cluster series
+          # intact (no metrics dropped) while emitting ~10x fewer datapoints.
+          # Cluster-level resource counts change slowly; 5-minute resolution is ample.
+          collection_interval = "300s"
           metrics = {
             # Disable replicaset metrics by default. These are typically high volume, low signal metrics.
             # If volume is not a concern, then the following blocks can be removed.

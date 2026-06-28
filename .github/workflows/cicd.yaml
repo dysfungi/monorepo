@@ -22,10 +22,10 @@ jobs:
       ollama: ${{ steps.filter.outputs.ollama }}
       automate: ${{ steps.filter.outputs.automate }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
         id: filter
         with:
           filters: |
@@ -36,39 +36,33 @@ jobs:
               - 'fsharp/api/automate/**'
               - '.github/workflows/cicd.yaml'
               - '.mise.toml'
-              - '!**/*.md'
             httpbin:
               - 'terraform/applications/httpbin/**'
               - 'terraform/modules/gateway-route/**'
               - '.github/workflows/cicd.yaml'
-              - '!**/*.md'
             miniflux:
               - 'terraform/applications/miniflux/**'
               - 'terraform/modules/gateway-route/**'
               - 'terraform/modules/vultr-managed-postgres/**'
               - '.github/workflows/cicd.yaml'
-              - '!**/*.md'
             node-red:
               - 'terraform/applications/node-red/**'
               - '.github/workflows/cicd.yaml'
-              - '!**/*.md'
             ollama:
               - 'terraform/applications/ollama/**'
               - '.github/workflows/cicd.yaml'
-              - '!**/*.md'
             automate:
               - 'fsharp/api/automate/**'
               - 'terraform/modules/gateway-route/**'
               - '.github/workflows/cicd.yaml'
-              - '!**/*.md'
 
   test-automate-api:
     needs:
       - lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.202
       - name: Test
@@ -80,7 +74,7 @@ jobs:
       - test-automate-api
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@v4
       - id: app-version
         working-directory: fsharp/api/automate
         run: >
@@ -142,8 +136,8 @@ jobs:
       - check-deploy-prod
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v2
       - id: op-secrets
         uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
@@ -181,8 +175,8 @@ jobs:
       - deploy-frankenstructure
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v2
       - id: op-secrets
         uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
@@ -236,8 +230,8 @@ jobs:
       - deploy-frankenstructure
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v2
       - id: op-secrets
         uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
@@ -293,8 +287,8 @@ jobs:
       - changes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v2
       - id: op-secrets
         uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
@@ -334,8 +328,8 @@ jobs:
       - changes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v2
       - id: op-secrets
         uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
@@ -391,8 +385,8 @@ jobs:
       - changes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v2
       - id: op-secrets
         uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
@@ -436,8 +430,8 @@ jobs:
       - changes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v2
       - id: op-secrets
         uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
@@ -478,8 +472,8 @@ jobs:
       - changes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v2
       - id: op-secrets
         uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:

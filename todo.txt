@@ -1,1 +1,2 @@
 (B) Phase 0 pin CI actions +ci @worktree:.claude/worktrees/ci-1password-hardening agent:claude model:claude-opus-4-8
+(C) Fix incomplete pattern-match warning at fsharp/api/automate/AutoMate/OAuth.fs:95 +automate @tech-debt

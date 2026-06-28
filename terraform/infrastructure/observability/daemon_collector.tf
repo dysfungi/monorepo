@@ -30,8 +30,11 @@ locals {
         kubeletstats = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/kubeletstatsreceiver/documentation.md
           insecure_skip_verify = true
-          collection_interval  = "30s"
-          metric_groups        = ["node", "pod", "container"]
+          # Honeycomb bills per datapoint. 300s (vs 30s) keeps ALL series intact
+          # (no metrics dropped) while emitting ~10x fewer datapoints. Node/pod/
+          # container resource gauges change slowly; 5-minute resolution is ample.
+          collection_interval = "300s"
+          metric_groups       = ["node", "pod", "container"]
           metrics = {
             "k8s.node.uptime" = {
               enabled = true

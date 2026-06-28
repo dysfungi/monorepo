@@ -1,3 +1,4 @@
 (B) Phase 4a ESO standalone module +terraform @worktree:.claude/worktrees/eso-module agent:claude model:claude-opus-4-8
 (B) Phase 0 pin CI actions +ci @worktree:.claude/worktrees/ci-1password-hardening agent:claude model:claude-opus-4-8
 (C) Fix incomplete pattern-match warning at fsharp/api/automate/AutoMate/OAuth.fs:95 +automate @tech-debt
+Phase 4b PR B migrate grafana-cloud secret to ESO ExternalSecret +observability @worktree:.claude/worktrees/eso-grafana session:0763558e agent:claude model:claude-opus-4-8

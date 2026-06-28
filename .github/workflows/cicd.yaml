@@ -173,6 +173,9 @@ jobs:
     needs:
       - check-deploy-prod
       - deploy-frankenstructure
+      # grafana-cloud is now an ExternalSecret; ESO (CRDs + ClusterSecretStore)
+      # must exist before this stack applies the ExternalSecret.
+      - deploy-external-secrets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -183,8 +186,7 @@ jobs:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          grafana_cloud_instance_id: op://Frankenstructure/Grafana Cloud API Key - fungi/username
-          grafana_cloud_api_key: op://Frankenstructure/Grafana Cloud API Key - fungi/credential
+          # grafana_cloud_* removed: now sourced by ESO from 1Password.
           honeycomb_key_id: op://Frankenstructure/Honeycomb.io Management API Key/username
           honeycomb_key_secret: op://Frankenstructure/Honeycomb.io Management API Key/credential
           healthchecksio_api_key: op://Frankenstructure/Healthchecks.io API Key/credential
@@ -201,8 +203,6 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_grafana_cloud_api_key: ${{ steps.op-secrets.outputs.grafana_cloud_api_key }}
-          TF_VAR_grafana_cloud_instance_id: ${{ steps.op-secrets.outputs.grafana_cloud_instance_id }}
           TF_VAR_healthchecksio_api_key: ${{ steps.op-secrets.outputs.healthchecksio_api_key }}
           TF_VAR_honeycomb_key_id: ${{ steps.op-secrets.outputs.honeycomb_key_id }}
           TF_VAR_honeycomb_key_secret: ${{ steps.op-secrets.outputs.honeycomb_key_secret }}
@@ -213,8 +213,6 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_grafana_cloud_api_key: ${{ steps.op-secrets.outputs.grafana_cloud_api_key }}
-          TF_VAR_grafana_cloud_instance_id: ${{ steps.op-secrets.outputs.grafana_cloud_instance_id }}
           TF_VAR_healthchecksio_api_key: ${{ steps.op-secrets.outputs.healthchecksio_api_key }}
           TF_VAR_honeycomb_key_id: ${{ steps.op-secrets.outputs.honeycomb_key_id }}
           TF_VAR_honeycomb_key_secret: ${{ steps.op-secrets.outputs.honeycomb_key_secret }}

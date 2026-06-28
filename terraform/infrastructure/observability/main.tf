@@ -25,6 +25,14 @@ terraform {
       source  = "honeycombio/honeycombio"
       version = "~> 0.35.0"
     }
+    # The kbst kustomization provider is the repo's mechanism for applying raw
+    # manifests / single custom-resource instances (see
+    # external_secret_grafana_cloud.tf for why it is used instead of
+    # kubernetes_manifest).
+    kustomization = {
+      source  = "kbst/kustomization"
+      version = "~> 0.9"
+    }
   }
 }
 
@@ -47,4 +55,9 @@ provider "healthchecksio" {
 provider "honeycombio" {
   api_key_id     = var.honeycomb_key_id
   api_key_secret = var.honeycomb_key_secret
+}
+
+# https://registry.terraform.io/providers/kbst/kustomization/latest/docs#example-usage
+provider "kustomization" {
+  kubeconfig_path = var.kubeconfig_path
 }

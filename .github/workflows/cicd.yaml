@@ -189,7 +189,7 @@ jobs:
           # grafana_cloud_* removed: now sourced by ESO from 1Password.
           honeycomb_key_id: op://Frankenstructure/Honeycomb.io Management API Key/username
           honeycomb_key_secret: op://Frankenstructure/Honeycomb.io Management API Key/credential
-          honeycomb_api_key: op://Frankenstructure/Honeycomb Configuration API Key - AI/credential
+          honeycomb_api_key: op://Frankenstructure/Honeycomb.io Configuration API Key/credential
           healthchecksio_api_key: op://Frankenstructure/Healthchecks.io API Key/credential
           kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
           s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key

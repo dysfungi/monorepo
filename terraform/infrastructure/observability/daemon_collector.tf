@@ -69,6 +69,38 @@ locals {
           }
         }
       }
+      connectors = {
+        spanmetrics = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/connector/spanmetricsconnector
+          # Derive gateway RED metrics (calls + duration histogram) from the
+          # nginx-gateway-fabric OTLP traces this daemon already receives. The
+          # connector is fed by the daemon traces pipeline (listed as an exporter
+          # there) and emits into the "metrics/spanmetrics" pipeline (listed as a
+          # receiver there), which exports to Grafana Cloud where the gateway
+          # error-rate + latency alert rules live. Honeycomb keeps the raw spans.
+          # Scoped to the daemon (only collector receiving gateway traces); a
+          # connector defined but unused in a pipeline crashes the collector, so
+          # it is intentionally NOT placed in base_collector (cluster/scrape have
+          # no traces pipeline to consume it).
+          # CAVEAT: this connector sits on the POST-sampler traces pipeline (20%
+          # probabilistic_sampler, proportional mode), so call COUNTS are ~1/5 of
+          # actual throughput; error-rate ratios and latency percentiles remain
+          # representative under uniform random sampling.
+          histogram = {
+            # Web-latency buckets (request durations).
+            explicit = {
+              buckets = ["5ms", "10ms", "25ms", "50ms", "100ms", "250ms", "500ms", "1s", "2.5s", "5s"]
+            }
+          }
+          # service.name, span.name, span.kind, status.code are dimensions by
+          # default; add the gateway HTTP attributes. Verified in Honeycomb that
+          # gateway spans carry `http.status_code` (NOT http.response.status_code).
+          dimensions = [
+            { name = "http.status_code" },
+            { name = "http.method" },
+          ]
+        }
+      }
       processors = {}
       exporters = {
         "otlp/honeycomb-k8s-logs" = merge(local.backends.otlp_honeycomb, {
@@ -141,6 +173,27 @@ locals {
             exporters = [
               "debug",
               "otlp/honeycomb",
+              # Tee gateway spans into the spanmetrics connector to derive RED
+              # metrics; raw spans still flow to Honeycomb via otlp/honeycomb.
+              "spanmetrics",
+            ]
+          }
+          # RED metrics pipeline: spanmetrics connector (receiver) → Grafana
+          # Cloud ONLY. Kept separate from the kubeletstats "metrics" pipeline
+          # above (different receiver + exporter). GC hosts the gateway
+          # error-rate and latency alert rules; Honeycomb retains the raw spans
+          # (daemon·traces). memory_limiter + batch are inherited from
+          # base_collector processors.
+          "metrics/spanmetrics" = {
+            receivers = [
+              "spanmetrics",
+            ]
+            processors = [
+              "memory_limiter",
+              "batch",
+            ]
+            exporters = [
+              "otlphttp/grafana-cloud",
             ]
           }
         }

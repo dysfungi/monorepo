@@ -12,6 +12,16 @@ resource "helm_release" "miniflux" {
       # https://github.com/bjw-s/helm-charts/blob/a081de5/charts/library/common/values.yaml
       controller = {
         replicas = 2
+        # bjw-s common renders `controller.annotations` onto the Deployment
+        # (workload) metadata — exactly where Stakater Reloader looks (pod
+        # annotations are ignored by Reloader). This makes the Deployment restart
+        # when ESO rotates the miniflux-admin Secret referenced via env
+        # valueFrom.secretKeyRef. Rotation value is modest (admin is created once
+        # at first boot via CREATE_ADMIN), but the annotation is clean, harmless,
+        # and keeps every ESO-backed workload consistently Reloader-managed.
+        annotations = {
+          "reloader.stakater.com/auto" = "true"
+        }
       }
       env = {
         DATABASE_URL = module.postgres.app.url

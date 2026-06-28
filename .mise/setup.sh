@@ -17,7 +17,7 @@
 #     `rm secrets/frank8s.yaml` (this script re-creates it).
 #
 # ENV AVAILABLE: mise has already applied [env] before hooks.enter runs, so
-# GITHUB_USERNAME, GITHUB_TOKEN, VULTR_API_KEY, and REGISTRY are all set.
+# GITHUB_USERNAME, VULTR_API_KEY, and REGISTRY are all set.
 
 set -euo pipefail
 
@@ -39,8 +39,12 @@ fi
 
 # --- docker login: ghcr.io -----------------------------------------------
 # Docker persists auth to ~/.docker/config.json — one-time-ever per machine.
+# Token is the 24h-cached value from [env] (TF_VAR_github_token). We deliberately
+# do NOT use/export GITHUB_TOKEN: it would shadow gh's own auth with an
+# under-privileged token.
 if ! jq -e '.auths["ghcr.io"]' ~/.docker/config.json &>/dev/null; then
-    docker login --username "$GITHUB_USERNAME" --password-stdin <<< "$GITHUB_TOKEN" ghcr.io
+    # shellcheck disable=SC2154  # TF_VAR_github_token is injected by mise [env]
+    docker login --username "$GITHUB_USERNAME" --password-stdin <<< "$TF_VAR_github_token" ghcr.io
 fi
 
 # --- docker login: frankistry (Vultr container registry) -----------------

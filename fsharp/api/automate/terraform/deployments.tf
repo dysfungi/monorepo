@@ -6,6 +6,12 @@ resource "kubernetes_deployment" "api" {
     labels    = local.labels
     annotations = {
       "instrumentation.opentelemetry.io/inject-dotnet" = "observability/opentelemetry-kube-stack"
+      # Stakater Reloader watches this Deployment's referenced Secrets
+      # (automate-env, automate-onepassword) and triggers a rolling restart when
+      # ESO rotates them, so the OAuth/env creds the app reads via envFrom stay
+      # current without a manual rollout. auto=true covers every referenced
+      # Secret/ConfigMap (env, envFrom, volumes).
+      "reloader.stakater.com/auto" = "true"
     }
   }
   spec {

@@ -49,9 +49,12 @@ fi
 
 # --- docker login: frankistry (Vultr container registry) -----------------
 # Fetch login creds inline; guard on existing docker auth entry.
-# WHY the empty guard: REGISTRY is a cached [env] exec() (vultr-cli/op). On a cold
-# mise cache it can resolve empty; `docker login … ""` then defaults to Docker Hub
-# and fails with "malformed HTTP Authorization header". Skip loudly instead.
+# WHY the empty guard (defense-in-depth): REGISTRY is a week-cached, fail-loud
+# [env] exec() (raw vultr-cli binary) that never caches an empty value — a failed
+# lookup makes the exec exit non-zero so mise refuses to cache. But if the lookup
+# fails outright (VULTR_API_KEY/op unavailable), REGISTRY can arrive here unset.
+# `docker login … ""` then defaults to Docker Hub and fails with "malformed HTTP
+# Authorization header", so we skip loudly instead of logging in with an empty host.
 # WHY login with REGISTRY_HOST (bare host) not REGISTRY (full URN, host/frankistry):
 # docker writes the auth key as the server arg. Logging in with the URN but guarding
 # on the bare host means the guard never matches → re-login every directory enter.

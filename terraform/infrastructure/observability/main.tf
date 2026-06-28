@@ -25,6 +25,10 @@ terraform {
       source  = "honeycombio/honeycombio"
       version = "~> 0.35.0"
     }
+    grafana = {
+      source  = "grafana/grafana"
+      version = "~> 3.0"
+    }
     # The kbst kustomization provider is the repo's mechanism for applying raw
     # manifests / single custom-resource instances (see
     # external_secret_grafana_cloud.tf for why it is used instead of
@@ -59,6 +63,11 @@ provider "honeycombio" {
   api_key_id     = var.honeycomb_key_id
   api_key_secret = var.honeycomb_key_secret
   api_key        = var.honeycomb_api_key
+}
+
+provider "grafana" {
+  url  = var.grafana_url
+  auth = var.grafana_auth
 }
 
 # https://registry.terraform.io/providers/kbst/kustomization/latest/docs#example-usage

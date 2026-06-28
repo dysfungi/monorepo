@@ -22,3 +22,14 @@ variable "honeycomb_api_key" {
 variable "kubeconfig_path" {
   type = string
 }
+
+variable "grafana_url" {
+  type    = string
+  default = "https://fungi.grafana.net"
+}
+
+variable "grafana_auth" {
+  type        = string
+  sensitive   = true
+  description = "Grafana SA token (glsa_) for alerting provisioning"
+}

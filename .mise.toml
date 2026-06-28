@@ -104,6 +104,7 @@ TF_VAR_github_token                    = "{{ exec(command=\"op read 'op://Franke
 TF_VAR_grafana_cloud_instance_id       = "{{ exec(command=\"op read 'op://Frankenstructure/Grafana Cloud API Key - fungi/username'\", cache_key='tf_grafana_instance_id', cache_duration='24h') }}"
 TF_VAR_grafana_cloud_api_key           = "{{ exec(command=\"op read 'op://Frankenstructure/Grafana Cloud API Key - fungi/credential'\", cache_key='tf_grafana_api_key', cache_duration='24h') }}"
 TF_VAR_grafana_admin_password          = "{{ exec(command=\"op read 'op://Frankenstructure/Grafana - frank.sh/password'\", cache_key='tf_grafana_admin_pw', cache_duration='24h') }}"
+TF_VAR_grafana_auth                    = "{{ exec(command=\"op read 'op://Frankenstructure/Grafana Cloud Service Account Token - fungi/credential'\", cache_key='tf_grafana_auth', cache_duration='24h') }}"
 TF_VAR_healthchecksio_api_key          = "{{ exec(command=\"op read 'op://Frankenstructure/Healthchecks.io API Key/credential'\", cache_key='tf_healthchecks_key', cache_duration='24h') }}"
 TF_VAR_home_ip                         = "{{ exec(command='curl --silent icanhazip.com', cache_key='home_ip', cache_duration='24h') }}"
 TF_VAR_honeycomb_key_id                = "{{ exec(command=\"op read 'op://Frankenstructure/Honeycomb.io Management API Key/username'\", cache_key='tf_honeycomb_id', cache_duration='24h') }}"

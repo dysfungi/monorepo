@@ -34,6 +34,19 @@ act push
 - [Load secrets from GitHub Actions | 1Password Docs][op-github-actions-docs]
 - [Load secrets from 1Password | GitHub Actions][github-action-op-load-secrets]
 
+## deployments
+
+Infrastructure and applications deploy via GitHub Actions
+([`.github/workflows/cicd.yaml`](.github/workflows/cicd.yaml)) on push to
+`main` (GitOps):
+
+- **Path-filtered:** commits touching no deployable path don't deploy. Only
+  changed application stacks are redeployed.
+- **Always-on foundation:** the frankenstructure, gateway, and observability
+  stacks always apply, serving as the credential substrate for the rest.
+- **Remote state:** stored on Vultr Object Storage (S3-compatible) with
+  `use_lockfile` state locking.
+
 ---
 
 [awesome-monorepo]: https://github.com/korfuri/awesome-monorepo?tab=readme-ov-file

@@ -517,7 +517,15 @@ class Project(NamedTuple):
         References:
             https://www.rocketpoweredjetpants.com/2017/11/organising-a-monorepo/#blended-monorepos
         """
-        part_ignores = {".git", "node_modules", "__pycache__"}
+        # `.git` dropped from part_ignores: subsumed by the dot-dir guard below.
+        part_ignores = {"node_modules", "__pycache__"}
+        # Skip any glob hit whose language/category/project component is a dotfile
+        # dir. `.claude/worktrees/<wt>/` are full repo checkouts that each carry
+        # their own dodo.py at exactly 3 levels deep; without this guard they're
+        # discovered as projects with language='.claude' and blow up
+        # display_language. Real language/category/project dirs are never dotfiles.
+        # Check only those three components (not all of directory.parts) so a
+        # dotfile dir higher in the absolute checkout path can't exclude everything.
         projects = [
             cls(
                 name=directory.name,
@@ -527,6 +535,10 @@ class Project(NamedTuple):
             )
             for directory in root.glob("*/*/*/")
             if not part_ignores & set(directory.parts)
+            and not any(
+                d.name.startswith(".")
+                for d in (directory, directory.parent, directory.parent.parent)
+            )
             and (directory / "dodo.py").exists()
         ]
         return projects

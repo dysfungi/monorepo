@@ -3,3 +3,7 @@ x 2026-06-21 Deprecate self-hosted monitoring and migrate synthetics to OpenTele
 x 2026-06-21 Restore alternative SMTP and Discord alert notifications configuration
 x 2026-06-21 Create .claude/CLAUDE.md symlink to AGENTS.md @setup
 x 2026-06-22 Fix CI init-secrets vultr-cli object-storage non-JSON +cicd @worktree:.worktree/fix/init-secrets-vultr-json session:pi agent:pi model:claude-sonnet-4.5
+x 2026-06-27 Add S3 state locking + CI concurrency for tofu backends +terraform @worktree:.claude/worktrees/tofu-state-lock session:01de0b96-1587-41f3-a4d4-fc50ab5edb64 agent:claude model:claude-opus-4-8
+x 2026-06-27 Fix dodo.py project discovery (exclude dotfile dirs) +tooling @worktree:.claude/worktrees/fix-dodo-discovery session:01de0b96-1587-41f3-a4d4-fc50ab5edb64 agent:claude model:claude-opus-4-8
+x 2026-06-27 Scope CI deploy jobs with per-stack path filters +ci @worktree:.claude/worktrees/ci-path-filters session:01de0b96-1587-41f3-a4d4-fc50ab5edb64 agent:claude model:claude-opus-4-8
+x 2026-06-27 Fix changes job checkout so dorny works on push +ci @worktree:.claude/worktrees/ci-changes-checkout session:01de0b96-1587-41f3-a4d4-fc50ab5edb64 agent:claude model:claude-opus-4-8

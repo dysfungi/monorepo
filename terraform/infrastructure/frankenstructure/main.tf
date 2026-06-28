@@ -5,8 +5,9 @@ terraform {
     endpoint                    = "sjc1.vultrobjects.com"
     region                      = "us-west-1"
     skip_credentials_validation = true
+    use_lockfile                = true
   }
-  required_version = "~> 1.5"
+  required_version = ">= 1.10"
   required_providers {
     cloudflare = {
       source  = "cloudflare/cloudflare"

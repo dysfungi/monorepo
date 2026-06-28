@@ -1,0 +1,44 @@
+# https://prometheus-operator.dev/docs/api-reference/api/#monitoring.coreos.com/v1.PodMonitor
+resource "kubernetes_manifest" "api_pod_monitor" {
+  manifest = {
+    "apiVersion" = "monitoring.coreos.com/v1"
+    "kind"       = "PodMonitor"
+    "metadata" = {
+      "name"      = kubernetes_deployment.api.metadata[0].name
+      "namespace" = local.namespace
+      # The observability scrape collector's targetAllocator prometheusCR scopes
+      # PodMonitor discovery by this label (podMonitorSelector). The CRD does not
+      # support podMonitorNamespaceSelector, so namespace-scoping is impossible
+      # there; this explicit label is how the allocator finds only this monitor.
+      "labels" = {
+        "otel-scrape" = "automate"
+      }
+    }
+    "spec" = {
+      "podTargetLabels" = [
+        "app.kubernetes.io/instance",
+        "app.kubernetes.io/name",
+        "pod-template-hash",
+      ]
+      "podMetricsEndpoints" = [
+        {
+          "port" = "metrics"
+          // https://github.com/dotnet/dotnet-monitor/blob/main/documentation/configuration/metrics-configuration.md#customize-collection-interval-and-counts
+          "interval" = "15s"
+        },
+      ]
+      "namespaceSelector" = {
+        "any" = false
+        "matchNames" = [
+          local.namespace,
+        ]
+      }
+      "selector" = {
+        "matchLabels" = {
+          "app.kubernetes.io/instance" = kubernetes_deployment.api.metadata[0].labels["app.kubernetes.io/instance"]
+          "app.kubernetes.io/name"     = kubernetes_deployment.api.metadata[0].labels["app.kubernetes.io/name"]
+        }
+      }
+    }
+  }
+}

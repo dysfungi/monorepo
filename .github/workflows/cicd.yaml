@@ -12,6 +12,53 @@ jobs:
   lint:
     uses: ./.github/workflows/lint.yaml
 
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      any: ${{ steps.filter.outputs.any }}
+      httpbin: ${{ steps.filter.outputs.httpbin }}
+      miniflux: ${{ steps.filter.outputs.miniflux }}
+      node-red: ${{ steps.filter.outputs.node-red }}
+      ollama: ${{ steps.filter.outputs.ollama }}
+      automate: ${{ steps.filter.outputs.automate }}
+    steps:
+      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
+        id: filter
+        with:
+          filters: |
+            any:
+              - 'terraform/infrastructure/**'
+              - 'terraform/applications/**'
+              - 'terraform/modules/**'
+              - 'fsharp/api/automate/**'
+              - '.github/workflows/cicd.yaml'
+              - '.mise.toml'
+              - '!**/*.md'
+            httpbin:
+              - 'terraform/applications/httpbin/**'
+              - 'terraform/modules/gateway-route/**'
+              - '.github/workflows/cicd.yaml'
+              - '!**/*.md'
+            miniflux:
+              - 'terraform/applications/miniflux/**'
+              - 'terraform/modules/gateway-route/**'
+              - 'terraform/modules/vultr-managed-postgres/**'
+              - '.github/workflows/cicd.yaml'
+              - '!**/*.md'
+            node-red:
+              - 'terraform/applications/node-red/**'
+              - '.github/workflows/cicd.yaml'
+              - '!**/*.md'
+            ollama:
+              - 'terraform/applications/ollama/**'
+              - '.github/workflows/cicd.yaml'
+              - '!**/*.md'
+            automate:
+              - 'fsharp/api/automate/**'
+              - 'terraform/modules/gateway-route/**'
+              - '.github/workflows/cicd.yaml'
+              - '!**/*.md'
+
   init-secrets:
     runs-on: ubuntu-latest
     steps:
@@ -174,10 +221,11 @@ jobs:
       app_version: ${{ steps.app-version.outputs.out }}
 
   check-deploy-prod:
-    if: github.ref_name == 'main'
+    if: github.ref_name == 'main' && needs.changes.outputs.any == 'true'
     environment: production
     needs:
       - lint
+      - changes
     runs-on: ubuntu-latest
     steps:
       - run: echo "Deploying to production!"
@@ -498,6 +546,7 @@ jobs:
       - run: echo "Deployed foundational infrastructure!"
 
   deploy-httpbin:
+    if: needs.changes.outputs.httpbin == 'true'
     concurrency:
       group: ${{ github.workflow }}-deploy-httpbin
       cancel-in-progress: false
@@ -505,6 +554,7 @@ jobs:
     needs:
       - secrets
       - deployed-foundation
+      - changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -547,6 +597,7 @@ jobs:
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
 
   deploy-miniflux:
+    if: needs.changes.outputs.miniflux == 'true'
     concurrency:
       group: ${{ github.workflow }}-deploy-miniflux
       cancel-in-progress: false
@@ -554,6 +605,7 @@ jobs:
     needs:
       - secrets
       - deployed-foundation
+      - changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -623,6 +675,7 @@ jobs:
           TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
 
   deploy-node-red:
+    if: needs.changes.outputs.node-red == 'true'
     concurrency:
       group: ${{ github.workflow }}-deploy-node-red
       cancel-in-progress: false
@@ -630,6 +683,7 @@ jobs:
     needs:
       - secrets
       - deployed-foundation
+      - changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -676,6 +730,7 @@ jobs:
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
 
   deploy-ollama:
+    if: needs.changes.outputs.ollama == 'true'
     concurrency:
       group: ${{ github.workflow }}-deploy-ollama
       cancel-in-progress: false
@@ -683,6 +738,7 @@ jobs:
     needs:
       - secrets
       - deployed-foundation
+      - changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -725,6 +781,7 @@ jobs:
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
 
   deploy-automate-api:
+    if: needs.changes.outputs.automate == 'true'
     concurrency:
       group: ${{ github.workflow }}-deploy-automate-api
       cancel-in-progress: false
@@ -733,6 +790,7 @@ jobs:
       - secrets
       - deployed-foundation
       - build-automate-api
+      - changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

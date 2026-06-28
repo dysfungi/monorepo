@@ -18,7 +18,7 @@ A root `dodo.py` file defines workspace-wide tasks using `pydoit`.
 Common commands:
 
 - `doit ls`: List all available tasks and projects.
-- `doit setup`: Run root setup (`brew bundle`, `pre-commit install`) and project-specific setups.
+- `doit setup`: Run root setup (`mise install`, `pre-commit install`) and project-specific setups.
 - `doit lint`: Run linters via `pre-commit` on all files.
 - `doit build`: Build projects (can filter with `$LANGUAGE/$CATEGORY/$PROJECT`).
 - `doit start`: Run projects.

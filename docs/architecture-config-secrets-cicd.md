@@ -219,13 +219,13 @@ to be a no-op after first success:
 sub-tasks. Current projects: `automate` (F#/api), `frankenstructure` and
 `gateway` (Terraform/infra).
 
-| Command      | Purpose                                                      |
-| ------------ | ------------------------------------------------------------ |
-| `doit ls`    | List projects and sub-tasks (the default task).              |
-| `doit setup` | Root setup (`brew bundle`, `pre-commit install`) + projects. |
-| `doit lint`  | Run all linters via `pre-commit`.                            |
-| `doit build` | Build projects (filter with `$LANGUAGE/$CATEGORY/$PROJECT`). |
-| `doit start` | Run projects.                                                |
+| Command      | Purpose                                                       |
+| ------------ | ------------------------------------------------------------- |
+| `doit ls`    | List projects and sub-tasks (the default task).               |
+| `doit setup` | Root setup (`mise install`, `pre-commit install`) + projects. |
+| `doit lint`  | Run all linters via `pre-commit`.                             |
+| `doit build` | Build projects (filter with `$LANGUAGE/$CATEGORY/$PROJECT`).  |
+| `doit start` | Run projects.                                                 |
 
 ---
 

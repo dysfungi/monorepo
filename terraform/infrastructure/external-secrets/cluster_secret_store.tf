@@ -14,5 +14,10 @@ resource "kustomization_resource" "cluster_secret_store" {
   for_each = data.kustomization_overlay.cluster_secret_store.ids
   manifest = data.kustomization_overlay.cluster_secret_store.manifests[each.value]
 
-  depends_on = [helm_release.external_secrets]
+  # The onepassword (Connect) provider only authenticates once the Connect server
+  # is reachable, so swap the ClusterSecretStore to it only after Connect deploys.
+  depends_on = [
+    helm_release.external_secrets,
+    helm_release.onepassword_connect,
+  ]
 }

@@ -8,3 +8,4 @@ Phase 4b PR B migrate grafana-cloud secret to ESO ExternalSecret +observability 
 (B) Document config, secrets & CI/CD architecture (central doc + ESO README) +docs @worktree:.claude/worktrees/eso-docs session:0763558e agent:claude model:claude-opus-4-8
 (B) Fix mise ghcr login to use cached TF_VAR_github_token, drop unscoped GITHUB_TOKEN +mise @worktree:.claude/worktrees/mise-ghcr-fix session:mise-ghcr-fix agent:claude model:claude-opus-4-8
 (B) Drop obsolete "never tofu apply locally" guidance (state locking enabled) +docs @worktree:.claude/worktrees/tofu-lock-docs session:tofu-lock-docs agent:claude model:claude-opus-4-8
+(A) Fix 1Password CI rate limits via Connect for ESO +infra @worktree:.claude/worktrees/1pw-connect-eso session:829da16a-ca6a-4fa1-a498-af58639facc3 agent:claude model:claude-opus-4-8

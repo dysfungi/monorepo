@@ -6,3 +6,4 @@ Phase 4b PR B migrate grafana-cloud secret to ESO ExternalSecret +observability 
 (B) Phase 4b PR D migrate miniflux admin creds to ESO +miniflux @worktree:.claude/worktrees/eso-miniflux session:0763558e agent:claude model:claude-opus-4-8
 (B) Phase 4b PR E reloader auto-restart annotations for ESO workloads +eso @worktree:.claude/worktrees/eso-reloader session:0763558e agent:claude model:claude-opus-4-8
 (B) Document config, secrets & CI/CD architecture (central doc + ESO README) +docs @worktree:.claude/worktrees/eso-docs session:0763558e agent:claude model:claude-opus-4-8
+(B) Fix mise ghcr login to use cached TF_VAR_github_token, drop unscoped GITHUB_TOKEN +mise @worktree:.claude/worktrees/mise-ghcr-fix session:mise-ghcr-fix agent:claude model:claude-opus-4-8

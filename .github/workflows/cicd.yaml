@@ -287,6 +287,8 @@ jobs:
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
+          op_connect_credentials_json: op://Frankenstructure/1Password Connect - Secrets Automation/credentials_json
+          op_connect_token: op://Frankenstructure/1Password Connect - Secrets Automation/credential
           s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
           s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
       - id: kubeconfig-path
@@ -304,6 +306,8 @@ jobs:
           # existing read-only token; injected directly because it cannot be
           # sourced through ESO itself (chicken-and-egg).
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+          TF_VAR_op_connect_credentials_json: ${{ steps.op-secrets.outputs.op_connect_credentials_json }}
+          TF_VAR_op_connect_token: ${{ steps.op-secrets.outputs.op_connect_token }}
           TF_VAR_op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
       - name: Deploy
         working-directory: terraform/infrastructure/external-secrets
@@ -312,6 +316,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+          TF_VAR_op_connect_credentials_json: ${{ steps.op-secrets.outputs.op_connect_credentials_json }}
+          TF_VAR_op_connect_token: ${{ steps.op-secrets.outputs.op_connect_token }}
           TF_VAR_op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
 
   deployed-foundation:

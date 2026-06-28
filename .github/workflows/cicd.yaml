@@ -56,96 +56,6 @@ jobs:
               - 'terraform/modules/gateway-route/**'
               - '.github/workflows/cicd.yaml'
 
-  init-secrets:
-    runs-on: ubuntu-latest
-    steps:
-      - id: op-secrets
-        uses: 1password/load-secrets-action@v4
-        with:
-          export-env: false
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
-          vultr_api_key: op://Frankenstructure/Vultr API Key/password
-      - uses: dysfungi/action-vultr@main
-        with:
-          token: ${{ steps.op-secrets.outputs.vultr_api_key }}
-      - id: vultr-s3-keys
-        env:
-          VULTR_API_KEY: ${{ steps.op-secrets.outputs.vultr_api_key }}
-        run: >
-          vultr-cli --output=json object-storage list
-          | jq --raw-output >> "$GITHUB_OUTPUT" '
-          .object_storages[]
-          | select(.label == "frankenstorage")
-          | ["s3_access_key=" + .s3_access_key, "s3_secret_key=" + .s3_secret_key]
-          | join("\n")
-          '
-      - id: vultr-registry
-        env:
-          VULTR_API_KEY: ${{ steps.op-secrets.outputs.vultr_api_key }}
-        run: >
-          vultr-cli --output=json container-registry list
-          | jq --raw-output >> "$GITHUB_OUTPUT" '
-          .registries[]
-          | select(.name == "frankistry")
-          | [ "registry_urn=" + .urn
-            , "registry_username=" + .root_user.username
-            , "registry_password=" + .root_user.password
-            ]
-          | join("\n")
-          '
-      - id: enc-cloudflare-api-token
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
-      - id: enc-s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.vultr-s3-keys.outputs.s3_access_key }}
-      - id: enc-s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.vultr-s3-keys.outputs.s3_secret_key }}
-      - id: enc-vultr-api-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.vultr_api_key }}
-      - id: enc-vultr-registry-password
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.vultr-registry.outputs.registry_password }}
-      - id: enc-vultr-registry-urn
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.vultr-registry.outputs.registry_urn }}
-      - id: enc-vultr-registry-username
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.vultr-registry.outputs.registry_username }}
-    outputs:
-      enc_cloudflare_api_token: ${{ steps.enc-cloudflare-api-token.outputs.out }}
-      enc_s3_access_key: ${{ steps.enc-s3-access-key.outputs.out }}
-      enc_s3_secret_key: ${{ steps.enc-s3-secret-key.outputs.out }}
-      enc_vultr_api_key: ${{ steps.enc-vultr-api-key.outputs.out }}
-      enc_vultr_registry_password: ${{ steps.enc-vultr-registry-password.outputs.out }}
-      enc_vultr_registry_urn: ${{ steps.enc-vultr-registry-urn.outputs.out }}
-      enc_vultr_registry_username: ${{ steps.enc-vultr-registry-username.outputs.out }}
-
   test-automate-api:
     needs:
       - lint
@@ -162,7 +72,6 @@ jobs:
   build-automate-api:
     needs:
       - test-automate-api
-      - init-secrets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -180,24 +89,15 @@ jobs:
         run: docker compose build
         env:
           APP_VERSION: ${{ steps.app-version.outputs.out }}
-      - id: vultr-registry-password
-        uses: cloudposse/github-action-secret-outputs@main
+      - id: op-secrets
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.init-secrets.outputs.enc_vultr_registry_password }}
-      - id: vultr-registry-urn
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.init-secrets.outputs.enc_vultr_registry_urn }}
-      - id: vultr-registry-username
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.init-secrets.outputs.enc_vultr_registry_username }}
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          registry_password: op://Frankenstructure/Vultr Container Registry - Frankistry/password
+          registry_urn: op://Frankenstructure/Vultr Container Registry - Frankistry/urn
+          registry_username: op://Frankenstructure/Vultr Container Registry - Frankistry/username
       - name: Docker login
         run: >
           docker login
@@ -205,9 +105,9 @@ jobs:
           --password-stdin <<< "$REGISTRY_PASSWORD"
           "$REGISTRY_URN"
         env:
-          REGISTRY_PASSWORD: ${{ steps.vultr-registry-password.outputs.out }}
-          REGISTRY_URN: ${{ steps.vultr-registry-urn.outputs.out }}
-          REGISTRY_USERNAME: ${{ steps.vultr-registry-username.outputs.out }}
+          REGISTRY_PASSWORD: ${{ steps.op-secrets.outputs.registry_password }}
+          REGISTRY_URN: ${{ steps.op-secrets.outputs.registry_urn }}
+          REGISTRY_USERNAME: ${{ steps.op-secrets.outputs.registry_username }}
       - name: Push
         if: github.ref_name == 'main'
         working-directory: fsharp/api/automate
@@ -234,168 +134,36 @@ jobs:
     environment: production
     needs:
       - check-deploy-prod
-      - init-secrets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: opentofu/setup-opentofu@v2
-      - id: cloudflare-api-token
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.init-secrets.outputs.enc_cloudflare_api_token }}
-      - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.init-secrets.outputs.enc_s3_access_key }}
-      - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.init-secrets.outputs.enc_s3_secret_key }}
-      - id: vultr-api-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.init-secrets.outputs.enc_vultr_api_key }}
-      - name: Initialize tofu
-        working-directory: terraform/infrastructure/frankenstructure
-        run: tofu init -input=false -upgrade
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
-          TF_VAR_cloudflare_api_token: ${{ steps.cloudflare-api-token.outputs.out }}
-          TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
-      - name: Deploy
-        working-directory: terraform/infrastructure/frankenstructure
-        run: tofu apply -auto-approve -input=false
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
-          TF_VAR_cloudflare_api_token: ${{ steps.cloudflare-api-token.outputs.out }}
-          TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
-
-  secrets:
-    runs-on: ubuntu-latest
-    needs:
-      - init-secrets
-      - deploy-frankenstructure
-    steps:
-      - id: vultr-api-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.init-secrets.outputs.enc_vultr_api_key }}
       - id: op-secrets
-        uses: 1password/load-secrets-action@v4
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          discord_webhook_alerts: op://Frankenstructure/Discord Webhook - breaktheloop/url
-          dockerconfigjson: op://Frankenstructure/Vultr Container Registry - Frankistry/credential
-          grafana_admin_password: op://Frankenstructure/Grafana - frank.sh/password
-          healthchecksio_api_key: op://Frankenstructure/Healthchecks.io API Key/credential
-          smtp_password: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/password
-          smtp_port: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/port
-          smtp_server: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/server
-          smtp_username: op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/username
-          todoist_email: op://Frankenstructure/Todoist Project - Frankenstructure/email
-      - uses: dysfungi/action-vultr@main
-        with:
-          token: ${{ steps.vultr-api-key.outputs.out }}
-      - id: kubeconfig-base64
+          cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
+          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
+          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
+          vultr_api_key: op://Frankenstructure/Vultr API Key/password
+      - name: Initialize tofu
+        working-directory: terraform/infrastructure/frankenstructure
+        run: tofu init -input=false -upgrade
         env:
-          VULTR_API_KEY: ${{ steps.vultr-api-key.outputs.out }}
-        run: >
-          echo -n "out=" >> "$GITHUB_OUTPUT";
-          vultr-cli --output=json kubernetes list
-          | jq --raw-output '.vke_clusters[] | select(.label == "frank8s").id'
-          | xargs -- vultr-cli kubernetes config >> "$GITHUB_OUTPUT"
-      - id: enc-discord-webhook-alerts
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.discord_webhook_alerts }}
-      - id: enc-dockerconfigjson
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.dockerconfigjson }}
-      - id: enc-grafana-admin-password
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.grafana_admin_password }}
-      - id: enc-healthchecksio-api-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.healthchecksio_api_key }}
-      - id: enc-kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.kubeconfig-base64.outputs.out }}
-      - id: enc-smtp-password
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.smtp_password }}
-      - id: enc-smtp-port
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.smtp_port }}
-      - id: enc-smtp-server
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.smtp_server }}
-      - id: enc-smtp-username
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.smtp_username }}
-      - id: enc-todoist-email
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: encode
-          in: ${{ steps.op-secrets.outputs.todoist_email }}
-    outputs:
-      enc_cloudflare_api_token: ${{ needs.init-secrets.outputs.enc_cloudflare_api_token }}
-      enc_discord_webhook_alerts: ${{ steps.enc-discord-webhook-alerts.outputs.out }}
-      enc_dockerconfigjson: ${{ steps.enc-dockerconfigjson.outputs.out }}
-      enc_grafana_admin_password: ${{ steps.enc-grafana-admin-password.outputs.out }}
-      enc_healthchecksio_api_key: ${{ steps.enc-healthchecksio-api-key.outputs.out }}
-      enc_kubeconfig_base64: ${{ steps.enc-kubeconfig-base64.outputs.out }}
-      enc_s3_access_key: ${{ needs.init-secrets.outputs.enc_s3_access_key }}
-      enc_s3_secret_key: ${{ needs.init-secrets.outputs.enc_s3_secret_key }}
-      enc_smtp_password: ${{ steps.enc-smtp-password.outputs.out }}
-      enc_smtp_port: ${{ steps.enc-smtp-port.outputs.out }}
-      enc_smtp_server: ${{ steps.enc-smtp-server.outputs.out }}
-      enc_smtp_username: ${{ steps.enc-smtp-username.outputs.out }}
-      enc_todoist_email: ${{ steps.enc-todoist-email.outputs.out }}
-      enc_vultr_api_key: ${{ needs.init-secrets.outputs.enc_vultr_api_key }}
-      enc_vultr_registry_password: ${{ needs.init-secrets.outputs.enc_vultr_registry_password }}
-      enc_vultr_registry_urn: ${{ needs.init-secrets.outputs.enc_vultr_registry_urn }}
-      enc_vultr_registry_username: ${{ needs.init-secrets.outputs.enc_vultr_registry_username }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
+          TF_VAR_cloudflare_api_token: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
+          TF_VAR_vultr_api_key: ${{ steps.op-secrets.outputs.vultr_api_key }}
+      - name: Deploy
+        working-directory: terraform/infrastructure/frankenstructure
+        run: tofu apply -auto-approve -input=false
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
+          TF_VAR_cloudflare_api_token: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
+          TF_VAR_vultr_api_key: ${{ steps.op-secrets.outputs.vultr_api_key }}
 
   deploy-observability:
     concurrency:
@@ -404,13 +172,13 @@ jobs:
     environment: production
     needs:
       - check-deploy-prod
-      - secrets
+      - deploy-frankenstructure
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: opentofu/setup-opentofu@v2
       - id: op-secrets
-        uses: 1password/load-secrets-action@v4
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
           export-env: false
         env:
@@ -419,43 +187,23 @@ jobs:
           grafana_cloud_api_key: op://Frankenstructure/Grafana Cloud API Key - fungi/credential
           honeycomb_key_id: op://Frankenstructure/Honeycomb.io Management API Key/username
           honeycomb_key_secret: op://Frankenstructure/Honeycomb.io Management API Key/credential
-      - id: healthchecksio-api-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_healthchecksio_api_key }}
-      - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_kubeconfig_base64 }}
+          healthchecksio_api_key: op://Frankenstructure/Healthchecks.io API Key/credential
+          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
+          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
+          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
       - id: kubeconfig-path
         run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
+          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_access_key }}
-      - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
       - name: Initialize tofu
         working-directory: terraform/infrastructure/observability
         run: tofu init -input=false -upgrade
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
           TF_VAR_grafana_cloud_api_key: ${{ steps.op-secrets.outputs.grafana_cloud_api_key }}
           TF_VAR_grafana_cloud_instance_id: ${{ steps.op-secrets.outputs.grafana_cloud_instance_id }}
-          TF_VAR_healthchecksio_api_key: ${{ steps.healthchecksio-api-key.outputs.out }}
+          TF_VAR_healthchecksio_api_key: ${{ steps.op-secrets.outputs.healthchecksio_api_key }}
           TF_VAR_honeycomb_key_id: ${{ steps.op-secrets.outputs.honeycomb_key_id }}
           TF_VAR_honeycomb_key_secret: ${{ steps.op-secrets.outputs.honeycomb_key_secret }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
@@ -463,11 +211,11 @@ jobs:
         working-directory: terraform/infrastructure/observability
         run: tofu apply -auto-approve -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
           TF_VAR_grafana_cloud_api_key: ${{ steps.op-secrets.outputs.grafana_cloud_api_key }}
           TF_VAR_grafana_cloud_instance_id: ${{ steps.op-secrets.outputs.grafana_cloud_instance_id }}
-          TF_VAR_healthchecksio_api_key: ${{ steps.healthchecksio-api-key.outputs.out }}
+          TF_VAR_healthchecksio_api_key: ${{ steps.op-secrets.outputs.healthchecksio_api_key }}
           TF_VAR_honeycomb_key_id: ${{ steps.op-secrets.outputs.honeycomb_key_id }}
           TF_VAR_honeycomb_key_secret: ${{ steps.op-secrets.outputs.honeycomb_key_secret }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
@@ -479,46 +227,32 @@ jobs:
     environment: production
     needs:
       - check-deploy-prod
-      - secrets
+      - deploy-frankenstructure
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: opentofu/setup-opentofu@v2
-      - id: cloudflare-api-token
-        uses: cloudposse/github-action-secret-outputs@main
+      - id: op-secrets
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_cloudflare_api_token }}
-      - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_kubeconfig_base64 }}
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
+          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
+          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
+          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
       - id: kubeconfig-path
         run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
+          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_access_key }}
-      - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
       - name: Initialize tofu
         working-directory: terraform/infrastructure/gateway
         run: tofu init -input=false -upgrade
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
-          TF_VAR_cloudflare_api_token: ${{ steps.cloudflare-api-token.outputs.out }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
+          TF_VAR_cloudflare_api_token: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
           TF_VAR_github_token: ${{ github.token }}
           TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
@@ -526,9 +260,9 @@ jobs:
         working-directory: terraform/infrastructure/gateway
         run: tofu apply -auto-approve -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
-          TF_VAR_cloudflare_api_token: ${{ steps.cloudflare-api-token.outputs.out }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
+          TF_VAR_cloudflare_api_token: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
           TF_VAR_github_token: ${{ github.token }}
           TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
@@ -549,48 +283,38 @@ jobs:
       cancel-in-progress: false
     environment: production
     needs:
-      - secrets
       - deployed-foundation
       - changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: opentofu/setup-opentofu@v2
-      - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
+      - id: op-secrets
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_kubeconfig_base64 }}
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
+          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
+          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
       - id: kubeconfig-path
         run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
+          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_access_key }}
-      - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
       - name: Initialize tofu
         working-directory: terraform/applications/httpbin
         run: tofu init -input=false -upgrade
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
       - name: Deploy
         working-directory: terraform/applications/httpbin
         run: tofu apply -auto-approve -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
 
   deploy-miniflux:
@@ -600,7 +324,6 @@ jobs:
       cancel-in-progress: false
     environment: production
     needs:
-      - secrets
       - deployed-foundation
       - changes
     runs-on: ubuntu-latest
@@ -608,7 +331,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: opentofu/setup-opentofu@v2
       - id: op-secrets
-        uses: 1password/load-secrets-action@v4
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
           export-env: false
         env:
@@ -616,60 +339,40 @@ jobs:
           miniflux_admin_password: op://Frankenstructure/Miniflux - frank.sh/password
           miniflux_admin_username: op://Frankenstructure/Miniflux - frank.sh/username
           miniflux_postgres_password: op://Frankenstructure/Postgres - Miniflux/password
-      - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_kubeconfig_base64 }}
+          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
+          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
+          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
+          vultr_api_key: op://Frankenstructure/Vultr API Key/password
       - id: kubeconfig-path
         run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
+          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_access_key }}
-      - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
-      - id: vultr-api-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_vultr_api_key }}
       - name: Initialize tofu
         working-directory: terraform/applications/miniflux
         run: tofu init -input=false -upgrade
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
           TF_VAR_github_token: ${{ github.token }}
           TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
           TF_VAR_miniflux_admin_password: ${{ steps.op-secrets.outputs.miniflux_admin_password }}
           TF_VAR_miniflux_admin_username: ${{ steps.op-secrets.outputs.miniflux_admin_username }}
           TF_VAR_miniflux_postgres_password: ${{ steps.op-secrets.outputs.miniflux_postgres_password }}
-          TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
+          TF_VAR_vultr_api_key: ${{ steps.op-secrets.outputs.vultr_api_key }}
       - name: Deploy
         working-directory: terraform/applications/miniflux
         run: tofu apply -auto-approve -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
           TF_VAR_github_token: ${{ github.token }}
           TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
           TF_VAR_miniflux_admin_password: ${{ steps.op-secrets.outputs.miniflux_admin_password }}
           TF_VAR_miniflux_admin_username: ${{ steps.op-secrets.outputs.miniflux_admin_username }}
           TF_VAR_miniflux_postgres_password: ${{ steps.op-secrets.outputs.miniflux_postgres_password }}
-          TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
+          TF_VAR_vultr_api_key: ${{ steps.op-secrets.outputs.vultr_api_key }}
 
   deploy-node-red:
     if: needs.changes.outputs.node-red == 'true'
@@ -678,41 +381,31 @@ jobs:
       cancel-in-progress: false
     environment: production
     needs:
-      - secrets
       - deployed-foundation
       - changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: opentofu/setup-opentofu@v2
-      - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
+      - id: op-secrets
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_kubeconfig_base64 }}
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
+          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
+          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
       - id: kubeconfig-path
         run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
+          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_access_key }}
-      - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
       - name: Initialize tofu
         working-directory: terraform/applications/node-red
         run: tofu init -input=false -upgrade
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
           TF_VAR_github_token: ${{ github.token }}
           TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
@@ -720,8 +413,8 @@ jobs:
         working-directory: terraform/applications/node-red
         run: tofu apply -auto-approve -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
           TF_VAR_github_token: ${{ github.token }}
           TF_VAR_github_username: ${{ github.triggering_actor }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
@@ -733,48 +426,38 @@ jobs:
       cancel-in-progress: false
     environment: production
     needs:
-      - secrets
       - deployed-foundation
       - changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: opentofu/setup-opentofu@v2
-      - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
+      - id: op-secrets
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_kubeconfig_base64 }}
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
+          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
+          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
       - id: kubeconfig-path
         run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
+          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_access_key }}
-      - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
       - name: Initialize tofu
         working-directory: terraform/applications/ollama
         run: tofu init -input=false -upgrade
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
       - name: Deploy
         working-directory: terraform/applications/ollama
         run: tofu apply -auto-approve -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
 
   deploy-automate-api:
@@ -784,7 +467,6 @@ jobs:
       cancel-in-progress: false
     environment: production
     needs:
-      - secrets
       - deployed-foundation
       - build-automate-api
       - changes
@@ -793,7 +475,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: opentofu/setup-opentofu@v2
       - id: op-secrets
-        uses: 1password/load-secrets-action@v4
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
           export-env: false
         env:
@@ -804,46 +486,21 @@ jobs:
           automate_todoist_client_id: op://Frankenstructure/Todoist App - AutoMate/username
           automate_todoist_client_secret: op://Frankenstructure/Todoist App - AutoMate/credential
           automate_todoist_verification_token: op://Frankenstructure/Todoist App - AutoMate/verification token
-      - id: kubeconfig-base64
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_kubeconfig_base64 }}
-      - id: dockerconfigjson
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_dockerconfigjson }}
+          dockerconfigjson: op://Frankenstructure/Vultr Container Registry - Frankistry/credential
+          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
+          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
+          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
+          vultr_api_key: op://Frankenstructure/Vultr API Key/password
       - id: kubeconfig-path
         run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.kubeconfig-base64.outputs.out }}"
+          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
           echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - id: s3-access-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_access_key }}
-      - id: s3-secret-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_s3_secret_key }}
-      - id: vultr-api-key
-        uses: cloudposse/github-action-secret-outputs@main
-        with:
-          secret: ${{ secrets.GPG_PASSPHRASE }}
-          op: decode
-          in: ${{ needs.secrets.outputs.enc_vultr_api_key }}
       - name: Initialize tofu
         working-directory: fsharp/api/automate/terraform
         run: tofu init -input=false -upgrade
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
           TF_VAR_app_version: ${{ needs.build-automate-api.outputs.app_version }}
           TF_VAR_automate_dropbox_client_id: ${{ steps.op-secrets.outputs.automate_dropbox_client_id }}
           TF_VAR_automate_dropbox_client_secret: ${{ steps.op-secrets.outputs.automate_dropbox_client_secret }}
@@ -851,15 +508,15 @@ jobs:
           TF_VAR_automate_todoist_client_id: ${{ steps.op-secrets.outputs.automate_todoist_client_id }}
           TF_VAR_automate_todoist_client_secret: ${{ steps.op-secrets.outputs.automate_todoist_client_secret }}
           TF_VAR_automate_todoist_verification_token: ${{ steps.op-secrets.outputs.automate_todoist_verification_token }}
-          TF_VAR_dockerconfigjson: ${{ steps.dockerconfigjson.outputs.out }}
+          TF_VAR_dockerconfigjson: ${{ steps.op-secrets.outputs.dockerconfigjson }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
-          TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
+          TF_VAR_vultr_api_key: ${{ steps.op-secrets.outputs.vultr_api_key }}
       - name: Deploy
         working-directory: fsharp/api/automate/terraform
         run: tofu apply -auto-approve -input=false
         env:
-          AWS_ACCESS_KEY_ID: ${{ steps.s3-access-key.outputs.out }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.s3-secret-key.outputs.out }}
+          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
           TF_VAR_app_version: ${{ needs.build-automate-api.outputs.app_version }}
           TF_VAR_automate_dropbox_client_id: ${{ steps.op-secrets.outputs.automate_dropbox_client_id }}
           TF_VAR_automate_dropbox_client_secret: ${{ steps.op-secrets.outputs.automate_dropbox_client_secret }}
@@ -867,6 +524,6 @@ jobs:
           TF_VAR_automate_todoist_client_id: ${{ steps.op-secrets.outputs.automate_todoist_client_id }}
           TF_VAR_automate_todoist_client_secret: ${{ steps.op-secrets.outputs.automate_todoist_client_secret }}
           TF_VAR_automate_todoist_verification_token: ${{ steps.op-secrets.outputs.automate_todoist_verification_token }}
-          TF_VAR_dockerconfigjson: ${{ steps.dockerconfigjson.outputs.out }}
+          TF_VAR_dockerconfigjson: ${{ steps.op-secrets.outputs.dockerconfigjson }}
           TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
-          TF_VAR_vultr_api_key: ${{ steps.vultr-api-key.outputs.out }}
+          TF_VAR_vultr_api_key: ${{ steps.op-secrets.outputs.vultr_api_key }}

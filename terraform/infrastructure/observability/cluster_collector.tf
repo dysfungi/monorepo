@@ -3,6 +3,14 @@ locals {
     # https://docs.honeycomb.io/send-data/kubernetes/values-files/values-deployment.yaml
     enabled  = true
     replicas = 1 # A deployment with exactly one replica ensures that we don’t produce duplicate data.
+    # Pin ONLY the cluster collector to contrib 0.123.0 — a deliberate +3-minor
+    # skew from the 0.120 operator default. tlscheckreceiver first shipped in the
+    # PUBLISHED otel/opentelemetry-collector-contrib image at 0.123.0; 0.120/0.122
+    # images lacked it despite repo source (upstream #38749, distribution-manifest gap).
+    image = {
+      repository = "otel/opentelemetry-collector-contrib"
+      tag        = "0.123.0"
+    }
     presets = {
       clusterMetrics = {
         # enables the k8sclusterreceiver and adds it to the metrics pipelines
@@ -47,6 +55,26 @@ locals {
           # Synthetic uptime checks do not need 15s resolution; 60s cuts the
           # httpcheck datapoint volume 4x while staying well within alerting SLOs.
           collection_interval = "60s"
+        }
+        tlscheck = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/tlscheckreceiver
+          # Emits tlscheck.time_left (seconds until cert expiry). Targets use
+          # endpoint host:port (no scheme). 300s is ample for SSL-expiry alerting.
+          targets = [
+            {
+              endpoint = "frank.sh:443"
+            },
+            {
+              endpoint = "api.frank.sh:443"
+            },
+            {
+              endpoint = "httpbin.frank.sh:443"
+            },
+            {
+              endpoint = "miniflux.frank.sh:443"
+            }
+          ]
+          collection_interval = "300s"
         }
       }
       processors = {
@@ -190,6 +218,7 @@ locals {
           "metrics/synthetics" = {
             receivers = [
               "httpcheck",
+              "tlscheck",
             ]
             processors = [
               "memory_limiter",

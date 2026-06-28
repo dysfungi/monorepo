@@ -14,10 +14,29 @@ resource "helm_release" "miniflux" {
         replicas = 2
       }
       env = {
-        DATABASE_URL   = module.postgres.app.url
-        CREATE_ADMIN   = "1"
-        ADMIN_USERNAME = var.miniflux_admin_username
-        ADMIN_PASSWORD = var.miniflux_admin_password
+        DATABASE_URL = module.postgres.app.url
+        CREATE_ADMIN = "1"
+        # ADMIN_USERNAME/ADMIN_PASSWORD are sourced from 1Password by ESO and
+        # exposed via the miniflux-admin Secret (see external_secret_miniflux.tf).
+        # The bjw-s common library passes env map entries through verbatim, so a
+        # valueFrom.secretKeyRef object renders as a secret-backed container env
+        # var instead of a plaintext value in the pod spec.
+        ADMIN_USERNAME = {
+          valueFrom = {
+            secretKeyRef = {
+              name = "miniflux-admin"
+              key  = "ADMIN_USERNAME"
+            }
+          }
+        }
+        ADMIN_PASSWORD = {
+          valueFrom = {
+            secretKeyRef = {
+              name = "miniflux-admin"
+              key  = "ADMIN_PASSWORD"
+            }
+          }
+        }
       }
       postgresql = {
         enabled = false
@@ -61,4 +80,8 @@ resource "helm_release" "miniflux" {
       }
     }),
   ]
+
+  # Ensure the miniflux-admin ExternalSecret is applied (and ESO has materialized
+  # the backing Secret) before the pods reference it via env valueFrom.secretKeyRef.
+  depends_on = [kustomization_resource.external_secret_miniflux]
 }

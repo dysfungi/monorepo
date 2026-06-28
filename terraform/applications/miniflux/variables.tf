@@ -18,17 +18,6 @@ variable "vultr_api_key" {
   sensitive = true
 }
 
-variable "miniflux_admin_username" {
-  type     = string
-  nullable = false
-}
-
-variable "miniflux_admin_password" {
-  type      = string
-  nullable  = false
-  sensitive = true
-}
-
 variable "miniflux_postgres_password" {
   type      = string
   nullable  = false

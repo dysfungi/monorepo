@@ -401,6 +401,129 @@ locals {
             },
           ]
         }
+        "transform/severity" = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/transformprocessor/README.md
+          # Classify records that arrive with severity_number == 0 so the
+          # downstream "filter/logs" (drop INFO/DEBUG for high-volume services)
+          # can act on them. Two source services dominate the unclassified
+          # volume: the "automate" app and raw k8s pod logs (k8s-logs dataset,
+          # no service.name). MUST run AFTER k8sattributes/transform (so
+          # resource.attributes["service.name"] is populated) and BEFORE
+          # "filter/logs". Every set() is guarded with `severity_number == 0`
+          # so an already-classified record is never downgraded, and each set
+          # is scoped by service.name so the per-format regexes cannot mis-tag
+          # another service's records. error_mode = "ignore" means a runtime
+          # type mismatch (e.g. IsMatch on a non-string body) is skipped, not
+          # fatal -- consistent with every other transform here.
+          error_mode = "ignore"
+          log_statements = [
+            {
+              context = "log"
+              statements = [
+                # --- automate: structured JSON logs (~3.7%) ---
+                # The container/json operators land the level in
+                # attributes["log.body.LogLevel"] (.NET Microsoft.Extensions
+                # logging level names). Map directly; no body string needed.
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_TRACE) where resource.attributes["service.name"] == "automate" and severity_number == 0 and attributes["log.body.LogLevel"] == "Trace"
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_DEBUG) where resource.attributes["service.name"] == "automate" and severity_number == 0 and attributes["log.body.LogLevel"] == "Debug"
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_INFO) where resource.attributes["service.name"] == "automate" and severity_number == 0 and attributes["log.body.LogLevel"] == "Information"
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_WARN) where resource.attributes["service.name"] == "automate" and severity_number == 0 and attributes["log.body.LogLevel"] == "Warning"
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_ERROR) where resource.attributes["service.name"] == "automate" and severity_number == 0 and attributes["log.body.LogLevel"] == "Error"
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_FATAL) where resource.attributes["service.name"] == "automate" and severity_number == 0 and attributes["log.body.LogLevel"] == "Critical"
+                EOT
+                ,
+                # --- automate: plain-text prefix logs (~48%) ---
+                # ASP.NET console formatter prefixes each header line with a
+                # 4-char level token + ": " (info:, warn:, fail:, crit:, dbug:,
+                # trce:). Match on the leading token.
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_TRACE) where resource.attributes["service.name"] == "automate" and severity_number == 0 and IsMatch(body, "^trce: ")
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_DEBUG) where resource.attributes["service.name"] == "automate" and severity_number == 0 and IsMatch(body, "^dbug: ")
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_INFO) where resource.attributes["service.name"] == "automate" and severity_number == 0 and IsMatch(body, "^info: ")
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_WARN) where resource.attributes["service.name"] == "automate" and severity_number == 0 and IsMatch(body, "^warn: ")
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_ERROR) where resource.attributes["service.name"] == "automate" and severity_number == 0 and IsMatch(body, "^fail: ")
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_FATAL) where resource.attributes["service.name"] == "automate" and severity_number == 0 and IsMatch(body, "^crit: ")
+                EOT
+                ,
+                # --- automate: continuation lines (~48%) ---
+                # The ASP.NET formatter emits the message body on the NEXT line,
+                # indented with spaces and carrying no level token, so it stays
+                # at severity_number == 0 (kept, not dropped). Recombining a
+                # continuation line with its header is a multiline-recombine
+                # problem deferred to a future change; intentionally NOT handled
+                # here.
+                # --- k8s-logs: klog format (~77%) ---
+                # Records with no service.name are the raw k8s pod logs in the
+                # k8s-logs dataset. klog lines begin with a single severity
+                # letter: I=INFO, W=WARN, E=ERROR, F=FATAL. The service.name ==
+                # nil guard keeps these single-letter regexes from tagging
+                # automate or any other service.
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_INFO) where resource.attributes["service.name"] == nil and severity_number == 0 and IsMatch(body, "^I")
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_WARN) where resource.attributes["service.name"] == nil and severity_number == 0 and IsMatch(body, "^W")
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_ERROR) where resource.attributes["service.name"] == nil and severity_number == 0 and IsMatch(body, "^E")
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_FATAL) where resource.attributes["service.name"] == nil and severity_number == 0 and IsMatch(body, "^F")
+                EOT
+                ,
+                # --- k8s-logs: logfmt format (~22%) ---
+                # logfmt lines carry an inline `level=<sev>` field anywhere in
+                # the body.
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_INFO) where resource.attributes["service.name"] == nil and severity_number == 0 and IsMatch(body, "level=info")
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_WARN) where resource.attributes["service.name"] == nil and severity_number == 0 and IsMatch(body, "level=warn")
+                EOT
+                ,
+                <<-EOT
+                set(severity_number, SEVERITY_NUMBER_ERROR) where resource.attributes["service.name"] == nil and severity_number == 0 and IsMatch(body, "level=error")
+                EOT
+                ,
+              ]
+            },
+          ]
+        }
         "transform/drop_unneeded_resource_attributes" = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/transformprocessor
           error_mode = "ignore"

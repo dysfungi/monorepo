@@ -88,6 +88,11 @@ locals {
               "filter",
               "k8sattributes",
               "transform",
+              # Classify severity_number for automate + k8s-logs records that
+              # arrive at 0, so "filter/logs" (next) can drop their INFO/DEBUG.
+              # Ordered after k8sattributes (needs service.name) and before
+              # filter/logs.
+              "transform/severity",
               "filter/logs",
               "resourcedetection",
               "logdedup",

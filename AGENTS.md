@@ -31,6 +31,9 @@ We use `mise` (`.mise.toml`) for managing the developer environment and secrets.
 
 - Secrets are dynamically loaded from 1Password via `op` CLI.
 - Entry hook `.mise/setup.sh` bootstraps necessary files and performs docker logins.
+- For the full config / secrets / CI-CD architecture (1Password → CI, `mise`, and
+  the External Secrets Operator), see
+  [`docs/architecture-config-secrets-cicd.md`](docs/architecture-config-secrets-cicd.md).
 
 ---
 

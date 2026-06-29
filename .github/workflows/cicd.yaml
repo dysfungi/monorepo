@@ -139,33 +139,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v2
-      - id: op-secrets
-        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
+      - uses: ./.github/actions/tofu-deploy
         with:
-          export-env: false
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
-          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
-          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
-          vultr_api_key: op://Frankenstructure/Vultr API Key/password
-      - name: Initialize tofu
-        working-directory: terraform/infrastructure/frankenstructure
-        run: tofu init -input=false -upgrade
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_cloudflare_api_token: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
-          TF_VAR_vultr_api_key: ${{ steps.op-secrets.outputs.vultr_api_key }}
-      - name: Deploy
-        working-directory: terraform/infrastructure/frankenstructure
-        run: tofu apply -auto-approve -input=false
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_cloudflare_api_token: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
-          TF_VAR_vultr_api_key: ${{ steps.op-secrets.outputs.vultr_api_key }}
+          stack_path: terraform/infrastructure/frankenstructure
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          needs_kubeconfig: "false"
+          op_refs: |
+            TF_VAR_cloudflare_api_token=op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
+            TF_VAR_vultr_api_key=op://Frankenstructure/Vultr API Key/password
 
   deploy-observability:
     concurrency:
@@ -181,50 +162,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v2
-      - id: op-secrets
-        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
+      - uses: ./.github/actions/tofu-deploy
         with:
-          export-env: false
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          # grafana_cloud_* removed: now sourced by ESO from 1Password.
-          honeycomb_key_id: op://Frankenstructure/Honeycomb.io Management API Key/username
-          honeycomb_key_secret: op://Frankenstructure/Honeycomb.io Management API Key/credential
-          honeycomb_api_key: op://Frankenstructure/Honeycomb.io Configuration API Key/credential
-          grafana_auth: op://Frankenstructure/Grafana Cloud Service Account Token - fungi/credential
-          healthchecksio_api_key: op://Frankenstructure/Healthchecks.io API Key/credential
-          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
-          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
-          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
-      - id: kubeconfig-path
-        run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
-          echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - name: Initialize tofu
-        working-directory: terraform/infrastructure/observability
-        run: tofu init -input=false -upgrade
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_healthchecksio_api_key: ${{ steps.op-secrets.outputs.healthchecksio_api_key }}
-          TF_VAR_honeycomb_key_id: ${{ steps.op-secrets.outputs.honeycomb_key_id }}
-          TF_VAR_honeycomb_key_secret: ${{ steps.op-secrets.outputs.honeycomb_key_secret }}
-          TF_VAR_honeycomb_api_key: ${{ steps.op-secrets.outputs.honeycomb_api_key }}
-          TF_VAR_grafana_auth: ${{ steps.op-secrets.outputs.grafana_auth }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
-      - name: Deploy
-        working-directory: terraform/infrastructure/observability
-        run: tofu apply -auto-approve -input=false
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_healthchecksio_api_key: ${{ steps.op-secrets.outputs.healthchecksio_api_key }}
-          TF_VAR_honeycomb_key_id: ${{ steps.op-secrets.outputs.honeycomb_key_id }}
-          TF_VAR_honeycomb_key_secret: ${{ steps.op-secrets.outputs.honeycomb_key_secret }}
-          TF_VAR_honeycomb_api_key: ${{ steps.op-secrets.outputs.honeycomb_api_key }}
-          TF_VAR_grafana_auth: ${{ steps.op-secrets.outputs.grafana_auth }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+          stack_path: terraform/infrastructure/observability
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          op_refs: |
+            TF_VAR_honeycomb_key_id=op://Frankenstructure/Honeycomb.io Management API Key/username
+            TF_VAR_honeycomb_key_secret=op://Frankenstructure/Honeycomb.io Management API Key/credential
+            TF_VAR_honeycomb_api_key=op://Frankenstructure/Honeycomb.io Configuration API Key/credential
+            TF_VAR_grafana_auth=op://Frankenstructure/Grafana Cloud Service Account Token - fungi/credential
+            TF_VAR_healthchecksio_api_key=op://Frankenstructure/Healthchecks.io API Key/credential
 
   deploy-gateway:
     concurrency:
@@ -237,41 +184,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v2
-      - id: op-secrets
-        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
+      - uses: ./.github/actions/tofu-deploy
         with:
-          export-env: false
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          cloudflare_api_token: op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
-          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
-          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
-          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
-      - id: kubeconfig-path
-        run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
-          echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - name: Initialize tofu
-        working-directory: terraform/infrastructure/gateway
-        run: tofu init -input=false -upgrade
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_cloudflare_api_token: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
-          TF_VAR_github_token: ${{ github.token }}
-          TF_VAR_github_username: ${{ github.triggering_actor }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
-      - name: Deploy
-        working-directory: terraform/infrastructure/gateway
-        run: tofu apply -auto-approve -input=false
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_cloudflare_api_token: ${{ steps.op-secrets.outputs.cloudflare_api_token }}
-          TF_VAR_github_token: ${{ github.token }}
-          TF_VAR_github_username: ${{ github.triggering_actor }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+          stack_path: terraform/infrastructure/gateway
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          op_refs: |
+            TF_VAR_cloudflare_api_token=op://Frankenstructure/Cloudflare API Token - frankenstructure/credential
+            TF_VAR_github_token=${{ github.token }}
+            TF_VAR_github_username=${{ github.triggering_actor }}
 
   deploy-external-secrets:
     concurrency:
@@ -284,46 +204,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v2
-      - id: op-secrets
-        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
+      - uses: ./.github/actions/tofu-deploy
         with:
-          export-env: false
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
-          op_connect_credentials_json: op://Frankenstructure/1Password Connect - Secrets Automation/credentials_json
-          op_connect_token: op://Frankenstructure/1Password Connect - Secrets Automation/credential
-          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
-          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
-      - id: kubeconfig-path
-        run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
-          echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - name: Initialize tofu
-        working-directory: terraform/infrastructure/external-secrets
-        run: tofu init -input=false -upgrade
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          # Secret-zero: the read-only OP service-account token ESO uses to
-          # authenticate its onepasswordSDK ClusterSecretStore. Reuses the
-          # existing read-only token; injected directly because it cannot be
-          # sourced through ESO itself (chicken-and-egg).
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
-          TF_VAR_op_connect_credentials_json: ${{ steps.op-secrets.outputs.op_connect_credentials_json }}
-          TF_VAR_op_connect_token: ${{ steps.op-secrets.outputs.op_connect_token }}
-          TF_VAR_op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-      - name: Deploy
-        working-directory: terraform/infrastructure/external-secrets
-        run: tofu apply -auto-approve -input=false
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
-          TF_VAR_op_connect_credentials_json: ${{ steps.op-secrets.outputs.op_connect_credentials_json }}
-          TF_VAR_op_connect_token: ${{ steps.op-secrets.outputs.op_connect_token }}
-          TF_VAR_op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          stack_path: terraform/infrastructure/external-secrets
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          # Secret-zero: TF_VAR_op_service_account_token reuses the read-only OP
+          # service-account token ESO's ClusterSecretStore authenticates with. It
+          # is injected directly (not via op://) because it cannot be sourced
+          # through ESO itself (chicken-and-egg).
+          op_refs: |
+            TF_VAR_op_connect_credentials_json=op://Frankenstructure/1Password Connect - Secrets Automation/credentials_json
+            TF_VAR_op_connect_token=op://Frankenstructure/1Password Connect - Secrets Automation/credential
+            TF_VAR_op_service_account_token=${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
 
   deployed-foundation:
     environment: production
@@ -347,34 +239,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v2
-      - id: op-secrets
-        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
+      - uses: ./.github/actions/tofu-deploy
         with:
-          export-env: false
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
-          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
-          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
-      - id: kubeconfig-path
-        run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
-          echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - name: Initialize tofu
-        working-directory: terraform/applications/httpbin
-        run: tofu init -input=false -upgrade
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
-      - name: Deploy
-        working-directory: terraform/applications/httpbin
-        run: tofu apply -auto-approve -input=false
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+          stack_path: terraform/applications/httpbin
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
 
   deploy-miniflux:
     if: needs.changes.outputs.miniflux == 'true'
@@ -388,46 +256,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v2
-      - id: op-secrets
-        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
+      - uses: ./.github/actions/tofu-deploy
         with:
-          export-env: false
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          # miniflux admin creds (ADMIN_USERNAME/ADMIN_PASSWORD) are now sourced
-          # from 1Password by ESO (miniflux-admin ExternalSecret), not via TF_VARs.
-          miniflux_postgres_password: op://Frankenstructure/Postgres - Miniflux/password
-          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
-          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
-          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
-          vultr_api_key: op://Frankenstructure/Vultr API Key/password
-      - id: kubeconfig-path
-        run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
-          echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - name: Initialize tofu
-        working-directory: terraform/applications/miniflux
-        run: tofu init -input=false -upgrade
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_github_token: ${{ github.token }}
-          TF_VAR_github_username: ${{ github.triggering_actor }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
-          TF_VAR_miniflux_postgres_password: ${{ steps.op-secrets.outputs.miniflux_postgres_password }}
-          TF_VAR_vultr_api_key: ${{ steps.op-secrets.outputs.vultr_api_key }}
-      - name: Deploy
-        working-directory: terraform/applications/miniflux
-        run: tofu apply -auto-approve -input=false
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_github_token: ${{ github.token }}
-          TF_VAR_github_username: ${{ github.triggering_actor }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
-          TF_VAR_miniflux_postgres_password: ${{ steps.op-secrets.outputs.miniflux_postgres_password }}
-          TF_VAR_vultr_api_key: ${{ steps.op-secrets.outputs.vultr_api_key }}
+          stack_path: terraform/applications/miniflux
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          op_refs: |
+            TF_VAR_github_token=${{ github.token }}
+            TF_VAR_github_username=${{ github.triggering_actor }}
+            TF_VAR_miniflux_postgres_password=op://Frankenstructure/Postgres - Miniflux/password
+            TF_VAR_vultr_api_key=op://Frankenstructure/Vultr API Key/password
 
   deploy-node-red:
     if: needs.changes.outputs.node-red == 'true'
@@ -441,38 +278,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v2
-      - id: op-secrets
-        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
+      - uses: ./.github/actions/tofu-deploy
         with:
-          export-env: false
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
-          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
-          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
-      - id: kubeconfig-path
-        run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
-          echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - name: Initialize tofu
-        working-directory: terraform/applications/node-red
-        run: tofu init -input=false -upgrade
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_github_token: ${{ github.token }}
-          TF_VAR_github_username: ${{ github.triggering_actor }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
-      - name: Deploy
-        working-directory: terraform/applications/node-red
-        run: tofu apply -auto-approve -input=false
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_github_token: ${{ github.token }}
-          TF_VAR_github_username: ${{ github.triggering_actor }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+          stack_path: terraform/applications/node-red
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          op_refs: |
+            TF_VAR_github_token=${{ github.token }}
+            TF_VAR_github_username=${{ github.triggering_actor }}
 
   deploy-ollama:
     if: needs.changes.outputs.ollama == 'true'
@@ -486,34 +298,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v2
-      - id: op-secrets
-        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
+      - uses: ./.github/actions/tofu-deploy
         with:
-          export-env: false
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
-          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
-          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
-      - id: kubeconfig-path
-        run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
-          echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - name: Initialize tofu
-        working-directory: terraform/applications/ollama
-        run: tofu init -input=false -upgrade
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
-      - name: Deploy
-        working-directory: terraform/applications/ollama
-        run: tofu apply -auto-approve -input=false
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
+          stack_path: terraform/applications/ollama
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
 
   deploy-automate-api:
     if: needs.changes.outputs.automate == 'true'
@@ -528,45 +316,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v2
-      - id: op-secrets
-        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
+      - uses: ./.github/actions/tofu-deploy
         with:
-          export-env: false
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          # OAuth client credentials (DROPBOX_/TODOIST_) are no longer injected
-          # here: the ESO ExternalSecret "automate-onepassword" syncs them from
-          # 1Password directly into the cluster (see external_secret_automate.tf).
-          automate_postgres_password: op://Frankenstructure/Postgres - AutoMate/password
-          dockerconfigjson: op://Frankenstructure/Vultr Container Registry - Frankistry/credential
-          kubeconfig: op://Frankenstructure/Kubeconfig - frank8s/kubeconfig
-          s3_access_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key
-          s3_secret_key: op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key
-          vultr_api_key: op://Frankenstructure/Vultr API Key/password
-      - id: kubeconfig-path
-        run: |
-          base64 --decode > "kubeconfig.yaml" <<< "${{ steps.op-secrets.outputs.kubeconfig }}"
-          echo "out=$PWD/kubeconfig.yaml" >> "$GITHUB_OUTPUT"
-      - name: Initialize tofu
-        working-directory: fsharp/api/automate/terraform
-        run: tofu init -input=false -upgrade
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_app_version: ${{ needs.build-automate-api.outputs.app_version }}
-          TF_VAR_automate_postgres_password: ${{ steps.op-secrets.outputs.automate_postgres_password }}
-          TF_VAR_dockerconfigjson: ${{ steps.op-secrets.outputs.dockerconfigjson }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
-          TF_VAR_vultr_api_key: ${{ steps.op-secrets.outputs.vultr_api_key }}
-      - name: Deploy
-        working-directory: fsharp/api/automate/terraform
-        run: tofu apply -auto-approve -input=false
-        env:
-          AWS_ACCESS_KEY_ID: ${{ steps.op-secrets.outputs.s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.op-secrets.outputs.s3_secret_key }}
-          TF_VAR_app_version: ${{ needs.build-automate-api.outputs.app_version }}
-          TF_VAR_automate_postgres_password: ${{ steps.op-secrets.outputs.automate_postgres_password }}
-          TF_VAR_dockerconfigjson: ${{ steps.op-secrets.outputs.dockerconfigjson }}
-          TF_VAR_kubeconfig_path: ${{ steps.kubeconfig-path.outputs.out }}
-          TF_VAR_vultr_api_key: ${{ steps.op-secrets.outputs.vultr_api_key }}
+          stack_path: fsharp/api/automate/terraform
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          # OAuth client creds (DROPBOX_/TODOIST_) are no longer injected here:
+          # the ESO ExternalSecret "automate-onepassword" syncs them from
+          # 1Password into the cluster (see external_secret_automate.tf).
+          op_refs: |
+            TF_VAR_app_version=${{ needs.build-automate-api.outputs.app_version }}
+            TF_VAR_automate_postgres_password=op://Frankenstructure/Postgres - AutoMate/password
+            TF_VAR_dockerconfigjson=op://Frankenstructure/Vultr Container Registry - Frankistry/credential
+            TF_VAR_vultr_api_key=op://Frankenstructure/Vultr API Key/password

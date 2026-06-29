@@ -6,15 +6,17 @@ ship logs, metrics, traces, and synthetics to [Honeycomb][honeycomb].
 
 **Requires:**
 
-- A Honeycomb API key (`$HONEYCOMB_API_KEY`) — primary destination.
-- Grafana Cloud credentials (`$GRAFANA_CLOUD_INSTANCE_ID`, `$GRAFANA_CLOUD_API_KEY`) —
-  credentialed but currently unrouted (see [Decisions](#decisions)).
+- A Honeycomb API key (`$HONEYCOMB_API_KEY`) — primary trace/query destination.
+- Grafana Cloud credentials (`$GRAFANA_CLOUD_INSTANCE_ID`, `$GRAFANA_CLOUD_API_KEY`)
+  for OTLP ingest + a GC SA token (`var.grafana_auth`) for alert IaC — GC is the
+  alert-evaluation plane (see [Alerting](#alerting)).
 
 **Resources:**
 
 - `helm.tf` — the `opentelemetry-kube-stack` release + the `grafana-cloud` secret.
 - `base_collector.tf` — shared receivers, processors, exporters, extensions (`defaultCRConfig`).
 - `daemon_collector.tf`, `cluster_collector.tf`, `scrape_collector.tf` — per-collector overrides.
+- `grafana_alerts.tf`, `honeycomb_alerts.tf` — alert rules, contact points, deadman wiring.
 - `secrets.tf`, `variables.tf` — secret wiring and inputs.
 
 ### Architecture
@@ -42,9 +44,10 @@ Notes:
 - App **traces** come from the OTel operator's **auto-instrumentation**
   (deployment annotation `instrumentation.opentelemetry.io/inject-dotnet`),
   **not** an in-app SDK.
-- **Destinations:** Honeycomb is primary. The Grafana Cloud exporter
-  (`otlphttp/grafana-cloud`) is defined and credentialed but **attached to no
-  pipeline** — kept for easy re-enable.
+- **Destinations:** Honeycomb is primary (all telemetry). The Grafana Cloud
+  exporter (`otlphttp/grafana-cloud`) carries the **alert signals only** —
+  synthetics from the cluster collector and gateway RED (`spanmetrics` connector)
+  from the daemon collector — so GC can evaluate them (see [Alerting](#alerting)).
 
 ### Signal catalog
 
@@ -70,6 +73,65 @@ where it actually lands in Honeycomb.
 > **Traces** route by `service.name`. Only **k8s events** actually use their
 > header (`k8s-events`), because events carry no `service.name`.
 
+### Alerting
+
+Hybrid, **3 planes**: **Grafana Cloud evaluates**, **healthchecks.io arbitrates
+liveness independently**, **Honeycomb stays the trace plane + a redundant gateway
+SLI**. Splitting evaluation from the liveness arbiter means an outage of either
+alerting backend is caught by the other.
+
+#### Grafana Cloud (free tier) — alert-evaluation plane
+
+Alert signals reach GC via the collectors' `otlphttp/grafana-cloud` exporter
+(synthetics from the cluster collector; gateway RED via the `spanmetrics`
+connector on the daemon collector). IaC: `grafana_alerts.tf` (grafana provider,
+SA token `var.grafana_auth`). Folder **"Observability Alerts"**, rule group
+`observability` (60s interval), **7 rules**:
+
+| Rule                  | Condition                       | Metric / source                                                |
+| --------------------- | ------------------------------- | -------------------------------------------------------------- |
+| SyntheticEndpointDown | availability down               | `httpcheck_status` by `http_url`                               |
+| SyntheticLatencyHigh  | p90 high                        | `httpcheck_duration_milliseconds` by `http_url`                |
+| SSLExpiringSoon       | < 7d left                       | `min by (tlscheck_x509_cn)(tlscheck_time_left_seconds)`        |
+| SSLExpiringCritical   | < 2d left                       | `min by (tlscheck_x509_cn)(tlscheck_time_left_seconds)`        |
+| GatewayErrorRate      | > 5% 5xx                        | spanmetrics `traces_span_metrics_calls_total`                  |
+| GatewayLatencyHigh    | p90 > 500ms                     | spanmetrics `traces_span_metrics_duration_milliseconds_bucket` |
+| Watchdog              | `vector(1) > 0` (always firing) | deadman heartbeat                                              |
+
+Gateway rules scope to `service_name="ngf:gateway:prod-web"`.
+
+> **spanmetrics sits _after_ the 20% sampler.** Absolute counts are therefore
+> ÷5, but the **error ratio** (5xx / total) and **latency percentiles** are
+> sampling-invariant — which is exactly what the gateway rules alert on.
+
+**Notification** (`grafana_contact_point` / `grafana_notification_policy`):
+
+- Default route → `email` contact point → **alerts@frank.sh** (GC hosted SMTP).
+- Child matcher `alertname="Watchdog"` → `deadman_gc` webhook (pings
+  healthchecks.io, below).
+
+#### healthchecks.io — external liveness arbiter (deadman inversion)
+
+Lives **outside** both GC and HC, so it catches an alerting backend going blind.
+Each check expects a periodic ping; **absence** of the ping is the alert.
+
+| Check              | Pinged by                            | Fires when                       |
+| ------------------ | ------------------------------------ | -------------------------------- |
+| `grafana-cloud-up` | GC Watchdog rule webhook, ~every 10m | GC stops evaluating → pings stop |
+| `honeycomb-up`     | HC `HoneycombUpDeadman` trigger      | HC/pipeline dies → pings stop    |
+
+#### Honeycomb (free tier) — trace/query plane + 2-trigger redundant subset
+
+HC Free caps triggers at **2/team**, so HC hosts exactly two (IaC
+`honeycomb_alerts.tf`):
+
+- **GatewayServiceSLI** — `AVG(sli.gateway_success) < 0.99` → email. The derived
+  column `sli.gateway_success` =
+  `IF(AND(LT($http.status_code,500),LT($duration_ms,500)),1,0)`. Redundant with
+  the GC gateway rules, on a fully independent backend.
+- **HoneycombUpDeadman** — `COUNT > 0` on the `automate` dataset, `on_true`
+  heartbeat → `honeycomb-up` webhook.
+
 ### Cost & reduction levers
 
 Honeycomb bills per datapoint (metrics) / per record (logs, traces). Current
@@ -94,11 +156,17 @@ per-datapoint model.
 
 ADR-lite, 2026-06.
 
-- **Grafana Cloud kept but unrouted.** Removed `otlphttp/grafana-cloud` from all
-  pipelines while retaining the exporter definition and credentials. Re-enabling
-  is a one-line change (add it back to a pipeline's `exporters`). We chose
-  Honeycomb-primary without burning the existing Grafana Cloud integration, so
-  the fallback stays cheap to reach for.
+- **Alerting moved off Honeycomb triggers to Grafana Cloud.** Honeycomb Free caps
+  triggers at 2/team, too few for the rule set we need. Alerting now evaluates on
+  Grafana Cloud's free-tier alerting; HC retains a 2-trigger redundant subset
+  (gateway SLI + a deadman). healthchecks.io arbitrates liveness of both backends
+  independently. See [Alerting](#alerting).
+
+- **Grafana Cloud routed for alert signals only.** `otlphttp/grafana-cloud` is
+  attached to just the synthetics and gateway-spanmetrics pipelines — the inputs
+  GC must evaluate — not the full telemetry stream. Honeycomb stays primary for
+  traces/logs/metrics; we avoid double-billing bulk telemetry into GC while still
+  giving the evaluation plane the signals it needs.
 
 - **contrib 0.123.0 on the cluster collector only.** `tlscheck` is not compiled
   into the published k8s/contrib collector images until 0.123.0 (upstream

@@ -13,9 +13,9 @@
 #   datasource name  : grafanacloud-fungi-prom
 #   synthetic up     : httpcheck_status{http_status_class,http_url}   (1=success)
 #   synthetic latency: httpcheck_duration_milliseconds{http_url}      (ms)
-#   ssl remaining    : tlscheck_time_left_seconds{tlscheck_target}    (seconds)
-#   gateway calls    : calls_total{service_name,http_status_code,...}
-#   gateway duration : duration_milliseconds_bucket{le,service_name,...}
+#   ssl remaining    : tlscheck_time_left_seconds{tlscheck_x509_cn}    (seconds)
+#   gateway calls    : traces_span_metrics_calls_total{service_name,http_status_code,...}
+#   gateway duration : traces_span_metrics_duration_milliseconds_bucket{le,service_name,...}
 #
 # no_data_state / exec_err_state are "OK" on threshold rules so an incorrect
 # derived metric name (-> empty/erroring query) does NOT spuriously fire during
@@ -104,27 +104,27 @@ locals {
     }
     ssl_expiring_soon = {
       title     = "SSLExpiringSoon 🟡"
-      expr      = "min by (tlscheck_target) (tlscheck_time_left_seconds)"
+      expr      = "min by (tlscheck_x509_cn) (tlscheck_time_left_seconds)"
       evaluator = "lt"
       threshold = 604800
       for       = "1h"
       from      = 600
       severity  = "warning"
-      summary   = "TLS certificate for {{ $labels.tlscheck_target }} expires in < 7d."
+      summary   = "TLS certificate for {{ $labels.tlscheck_x509_cn }} expires in < 7d."
     }
     ssl_expiring_critical = {
       title     = "SSLExpiringCritical 🔴"
-      expr      = "min by (tlscheck_target) (tlscheck_time_left_seconds)"
+      expr      = "min by (tlscheck_x509_cn) (tlscheck_time_left_seconds)"
       evaluator = "lt"
       threshold = 172800
       for       = "1h"
       from      = 600
       severity  = "critical"
-      summary   = "TLS certificate for {{ $labels.tlscheck_target }} expires in < 2d."
+      summary   = "TLS certificate for {{ $labels.tlscheck_x509_cn }} expires in < 2d."
     }
     gateway_error_rate = {
       title     = "GatewayErrorRate 🔴"
-      expr      = "sum(rate(calls_total{service_name=\"nginx-gateway-fabric\",http_status_code=~\"5..\"}[5m])) / sum(rate(calls_total{service_name=\"nginx-gateway-fabric\"}[5m]))"
+      expr      = "sum(rate(traces_span_metrics_calls_total{service_name=\"ngf:gateway:prod-web\",http_status_code=~\"5..\"}[5m])) / sum(rate(traces_span_metrics_calls_total{service_name=\"ngf:gateway:prod-web\"}[5m]))"
       evaluator = "gt"
       threshold = 0.05
       for       = "5m"
@@ -134,7 +134,7 @@ locals {
     }
     gateway_latency_high = {
       title     = "GatewayLatencyHigh 🟡"
-      expr      = "histogram_quantile(0.9, sum by (le) (rate(duration_milliseconds_bucket{service_name=\"nginx-gateway-fabric\"}[5m])))"
+      expr      = "histogram_quantile(0.9, sum by (le) (rate(traces_span_metrics_duration_milliseconds_bucket{service_name=\"ngf:gateway:prod-web\"}[5m])))"
       evaluator = "gt"
       threshold = 500
       for       = "10m"

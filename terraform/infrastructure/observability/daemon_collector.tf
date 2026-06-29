@@ -68,6 +68,35 @@ locals {
 
           }
         }
+        "prometheus/self" = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/prometheusreceiver/README.md
+          # Per-collector liveness heartbeat (Option B): scrape THIS collector's
+          # own internal Prometheus telemetry endpoint and stamp `collector =
+          # daemon` so the three collectors are distinguishable in Grafana Cloud.
+          # 127.0.0.1:8888 is in-container (same process as the collector's
+          # telemetry server), so it resolves whether the internal endpoint binds
+          # localhost or 0.0.0.0 across collector versions. base
+          # service.telemetry.metrics.level = "normal" keeps otelcol_process_*
+          # exposed; the metrics/self pipeline allowlists to that family via
+          # filter/self-metrics. No targetAllocator on the daemon, so this
+          # receiver's static_configs are NOT rewritten by the operator.
+          config = {
+            scrape_configs = [
+              {
+                job_name        = "otelcol-self"
+                scrape_interval = "60s"
+                static_configs = [
+                  {
+                    targets = ["127.0.0.1:8888"]
+                    labels = {
+                      collector = "daemon"
+                    }
+                  },
+                ]
+              },
+            ]
+          }
+        }
       }
       connectors = {
         spanmetrics = {
@@ -190,6 +219,25 @@ locals {
             ]
             processors = [
               "memory_limiter",
+              "batch",
+            ]
+            exporters = [
+              "otlphttp/grafana-cloud",
+            ]
+          }
+          # Liveness heartbeat pipeline (Option B): self-scrape (:8888) ->
+          # Grafana Cloud ONLY. memory_limiter, filter/self-metrics, and batch are
+          # inherited from base_collector; otlphttp/grafana-cloud (exporter) and
+          # basicauth/grafana-cloud (extension) are likewise inherited. Emits an
+          # always-present otelcol_process_* series labelled collector=daemon so a
+          # GC deadman alert can detect this collector going silent.
+          "metrics/self" = {
+            receivers = [
+              "prometheus/self",
+            ]
+            processors = [
+              "memory_limiter",
+              "filter/self-metrics",
               "batch",
             ]
             exporters = [

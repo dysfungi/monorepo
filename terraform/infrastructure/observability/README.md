@@ -86,19 +86,34 @@ Alert signals reach GC via the collectors' `otlphttp/grafana-cloud` exporter
 (synthetics from the cluster collector; gateway RED via the `spanmetrics`
 connector on the daemon collector). IaC: `grafana_alerts.tf` (grafana provider,
 SA token `var.grafana_auth`). Folder **"Observability Alerts"**, rule group
-`observability` (60s interval), **7 rules**:
+`observability` (60s interval), **10 rules**:
 
-| Rule                  | Condition                       | Metric / source                                                |
-| --------------------- | ------------------------------- | -------------------------------------------------------------- |
-| SyntheticEndpointDown | availability down               | `httpcheck_status` by `http_url`                               |
-| SyntheticLatencyHigh  | p90 high                        | `httpcheck_duration_milliseconds` by `http_url`                |
-| SSLExpiringSoon       | < 7d left                       | `min by (tlscheck_x509_cn)(tlscheck_time_left_seconds)`        |
-| SSLExpiringCritical   | < 2d left                       | `min by (tlscheck_x509_cn)(tlscheck_time_left_seconds)`        |
-| GatewayErrorRate      | > 5% 5xx                        | spanmetrics `traces_span_metrics_calls_total`                  |
-| GatewayLatencyHigh    | p90 > 500ms                     | spanmetrics `traces_span_metrics_duration_milliseconds_bucket` |
-| Watchdog              | `vector(1) > 0` (always firing) | deadman heartbeat                                              |
+| Rule                  | Condition                       | Metric / source                                                            |
+| --------------------- | ------------------------------- | -------------------------------------------------------------------------- |
+| SyntheticEndpointDown | availability down               | `httpcheck_status` by `http_url`                                           |
+| SyntheticLatencyHigh  | p90 high                        | `httpcheck_duration_milliseconds` by `http_url`                            |
+| SSLExpiringSoon       | < 7d left                       | `min by (tlscheck_x509_cn)(tlscheck_time_left_seconds)`                    |
+| SSLExpiringCritical   | < 2d left                       | `min by (tlscheck_x509_cn)(tlscheck_time_left_seconds)`                    |
+| GatewayErrorRate      | > 5% 5xx                        | spanmetrics `traces_span_metrics_calls_total`                              |
+| GatewayLatencyHigh    | p90 > 500ms                     | spanmetrics `traces_span_metrics_duration_milliseconds_bucket`             |
+| CollectorDownDaemon   | absent ≥ 10m (fleet-wide)       | `absent_over_time(otelcol_process_uptime_total{collector="daemon"}[10m])`  |
+| CollectorDownCluster  | absent ≥ 10m                    | `absent_over_time(otelcol_process_uptime_total{collector="cluster"}[10m])` |
+| CollectorDownScrape   | absent ≥ 10m                    | `absent_over_time(otelcol_process_uptime_total{collector="scrape"}[10m])`  |
+| Watchdog              | `vector(1) > 0` (always firing) | deadman heartbeat                                                          |
 
 Gateway rules scope to `service_name="ngf:gateway:prod-web"`.
+
+> **Per-collector liveness.** The three `CollectorDown*` rules alert when a
+> collector stops emitting its own heartbeat, independent of whether its data
+> pipelines are flowing. Each tests
+> `absent_over_time(otelcol_process_uptime_total{collector=...}[10m])` with
+> **no_data = OK**, so a healthy collector (series present) stays silent and only
+> a true absence fires. `CollectorDownDaemon` is a DaemonSet (one series per
+> node), so it fires only on a **fleet-wide** outage. Collector self-telemetry is
+> routed to GC by a `prometheus/self` receiver: the daemon and cluster collectors
+> self-scrape `:8888`, while the scrape collector is **cross-scraped from the
+> cluster collector** (its own targetAllocator rewrites prometheus receivers, so
+> it cannot self-scrape).
 
 > **spanmetrics sits _after_ the 20% sampler.** Absolute counts are therefore
 > ÷5, but the **error ratio** (5xx / total) and **latency percentiles** are

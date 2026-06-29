@@ -302,6 +302,27 @@ locals {
             ]
           }
         }
+        "filter/self-metrics" = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/filterprocessor/README.md
+          # Per-collector liveness heartbeat (Option B): bound cardinality of the
+          # internal :8888 self-scrape (prometheus/self -> metrics/self pipeline)
+          # to ONLY the otelcol_process_* family (process_uptime, _cpu_seconds,
+          # _memory_rss, _runtime_*). These are always-present at metrics.level =
+          # "normal", so each collector emits an ever-present, per-collector-
+          # identifiable series to Grafana Cloud while dropping the rest of the
+          # high-cardinality internal metrics. A metric is dropped when the
+          # condition is true, so we drop everything NOT matching the allow regex.
+          # OTTL metric context uses `name`, not `metric.name`.
+          error_mode = "ignore"
+          metrics = {
+            metric = [
+              <<-EOT
+              not IsMatch(name, "otelcol_process_.*")
+              EOT
+              ,
+            ]
+          }
+        }
         logdedup = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logdedupprocessor/README.md
           # exclude_fields = ["uid"]

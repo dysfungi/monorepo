@@ -153,6 +153,48 @@ locals {
       severity  = "none"
       summary   = "Deadman heartbeat — always firing; pings the GC healthcheck."
     }
+
+    # ----- Per-collector liveness (inverted absent checks) --------------------
+    # Heartbeat metric: otelcol_process_uptime_total{collector} ∈ {daemon,
+    # cluster, scrape}. Each rule's PromQL is absent_over_time(...[10m]) with a
+    # `gt 0` threshold, so it fires ONLY when the metric is missing for 10m.
+    #
+    # Why no_data=OK keeps these silent when healthy: collectors-up ⇒ the metric
+    # exists ⇒ absent_over_time returns EMPTY ⇒ Grafana evaluates the rule as
+    # NoData ⇒ no_data_state=OK (set on the rule group below) keeps it silent.
+    # The metric vanishing for the full 10m window ⇒ absent_over_time returns 1
+    # ⇒ 1 > 0 ⇒ fires. The 10m window is the anti-flap grace; `for = "0s"` then
+    # pages immediately once the window confirms the outage.
+    collector_down_daemon = {
+      title     = "CollectorDownDaemon 🔴"
+      expr      = "absent_over_time(otelcol_process_uptime_total{collector=\"daemon\"}[10m])"
+      evaluator = "gt"
+      threshold = 0
+      for       = "0s"
+      from      = 600
+      severity  = "critical"
+      summary   = "All daemon OTel collectors have stopped reporting to Grafana Cloud for 10m (otelcol_process_uptime_total{collector=daemon} absent). The daemon collector (DaemonSet: logs, traces, spanmetrics) is likely down. NOTE: daemon runs one pod per node — this fires only on a FLEET-WIDE daemon outage, not a single-node loss."
+    }
+    collector_down_cluster = {
+      title     = "CollectorDownCluster 🔴"
+      expr      = "absent_over_time(otelcol_process_uptime_total{collector=\"cluster\"}[10m])"
+      evaluator = "gt"
+      threshold = 0
+      for       = "0s"
+      from      = 600
+      severity  = "critical"
+      summary   = "The cluster-stats OTel collector has stopped reporting to Grafana Cloud for 10m (otelcol_process_uptime_total{collector=cluster} absent). The cluster collector (synthetics, SSL/TLS checks, self-scrape) is likely down."
+    }
+    collector_down_scrape = {
+      title     = "CollectorDownScrape 🔴"
+      expr      = "absent_over_time(otelcol_process_uptime_total{collector=\"scrape\"}[10m])"
+      evaluator = "gt"
+      threshold = 0
+      for       = "0s"
+      from      = 600
+      severity  = "critical"
+      summary   = "The scrape OTel collector has stopped reporting to Grafana Cloud for 10m (otelcol_process_uptime_total{collector=scrape} absent). The scrape collector (automate-api metrics via targetAllocator) is likely down."
+    }
   }
 }
 

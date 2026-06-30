@@ -23,10 +23,10 @@ jobs:
       automate: ${{ steps.filter.outputs.automate }}
       ntfy: ${{ steps.filter.outputs.ntfy }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -65,7 +65,7 @@ jobs:
       - lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.202
@@ -78,7 +78,7 @@ jobs:
       - test-automate-api
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: app-version
         working-directory: fsharp/api/automate
         run: >
@@ -142,7 +142,7 @@ jobs:
       - check-deploy-prod
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/tofu-deploy
         with:
           stack_path: terraform/infrastructure/frankenstructure
@@ -165,7 +165,7 @@ jobs:
       - deploy-external-secrets
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/tofu-deploy
         with:
           stack_path: terraform/infrastructure/observability
@@ -187,7 +187,7 @@ jobs:
       - deploy-frankenstructure
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/tofu-deploy
         with:
           stack_path: terraform/infrastructure/gateway
@@ -207,7 +207,7 @@ jobs:
       - deploy-frankenstructure
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/tofu-deploy
         with:
           stack_path: terraform/infrastructure/external-secrets
@@ -242,7 +242,7 @@ jobs:
       - changes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/tofu-deploy
         with:
           stack_path: terraform/applications/httpbin
@@ -259,7 +259,7 @@ jobs:
       - changes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/tofu-deploy
         with:
           stack_path: terraform/applications/ntfy
@@ -276,7 +276,7 @@ jobs:
       - changes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/tofu-deploy
         with:
           stack_path: terraform/applications/miniflux
@@ -298,7 +298,7 @@ jobs:
       - changes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/tofu-deploy
         with:
           stack_path: terraform/applications/node-red
@@ -318,7 +318,7 @@ jobs:
       - changes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/tofu-deploy
         with:
           stack_path: terraform/applications/ollama
@@ -336,7 +336,7 @@ jobs:
       - changes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/tofu-deploy
         with:
           stack_path: fsharp/api/automate/terraform

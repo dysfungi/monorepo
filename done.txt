@@ -11,3 +11,4 @@ x 2026-06-28 E2 Honeycomb alert triggers + deadman +observability @worktree:.cla
 x 2026-06-28 (B) Migrate Brewfile + .tool-versions tooling into mise [tools] +tooling @worktree:.claude/worktrees/9ffd2926.brewfile-to-mise session:9ffd2926 agent:claude model:claude-opus-4-8
 x 2026-06-28 Fix 1Password CI rate limits via Connect for ESO +infra @worktree:.claude/worktrees/1pw-connect-eso session:829da16a-ca6a-4fa1-a498-af58639facc3 agent:claude model:claude-opus-4-8
 x 2026-06-29 Phase 6 CI deploy-job dedup +cicd @worktree:.claude/worktrees/ci-deploy-dedup session:worktree-ci-deploy-dedup agent:claude model:claude-opus-4-8
+x 2026-06-30 deploy ntfy at ntfy.frank.sh +ntfy @worktree:.claude/worktrees/19adf759.ntfy session:19adf759 agent:claude-code model:claude-opus-4-8

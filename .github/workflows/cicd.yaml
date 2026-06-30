@@ -21,6 +21,7 @@ jobs:
       node-red: ${{ steps.filter.outputs.node-red }}
       ollama: ${{ steps.filter.outputs.ollama }}
       automate: ${{ steps.filter.outputs.automate }}
+      ntfy: ${{ steps.filter.outputs.ntfy }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,6 +41,9 @@ jobs:
               - 'terraform/applications/httpbin/**'
               - 'terraform/modules/gateway-route/**'
               - '.github/workflows/cicd.yaml'
+            ntfy:
+              - 'terraform/applications/ntfy/**'
+              - 'terraform/modules/gateway-route/**'
             miniflux:
               - 'terraform/applications/miniflux/**'
               - 'terraform/modules/gateway-route/**'
@@ -242,6 +246,23 @@ jobs:
       - uses: ./.github/actions/tofu-deploy
         with:
           stack_path: terraform/applications/httpbin
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+
+  deploy-ntfy:
+    if: needs.changes.outputs.ntfy == 'true'
+    concurrency:
+      group: ${{ github.workflow }}-deploy-ntfy
+      cancel-in-progress: false
+    environment: production
+    needs:
+      - deployed-foundation
+      - changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/tofu-deploy
+        with:
+          stack_path: terraform/applications/ntfy
           op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
 
   deploy-miniflux:

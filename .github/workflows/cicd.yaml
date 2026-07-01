@@ -21,6 +21,7 @@ jobs:
       node-red: ${{ steps.filter.outputs.node-red }}
       ollama: ${{ steps.filter.outputs.ollama }}
       automate: ${{ steps.filter.outputs.automate }}
+      musync: ${{ steps.filter.outputs.musync }}
       ntfy: ${{ steps.filter.outputs.ntfy }}
     steps:
       - uses: actions/checkout@v7
@@ -35,6 +36,7 @@ jobs:
               - 'terraform/applications/**'
               - 'terraform/modules/**'
               - 'fsharp/api/automate/**'
+              - 'fsharp/api/musync/**'
               - '.github/workflows/cicd.yaml'
               - '.mise.toml'
             httpbin:
@@ -58,6 +60,10 @@ jobs:
             automate:
               - 'fsharp/api/automate/**'
               - 'terraform/modules/gateway-route/**'
+              - '.github/workflows/cicd.yaml'
+            musync:
+              - 'fsharp/api/musync/**'
+              - 'terraform/modules/vultr-managed-postgres/**'
               - '.github/workflows/cicd.yaml'
 
   test-automate-api:
@@ -123,6 +129,69 @@ jobs:
         if: github.ref_name == 'main'
         working-directory: fsharp/api/automate
         run: docker compose push api
+        env:
+          APP_VERSION: ${{ steps.app-version.outputs.out }}
+    outputs:
+      app_version: ${{ steps.app-version.outputs.out }}
+
+  test-musync:
+    needs:
+      - lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 9.0.202
+      - name: Test
+        working-directory: fsharp/api/musync
+        run: dotnet test ./Musync.Tests
+
+  build-musync:
+    needs:
+      - test-musync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - id: app-version
+        working-directory: fsharp/api/musync
+        run: >
+          grep --ignore-case --max-count=1 '<version>' Musync/Musync.fsproj
+          | sed -E
+          -e 's|.*<version>(.*)</version>.*|\1-${{ github.ref_name }}.${{ github.run_number }}|i'
+          -e 's|[^a-z0-9_.-]+|-|gi'
+          -e 's|^|out=|'
+          >> "$GITHUB_OUTPUT"
+      - name: Build
+        working-directory: fsharp/api/musync
+        run: docker compose build
+        env:
+          APP_VERSION: ${{ steps.app-version.outputs.out }}
+      - id: op-secrets
+        if: github.ref_name == 'main'
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          registry_password: op://Frankenstructure/Vultr Container Registry - Frankistry/password
+          registry_urn: op://Frankenstructure/Vultr Container Registry - Frankistry/urn
+          registry_username: op://Frankenstructure/Vultr Container Registry - Frankistry/username
+      - name: Docker login
+        if: github.ref_name == 'main'
+        run: >
+          docker login
+          --username "$REGISTRY_USERNAME"
+          --password-stdin <<< "$REGISTRY_PASSWORD"
+          "$REGISTRY_URN"
+        env:
+          REGISTRY_PASSWORD: ${{ steps.op-secrets.outputs.registry_password }}
+          REGISTRY_URN: ${{ steps.op-secrets.outputs.registry_urn }}
+          REGISTRY_USERNAME: ${{ steps.op-secrets.outputs.registry_username }}
+      - name: Push
+        if: github.ref_name == 'main'
+        working-directory: fsharp/api/musync
+        run: docker compose push musync
         env:
           APP_VERSION: ${{ steps.app-version.outputs.out }}
     outputs:
@@ -352,5 +421,31 @@ jobs:
           op_refs: |
             TF_VAR_app_version=${{ needs.build-automate-api.outputs.app_version }}
             TF_VAR_automate_postgres_password=op://Frankenstructure/Postgres - AutoMate/password
+            TF_VAR_dockerconfigjson=op://Frankenstructure/Vultr Container Registry - Frankistry/credential
+            TF_VAR_vultr_api_key=op://Frankenstructure/Vultr API Key/password
+
+  deploy-musync:
+    if: needs.changes.outputs.musync == 'true'
+    concurrency:
+      group: ${{ github.workflow }}-deploy-musync
+      cancel-in-progress: false
+    environment: production
+    needs:
+      - deployed-foundation
+      - build-musync
+      - changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/tofu-deploy
+        with:
+          stack_path: fsharp/api/musync/terraform
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          # SONGKICK_ICS_URL, SETLIST_FM_API_KEY, SMTP_*, and DEADMAN_* are synced
+          # from 1Password by the ESO ExternalSecret "musync-onepassword" (see
+          # external_secret_musync.tf), so they are not injected here.
+          op_refs: |
+            TF_VAR_app_version=${{ needs.build-musync.outputs.app_version }}
+            TF_VAR_musync_postgres_password=op://Frankenstructure/Postgres - Musync/password
             TF_VAR_dockerconfigjson=op://Frankenstructure/Vultr Container Registry - Frankistry/credential
             TF_VAR_vultr_api_key=op://Frankenstructure/Vultr API Key/password

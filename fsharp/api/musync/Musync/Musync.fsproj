@@ -26,6 +26,7 @@
   <ItemGroup>
     <PackageReference Include="Argu" Version="6.2.5" />
     <PackageReference Include="FsConfig" Version="4.1.0" />
+    <PackageReference Include="FsHttp" Version="15.0.3" />
     <PackageReference Include="Validus" Version="4.1.4" />
     <PackageReference Update="FSharp.Core" Version="9.0.201" />
   </ItemGroup>

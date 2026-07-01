@@ -1,0 +1,4 @@
+# Auto-activate the `dev` config environment (loads mise.dev.toml). Loaded before other
+# configs, so MISE_ENV cannot be set in mise.toml. CI overrides with MISE_ENV=ci to
+# exclude mise.dev.toml's secret execs.
+env = ["dev"]

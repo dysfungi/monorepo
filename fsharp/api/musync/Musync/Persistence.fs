@@ -177,3 +177,156 @@ let listConcerts (databaseUrl: string) : Result<ConcertRow list, MusyncError> =
     |> Ok
   with ex ->
     Error(PersistenceError ex.Message)
+
+/// Rehydrate a validated domain `Concert` from a raw row. Setlist fields are not
+/// needed by the calendar path, so they carry `None`/defaults — the DB row is
+/// untouched, this is only the transient in-memory value the calendar step reads.
+/// Validation failure here means our own persisted data drifted; it fails loud on
+/// the `MusyncError` channel rather than being silently coerced.
+let toConcert (row: ConcertRow) : Result<Concert, MusyncError> =
+  SongkickUid.create row.SongkickUid
+  |> Result.bind (fun uid ->
+    ArtistName.create row.Artist
+    |> Result.bind (fun artist ->
+      PlanStatus.parse row.PlanStatus
+      |> Result.map (fun plan -> {
+        Id = row.Id
+        AccountId = row.AccountId
+        SongkickUid = uid
+        Artist = artist
+        Venue = row.Venue
+        City = row.City
+        Country = row.Country
+        StartsAt = row.StartsAt
+        Tz = row.Tz
+        PlanStatus = plan
+        CalendarUid = row.CalendarUid
+        ContentHash = row.ContentHash
+        CalendarSequence = row.CalendarSequence
+        CalendarSentAt = row.CalendarSentAt
+        CalendarAttempts = row.CalendarAttempts
+        CalendarLastError = None
+        ProbableSetlist = None
+        ProbableSetlistComputedAt = None
+        SetlistNotifiedAt = None
+        SetlistFoundAt = None
+        SetlistAttempts = row.SetlistAttempts
+        SetlistLastError = None
+        CreatedAt = row.CreatedAt
+        UpdatedAt = row.UpdatedAt
+      })))
+
+// ── Calendar state machine (Tx A / send / Tx B) ──────────────────────────────
+// The invite send sits BETWEEN two transactions. The stable UID is the
+// correctness boundary (same UID+SEQUENCE is idempotent in the user's calendar);
+// `calendar_sent_at` is resend-SUPPRESSION only. So a crash between Tx A and Tx B
+// leaves sent_at NULL and the NEXT run recomputes the same hash and resends the
+// same UID+SEQUENCE — safe.
+
+/// The Tx-A verdict: whether to (re)send, at which SEQUENCE, under which UID.
+type CalendarDecision = {
+  NeedsSend: bool
+  Sequence: int
+  Uid: string
+}
+
+/// Tx A (a single atomic UPDATE...RETURNING). Sets the stable `calendar_uid`
+/// (once), stores the new `content_hash`, and:
+///   • new-to-calendar (old hash NULL)      -> keep sequence (first send == 0)
+///   • hash changed                          -> sequence++ and clear sent_at
+///   • hash unchanged                        -> leave sequence + sent_at as-is
+/// `NeedsSend` = "sent_at is NULL after the update", which is true for new/changed
+/// rows AND for the crash-recovery case (unchanged hash but never delivered).
+/// All CASE conditions read the OLD column values (single-statement UPDATE), so
+/// the change test is evaluated before `content_hash` is overwritten.
+let prepareCalendarInvite
+  (databaseUrl: string)
+  (id: Guid)
+  (uid: string)
+  (newHash: string)
+  : Result<CalendarDecision, MusyncError> =
+  try
+    toConnectionString databaseUrl
+    |> Sql.connect
+    |> Sql.query
+      "UPDATE concerts SET \
+         calendar_uid = COALESCE(calendar_uid, @uid), \
+         content_hash = @hash, \
+         calendar_sequence = CASE \
+             WHEN content_hash IS NULL THEN calendar_sequence \
+             WHEN content_hash <> @hash THEN calendar_sequence + 1 \
+             ELSE calendar_sequence END, \
+         calendar_sent_at = CASE \
+             WHEN content_hash IS DISTINCT FROM @hash THEN NULL \
+             ELSE calendar_sent_at END \
+       WHERE id = @id \
+       RETURNING calendar_sequence, calendar_uid, (calendar_sent_at IS NULL) AS needs_send ;"
+    |> Sql.parameters [
+      "@id", Sql.uuid id
+      "@uid", Sql.text uid
+      "@hash", Sql.text newHash
+    ]
+    |> Sql.execute (fun read -> {
+      Sequence = read.int "calendar_sequence"
+      Uid = read.text "calendar_uid"
+      NeedsSend = read.bool "needs_send"
+    })
+    |> List.tryHead
+    |> function
+      | Some decision -> Ok decision
+      | None ->
+        Error(PersistenceError(sprintf "concert %O not found for calendar prepare" id))
+  with ex ->
+    Error(PersistenceError ex.Message)
+
+/// Tx B (success): stamp `calendar_sent_at`, bump attempts, clear the last error.
+let markCalendarSent
+  (databaseUrl: string)
+  (id: Guid)
+  (now: DateTimeOffset)
+  : Result<unit, MusyncError> =
+  try
+    toConnectionString databaseUrl
+    |> Sql.connect
+    |> Sql.query
+      "UPDATE concerts SET \
+         calendar_sent_at = @now, \
+         calendar_attempts = calendar_attempts + 1, \
+         calendar_last_error = NULL \
+       WHERE id = @id ;"
+    |> Sql.parameters [
+      "@now", Sql.timestamptz now
+      "@id", Sql.uuid id
+    ]
+    |> Sql.executeNonQuery
+    |> ignore
+
+    Ok()
+  with ex ->
+    Error(PersistenceError ex.Message)
+
+/// Tx B (failure): bump attempts and record the error. `calendar_sent_at` stays
+/// NULL so the next run retries the SAME UID+SEQUENCE.
+let recordCalendarError
+  (databaseUrl: string)
+  (id: Guid)
+  (error: string)
+  : Result<unit, MusyncError> =
+  try
+    toConnectionString databaseUrl
+    |> Sql.connect
+    |> Sql.query
+      "UPDATE concerts SET \
+         calendar_attempts = calendar_attempts + 1, \
+         calendar_last_error = @error \
+       WHERE id = @id ;"
+    |> Sql.parameters [
+      "@error", Sql.text error
+      "@id", Sql.uuid id
+    ]
+    |> Sql.executeNonQuery
+    |> ignore
+
+    Ok()
+  with ex ->
+    Error(PersistenceError ex.Message)

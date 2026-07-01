@@ -1,7 +1,9 @@
 module Musync.Program
 
+open System
 open Argu
 open FsHttp
+open Musync.Domain
 open Musync.Ports
 open Musync.Adapters
 
@@ -35,29 +37,73 @@ let main argv =
     let config = Config.load ()
     let source = Songkick.SongkickShowSource(config.SongkickIcsUrl) :> IShowSource
 
-    // Fetch Going shows, then upsert each. `List.fold` short-circuits on the first
-    // persistence error (Result.bind), so a partial failure aborts and — crucially
-    // — withholds the deadman ping below, tripping the external alert.
-    let outcome =
+    let calendarTarget =
+      CalendarEmail.SmtpCalendarTarget(config.Smtp) :> ICalendarTarget
+
+    // ── Core: fetch Going shows, then upsert each. `List.fold` short-circuits on
+    // the first persistence error (Result.bind), so a partial failure aborts and
+    // — crucially — withholds the deadman ping below, tripping the external alert.
+    let upsertOutcome =
       source.FetchGoingConcerts()
       |> Async.RunSynchronously
-      |> Result.bind (fun concerts ->
-        (Ok 0, concerts)
-        ||> List.fold (fun acc concert ->
-          acc
-          |> Result.bind (fun n ->
-            Persistence.upsert config.DatabaseUrl concert
-            |> Result.map (fun () -> n + 1))))
+      |> Result.map (fun concerts ->
+        let count =
+          (Ok 0, concerts)
+          ||> List.fold (fun acc concert ->
+            acc
+            |> Result.bind (fun n ->
+              Persistence.upsert config.DatabaseUrl concert
+              |> Result.map (fun () -> n + 1)))
 
-    match outcome with
-    | Ok count ->
-      printfn "[musync] poll-songkick: upserted %d Going concert(s)" count
-      // Deadman ping ONLY on overall success — a failed run must not ping.
-      pingDeadman config.Deadman.PollSongkickUrl
-      0
+        concerts, count)
+
+    match upsertOutcome with
     | Error err ->
       eprintfn "[musync] poll-songkick FAILED: %A" err
       1
+    | Ok(_, Error err) ->
+      eprintfn "[musync] poll-songkick FAILED (upsert): %A" err
+      1
+    | Ok(concerts, Ok count) ->
+      // ── Calendar pass: run the state machine per concert. A per-concert failure
+      // is tallied + WARN-logged (via CalendarSync) but NEVER aborts the run — the
+      // poll+upsert CORE already succeeded, so the deadman still pings below.
+      let sent, skipped, failed =
+        ((0, 0, 0), concerts)
+        ||> List.fold (fun (s, k, f) concert ->
+          let uid = SongkickUid.value concert.SongkickUid
+
+          let stepOutcome =
+            Persistence.getBySongkickUid config.DatabaseUrl uid
+            |> Result.bind (function
+              | None ->
+                Error(Errors.PersistenceError(sprintf "row missing for uid %s" uid))
+              | Some row ->
+                CalendarSync.runStep
+                  config.DatabaseUrl
+                  calendarTarget
+                  (fun () -> DateTimeOffset.UtcNow)
+                  row
+                |> Async.RunSynchronously)
+
+          match stepOutcome with
+          | Ok(CalendarSync.Sent _) -> (s + 1, k, f)
+          | Ok CalendarSync.Skipped -> (s, k + 1, f)
+          | Ok(CalendarSync.SendFailed _) -> (s, k, f + 1)
+          | Error err ->
+            eprintfn "[musync] WARN calendar: step error for %s: %A" uid err
+            (s, k, f + 1))
+
+      printfn
+        "[musync] poll-songkick: upserted %d Going concert(s); calendar sent=%d skipped=%d failed=%d"
+        count
+        sent
+        skipped
+        failed
+      // Deadman ping: poll+upsert core succeeded. Calendar failures are surfaced
+      // (WARN + calendar_last_error) but do NOT withhold the ping.
+      pingDeadman config.Deadman.PollSongkickUrl
+      0
   | [ Curate_Preshow ] ->
     let config = Config.load ()
     printfn "[musync] curate-preshow: stub (Phase 1a) — no-op"

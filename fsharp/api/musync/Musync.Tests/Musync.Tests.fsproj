@@ -13,6 +13,8 @@
     <Compile Include="DomainTests.fs" />
     <Compile Include="SongkickTests.fs" />
     <Compile Include="PersistenceTests.fs" />
+    <Compile Include="CalendarTests.fs" />
+    <Compile Include="CalendarStateTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
@@ -28,6 +30,9 @@
     <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.15.3" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
     <PackageReference Include="Npgsql.FSharp" Version="8.0.0" />
+    <!-- In-process fake SMTP sink for the EmailSender integration test (loopback,
+         no real network). -->
+    <PackageReference Include="netDumbster" Version="3.1.1" />
     <PackageReference Update="FSharp.Core" Version="9.0.201" />
   </ItemGroup>
 

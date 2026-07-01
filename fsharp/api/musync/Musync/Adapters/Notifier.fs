@@ -27,15 +27,11 @@ let private showLine (concert: Concert) : string =
     concert.City
     concert.Country
 
-/// Setlist.fm ToS attribution target: the artist's setlist.fm search page when a
-/// name is available, else the bare site. Shown wherever setlist.fm data appears.
+/// Setlist.fm ToS attribution target — the artist's setlist.fm search page.
+/// Shown wherever setlist.fm data appears, to credit the source per its ToS.
 let private setlistFmSourceUrl (concert: Concert) : string =
-  let artist = ArtistName.value concert.Artist
-
-  if String.IsNullOrWhiteSpace artist then
-    "https://www.setlist.fm"
-  else
-    "https://www.setlist.fm/search?query=" + Uri.EscapeDataString artist
+  "https://www.setlist.fm/search?query="
+  + Uri.EscapeDataString(ArtistName.value concert.Artist)
 
 /// Plain-text body: numbered predicted setlist + the create link. An empty
 /// prediction (debut artist / no tour history) still nudges — the user may know

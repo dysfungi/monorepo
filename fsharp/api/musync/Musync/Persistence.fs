@@ -516,15 +516,6 @@ let recordCalendarError
 let serializeSetlist (setlist: ProbableSetlist) : string =
   JsonSerializer.Serialize setlist
 
-/// Inverse of `serializeSetlist`. Returns None on any parse failure rather than
-/// throwing — a drifted/legacy jsonb value degrades to "no stored prediction"
-/// instead of aborting a read (the curate loop recomputes regardless).
-let tryDeserializeSetlist (json: string) : ProbableSetlist option =
-  try
-    Some(JsonSerializer.Deserialize<ProbableSetlist> json)
-  with _ ->
-    None
-
 /// Concerts in the pre-show curate WINDOW: not yet found, starting between `now`
 /// and `now + horizonDays`. Excludes past shows (`starts_at >= now`) and terminal
 /// ones (`setlist_found_at IS NULL`). Soonest first.

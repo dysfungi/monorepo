@@ -3,9 +3,8 @@ module Musync.Config
 open FsConfig
 
 // FsConfig maps nested records to prefixed env vars, e.g. `Smtp.Host` reads
-// `SMTP_HOST`, `Deadman.PollSongkickUrl` reads `DEADMAN_POLL_SONGKICK_URL`.
-// Adapters that consume these arrive in later phases; the config is declared
-// now so the MVP's env surface is fixed and validated at startup.
+// `SMTP_HOST` and `Smtp.Security` reads `SMTP_SECURITY`. The whole env surface is
+// validated at startup — EnvConfig.Get fails loud on a missing var.
 
 /// SMTP relay used both for iCal calendar invites and setlist nudges.
 type SmtpConfig = {
@@ -14,15 +13,12 @@ type SmtpConfig = {
   Port: int
   Username: string
   Password: string
-  /// The From address on outgoing mail (e.g. "musync@frank.sh").
+  /// The From address on outgoing mail. For Proton this MUST equal the
+  /// authenticated username, so it is sourced from `SMTP_FROM` (= the username).
   From: string
-}
-
-/// Deadman-switch ping URLs — one per scheduled command. Pinged after a
-/// successful run so a missed run trips an external alert.
-type DeadmanConfig = {
-  PollSongkickUrl: string
-  CuratePreshowUrl: string
+  /// Transport security declared by the relay: "TLS"/"SSL" => implicit TLS on
+  /// connect, "STARTTLS" => in-band upgrade, anything else => Auto.
+  Security: string
 }
 
 type AppConfig = {
@@ -39,7 +35,6 @@ type AppConfig = {
   /// `MUSYNC_USER_EMAIL` onto it, mirroring the other `MUSYNC_*` vars).
   UserEmail: string
   Smtp: SmtpConfig
-  Deadman: DeadmanConfig
 }
 
 let load () =

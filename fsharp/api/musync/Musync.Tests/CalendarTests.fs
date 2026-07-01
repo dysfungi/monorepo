@@ -40,12 +40,16 @@ let private makeConcert () : Concert = {
   CalendarSentAt = None
   CalendarAttempts = 0
   CalendarLastError = None
+  CalendarFirstFailedAt = None
+  CalendarAlertedAt = None
   ProbableSetlist = None
   ProbableSetlistComputedAt = None
   SetlistNotifiedAt = None
   SetlistFoundAt = None
   SetlistAttempts = 0
   SetlistLastError = None
+  SetlistFirstFailedAt = None
+  SetlistAlertedAt = None
   CreatedAt = DateTimeOffset.MinValue
   UpdatedAt = DateTimeOffset.MinValue
 }
@@ -177,6 +181,7 @@ let calendarTests =
           Username = "" // empty => EmailSender skips AUTH (the sink has none)
           Password = ""
           From = userAddress
+          Security = ""
         }
         // The fake sink speaks plaintext, so override the (strict) transport
         // security that production would pick for this port.

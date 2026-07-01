@@ -111,8 +111,48 @@ let buildNudgeMessage
   msg.Body <- alternative
   msg
 
-/// `INotifier` adapter. Delivers `buildNudgeMessage` via the reused `EmailSender`
-/// and maps the raw send error onto `NotifyError`.
+let private stepLabel (step: StuckStep) : string =
+  match step with
+  | StuckStep.Calendar -> "calendar"
+  | StuckStep.Setlist -> "setlist"
+
+let private stuckLine (item: StuckItem) : string =
+  sprintf
+    "- %s [%s] first failed %s; last error: %s"
+    (ArtistName.value item.Artist)
+    (stepLabel item.Step)
+    (item.FirstFailedAt.ToString("u"))
+    (item.LastError |> Option.defaultValue "(none)")
+
+/// Build the consolidated stuck-work alert: ONE plain-text email to the user
+/// listing each stuck (concert, step) with its first-failure time and last error.
+let buildStuckAlertMessage
+  (fromAddress: string)
+  (toAddress: string)
+  (items: StuckItem list)
+  : MimeMessage =
+  let msg = new MimeMessage()
+  msg.From.Add(MailboxAddress("musync", fromAddress))
+  msg.To.Add(MailboxAddress("musync", toAddress))
+  msg.Subject <- sprintf "musync: %d item(s) stuck >24h" (List.length items)
+
+  let sb = StringBuilder()
+
+  sb
+    .AppendLine("These musync delivery steps have been failing for over 24 hours:")
+    .AppendLine()
+  |> ignore
+
+  for item in items do
+    sb.AppendLine(stuckLine item) |> ignore
+
+  let plain = new TextPart(TextFormat.Plain)
+  plain.Text <- sb.ToString()
+  msg.Body <- plain
+  msg
+
+/// `INotifier` adapter. Delivers both the nudge and the stuck-work alert via the
+/// reused `EmailSender`, mapping the raw send error onto `NotifyError`.
 type SmtpNotifier(smtp: SmtpConfig, userEmail: string) =
   let sender = EmailSender(smtp)
 
@@ -120,6 +160,13 @@ type SmtpNotifier(smtp: SmtpConfig, userEmail: string) =
     member _.SendSetlistNudge(concert, setlist) =
       async {
         use message = buildNudgeMessage smtp.From userEmail concert setlist
+        let! result = sender.Send message
+        return result |> Result.mapError NotifyError
+      }
+
+    member _.SendStuckAlert(items) =
+      async {
+        use message = buildStuckAlertMessage smtp.From userEmail items
         let! result = sender.Send message
         return result |> Result.mapError NotifyError
       }

@@ -2,14 +2,12 @@ module Musync.Program
 
 open System
 open Argu
-open FsHttp
 open Musync.Domain
 open Musync.Ports
 open Musync.Adapters
 
 /// Top-level CLI commands. Argu lowercases + hyphenates the case names, so
-/// `Poll_Songkick` is invoked as `musync poll-songkick`. Bodies are stubs in
-/// Phase 1a — real logic arrives in later phases; Phase 1b adds the deadman ping.
+/// `Poll_Songkick` is invoked as `musync poll-songkick`.
 type Command =
   | [<CliPrefix(CliPrefix.None)>] Poll_Songkick
   | [<CliPrefix(CliPrefix.None)>] Curate_Preshow
@@ -19,14 +17,6 @@ type Command =
       match this with
       | Poll_Songkick -> "Ingest 'Going' shows from the source and upsert concerts."
       | Curate_Preshow -> "Compute probable setlists and send pre-show nudges."
-
-/// Deadman-switch ping: POST to the command's healthcheck URL to signal a
-/// successful run. Called ONLY after the command body completes without error —
-/// a failed or missed run withholds the ping, which trips the external alert
-/// (Grafana Cloud / healthchecks-style). Config.load already guarantees the URL
-/// is present (FsConfig fails loud on a missing env var), so the URL is non-empty.
-let private pingDeadman (url: string) =
-  http { POST url } |> Request.send |> ignore
 
 [<EntryPoint>]
 let main argv =
@@ -41,8 +31,8 @@ let main argv =
       CalendarEmail.SmtpCalendarTarget(config.Smtp, config.UserEmail) :> ICalendarTarget
 
     // ── Core: fetch Going shows, then upsert each. `List.fold` short-circuits on
-    // the first persistence error (Result.bind), so a partial failure aborts and
-    // — crucially — withholds the deadman ping below, tripping the external alert.
+    // the first persistence error (Result.bind), so a partial failure aborts the
+    // run with a non-zero exit.
     let upsertOutcome =
       source.FetchGoingConcerts()
       |> Async.RunSynchronously
@@ -67,7 +57,8 @@ let main argv =
     | Ok(concerts, Ok count) ->
       // ── Calendar pass: run the state machine per concert. A per-concert failure
       // is tallied + WARN-logged (via CalendarSync) but NEVER aborts the run — the
-      // poll+upsert CORE already succeeded, so the deadman still pings below.
+      // poll+upsert CORE already succeeded. A step that keeps failing is escalated
+      // by the curate-preshow self-check (virtual DLQ), not here.
       let sent, skipped, failed =
         ((0, 0, 0), concerts)
         ||> List.fold (fun (s, k, f) concert ->
@@ -100,9 +91,7 @@ let main argv =
         sent
         skipped
         failed
-      // Deadman ping: poll+upsert core succeeded. Calendar failures are surfaced
-      // (WARN + calendar_last_error) but do NOT withhold the ping.
-      pingDeadman config.Deadman.PollSongkickUrl
+
       0
   | [ Curate_Preshow ] ->
     let config = Config.load ()
@@ -114,15 +103,14 @@ let main argv =
     let horizonDays = 3
 
     // ── Core: select the in-window, not-yet-found concerts. A window-query
-    // failure aborts and withholds the deadman ping (tripping the external alert).
+    // failure aborts the run with a non-zero exit.
     match Persistence.listCurateWindow config.DatabaseUrl (now ()) horizonDays with
     | Error err ->
       eprintfn "[musync] curate-preshow FAILED (window query): %A" err
       1
     | Ok rows ->
       // Per-concert curate. A per-concert failure is tallied + WARN-logged (via
-      // SetlistCurate) but NEVER aborts the run — the window-select CORE succeeded,
-      // so the deadman still pings below.
+      // SetlistCurate) but NEVER aborts the run — the window-select CORE succeeded.
       let found, nudged, already, failed =
         ((0, 0, 0, 0), rows)
         ||> List.fold (fun (fo, nu, al, fa) row ->
@@ -147,9 +135,26 @@ let main argv =
         nudged
         already
         failed
-      // Deadman ping: the window-select core succeeded. Per-concert failures are
-      // surfaced (WARN + setlist_last_error) but do NOT withhold the ping.
-      pingDeadman config.Deadman.CuratePreshowUrl
+
+      // ── Self-check (virtual DLQ): the daily run notices its OWN work that has
+      // stayed stuck past the 24h self-heal window and escalates it ONCE. A
+      // self-check failure is logged loud but never fails the run — the curate
+      // core already succeeded.
+      match Persistence.listStuck config.DatabaseUrl (now ()) with
+      | Error err -> eprintfn "[musync] WARN self-check: listStuck failed: %A" err
+      | Ok [] -> ()
+      | Ok stuck ->
+        match notifier.SendStuckAlert stuck |> Async.RunSynchronously with
+        | Error err ->
+          eprintfn "[musync] WARN self-check: stuck-alert send failed: %A" err
+        | Ok() ->
+          match Persistence.markAlerted config.DatabaseUrl (now ()) stuck with
+          | Ok() ->
+            printfn
+              "[musync] self-check: escalated %d stuck item(s)"
+              (List.length stuck)
+          | Error err -> eprintfn "[musync] WARN self-check: markAlerted failed: %A" err
+
       0
   | _ ->
     printfn "%s" (parser.PrintUsage())

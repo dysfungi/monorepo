@@ -22,7 +22,10 @@ type ISetlistProvider =
 
   abstract member SetlistExists: Concert -> Async<Result<bool, MusyncError>>
 
-/// Sends the pre-show setlist nudge for a concert.
+/// Sends the pre-show setlist nudge for a concert, plus the daily consolidated
+/// alert for work that has stayed stuck past the self-heal window.
 type INotifier =
   abstract member SendSetlistNudge:
     Concert * ProbableSetlist -> Async<Result<unit, MusyncError>>
+
+  abstract member SendStuckAlert: StuckItem list -> Async<Result<unit, MusyncError>>

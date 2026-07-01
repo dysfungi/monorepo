@@ -51,12 +51,16 @@ let private makeConcert (uid: string) (venue: string) : Concert = {
   CalendarSentAt = None
   CalendarAttempts = 0
   CalendarLastError = None
+  CalendarFirstFailedAt = None
+  CalendarAlertedAt = None
   ProbableSetlist = None
   ProbableSetlistComputedAt = None
   SetlistNotifiedAt = None
   SetlistFoundAt = None
   SetlistAttempts = 0
   SetlistLastError = None
+  SetlistFirstFailedAt = None
+  SetlistAlertedAt = None
   CreatedAt = DateTimeOffset.MinValue
   UpdatedAt = DateTimeOffset.MinValue
 }

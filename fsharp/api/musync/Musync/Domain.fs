@@ -219,6 +219,10 @@ type Concert = {
   CalendarSentAt: DateTimeOffset option
   CalendarAttempts: int
   CalendarLastError: string option
+  /// Set-once on the calendar step's first failure; cleared on its next success.
+  CalendarFirstFailedAt: DateTimeOffset option
+  /// Stamped when the stuck-calendar escalation has been sent (one-shot dedupe).
+  CalendarAlertedAt: DateTimeOffset option
   // setlist
   ProbableSetlist: ProbableSetlist option
   ProbableSetlistComputedAt: DateTimeOffset option
@@ -226,7 +230,34 @@ type Concert = {
   SetlistFoundAt: DateTimeOffset option
   SetlistAttempts: int
   SetlistLastError: string option
+  /// Set-once on the setlist step's first failure; cleared on its next success.
+  SetlistFirstFailedAt: DateTimeOffset option
+  /// Stamped when the stuck-setlist escalation has been sent (one-shot dedupe).
+  SetlistAlertedAt: DateTimeOffset option
   // timestamps
   CreatedAt: DateTimeOffset
   UpdatedAt: DateTimeOffset
+}
+
+// ── Virtual dead-letter queue ────────────────────────────────────────────────
+// A concert's calendar/setlist steps self-heal on the next scheduled run, so a
+// step is only "stuck" once it has been failing longer than the self-heal window
+// AND is not yet done AND has not been alerted on. `listStuck` surfaces these;
+// one `StuckItem` is emitted per (concert, failing step).
+
+/// Which delivery step a concert is stuck on. Qualified access keeps the case
+/// names from shadowing `Ical.Net.Calendar` where `Musync.Domain` is opened.
+[<RequireQualifiedAccess>]
+type StuckStep =
+  | Calendar
+  | Setlist
+
+/// A concert step that has stayed stuck past the self-heal window and is awaiting
+/// (or has just been chosen for) escalation.
+type StuckItem = {
+  ConcertId: Guid
+  Artist: ArtistName
+  Step: StuckStep
+  LastError: string option
+  FirstFailedAt: DateTimeOffset
 }

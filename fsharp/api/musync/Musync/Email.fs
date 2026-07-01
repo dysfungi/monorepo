@@ -12,21 +12,26 @@ open Musync.Config
 // so each port (ICalendarTarget -> CalendarError, INotifier -> NotifyError) maps
 // the raw message onto its own case at the seam.
 
-/// Choose transport security from the port, matching real relays:
-///   465 -> implicit TLS (SSL on connect); 587 (and anything else) -> STARTTLS.
-/// STARTTLS is REQUIRED (not "when available") so a relay that fails to offer it
-/// fails loud rather than silently sending in cleartext.
-let private securityForPort (port: int) : SecureSocketOptions =
-  if port = 465 then
-    SecureSocketOptions.SslOnConnect
-  else
-    SecureSocketOptions.StartTls
+/// Map the relay's declared security to a MailKit transport mode, case-insensitive:
+///   "TLS"/"SSL" -> implicit TLS on connect; "STARTTLS" -> in-band upgrade;
+///   anything else -> Auto (MailKit negotiates from the port).
+let secureSocketOptionsFor (security: string) : SecureSocketOptions =
+  match
+    (if isNull security then
+       ""
+     else
+       security.Trim().ToLowerInvariant())
+  with
+  | "tls"
+  | "ssl" -> SecureSocketOptions.SslOnConnect
+  | "starttls" -> SecureSocketOptions.StartTls
+  | _ -> SecureSocketOptions.Auto
 
 /// SMTP sender. `securityOverride` exists ONLY as a test seam (a loopback fake
 /// SMTP sink speaks plaintext); production constructs `EmailSender(cfg)` and gets
-/// the strict port-based choice above.
+/// the security implied by `smtp.Security`.
 type EmailSender(smtp: SmtpConfig, ?securityOverride: SecureSocketOptions) =
-  let security = defaultArg securityOverride (securityForPort smtp.Port)
+  let security = defaultArg securityOverride (secureSocketOptionsFor smtp.Security)
 
   /// Send a prepared message. Any MailKit/socket failure is caught and returned
   /// on the error channel (as its message) rather than thrown across the seam.

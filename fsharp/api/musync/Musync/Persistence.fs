@@ -213,7 +213,12 @@ let toConcert (row: ConcertRow) : Result<Concert, MusyncError> =
         CalendarSequence = row.CalendarSequence
         CalendarSentAt = row.CalendarSentAt
         CalendarAttempts = row.CalendarAttempts
+        // DLQ bookkeeping is written + read via the dedicated stuck-item queries
+        // below, never through this rehydrated value — so, like the *LastError
+        // fields, it is not surfaced onto the calendar/setlist read path.
         CalendarLastError = None
+        CalendarFirstFailedAt = None
+        CalendarAlertedAt = None
         // The stored `probable_setlist` jsonb is recomputed each curate run, so the
         // rehydrated domain value carries None here; the *state* columns the curate
         // step branches on (notified/found/computed_at) ARE surfaced from the row.
@@ -223,6 +228,8 @@ let toConcert (row: ConcertRow) : Result<Concert, MusyncError> =
         SetlistFoundAt = row.SetlistFoundAt
         SetlistAttempts = row.SetlistAttempts
         SetlistLastError = None
+        SetlistFirstFailedAt = None
+        SetlistAlertedAt = None
         CreatedAt = row.CreatedAt
         UpdatedAt = row.UpdatedAt
       })))
@@ -303,7 +310,9 @@ let markCalendarSent
       "UPDATE concerts SET \
          calendar_sent_at = @now, \
          calendar_attempts = calendar_attempts + 1, \
-         calendar_last_error = NULL \
+         calendar_last_error = NULL, \
+         calendar_first_failed_at = NULL, \
+         calendar_alerted_at = NULL \
        WHERE id = @id ;"
     |> Sql.parameters [
       "@now", Sql.timestamptz now
@@ -329,7 +338,8 @@ let recordCalendarError
     |> Sql.query
       "UPDATE concerts SET \
          calendar_attempts = calendar_attempts + 1, \
-         calendar_last_error = @error \
+         calendar_last_error = @error, \
+         calendar_first_failed_at = COALESCE(calendar_first_failed_at, now()) \
        WHERE id = @id ;"
     |> Sql.parameters [
       "@error", Sql.text error
@@ -435,7 +445,9 @@ let markSetlistNotified
       "UPDATE concerts SET \
          setlist_notified_at = @now, \
          setlist_attempts = setlist_attempts + 1, \
-         setlist_last_error = NULL \
+         setlist_last_error = NULL, \
+         setlist_first_failed_at = NULL, \
+         setlist_alerted_at = NULL \
        WHERE id = @id ;"
     |> Sql.parameters [
       "@now", Sql.timestamptz now
@@ -459,7 +471,12 @@ let markSetlistFound
   try
     toConnectionString databaseUrl
     |> Sql.connect
-    |> Sql.query "UPDATE concerts SET setlist_found_at = @now WHERE id = @id ;"
+    |> Sql.query
+      "UPDATE concerts SET \
+         setlist_found_at = @now, \
+         setlist_first_failed_at = NULL, \
+         setlist_alerted_at = NULL \
+       WHERE id = @id ;"
     |> Sql.parameters [
       "@now", Sql.timestamptz now
       "@id", Sql.uuid id
@@ -484,7 +501,8 @@ let recordSetlistError
     |> Sql.query
       "UPDATE concerts SET \
          setlist_attempts = setlist_attempts + 1, \
-         setlist_last_error = @error \
+         setlist_last_error = @error, \
+         setlist_first_failed_at = COALESCE(setlist_first_failed_at, now()) \
        WHERE id = @id ;"
     |> Sql.parameters [
       "@error", Sql.text error
@@ -494,5 +512,114 @@ let recordSetlistError
     |> ignore
 
     Ok()
+  with ex ->
+    Error(PersistenceError ex.Message)
+
+// ── Virtual dead-letter queue ────────────────────────────────────────────────
+// A step is "stuck" once its `*_first_failed_at` predates the self-heal window,
+// the step is still not done, and it has not yet been alerted on. `listStuck`
+// surfaces those (one row per failing step, so a doubly-stuck concert yields two);
+// `markAlerted` stamps `*_alerted_at` so the next run does not re-escalate.
+
+let private alertedColumn (step: StuckStep) : string =
+  match step with
+  | StuckStep.Calendar -> "calendar_alerted_at"
+  | StuckStep.Setlist -> "setlist_alerted_at"
+
+let private parseStuckStep (raw: string) : Result<StuckStep, MusyncError> =
+  match raw with
+  | "calendar" -> Ok StuckStep.Calendar
+  | "setlist" -> Ok StuckStep.Setlist
+  | other -> Error(PersistenceError(sprintf "unknown stuck step '%s'" other))
+
+let private toStuckItem
+  (id: Guid)
+  (artist: string)
+  (step: string)
+  (lastError: string option)
+  (firstFailedAt: DateTimeOffset)
+  : Result<StuckItem, MusyncError> =
+  ArtistName.create artist
+  |> Result.bind (fun name ->
+    parseStuckStep step
+    |> Result.map (fun s -> {
+      ConcertId = id
+      Artist = name
+      Step = s
+      LastError = lastError
+      FirstFailedAt = firstFailedAt
+    }))
+
+/// Steps stuck longer than 24h: `*_first_failed_at < now - 24h`, the step still
+/// not done (calendar: `calendar_sent_at IS NULL`; setlist: `setlist_found_at IS
+/// NULL`), and not yet alerted. Oldest failure first.
+let listStuck
+  (databaseUrl: string)
+  (now: DateTimeOffset)
+  : Result<StuckItem list, MusyncError> =
+  try
+    let raw =
+      toConnectionString databaseUrl
+      |> Sql.connect
+      |> Sql.query
+        "SELECT id, artist, 'calendar' AS step, calendar_last_error AS last_error, \
+            calendar_first_failed_at AS first_failed_at \
+         FROM concerts \
+         WHERE calendar_first_failed_at < @cutoff \
+           AND calendar_sent_at IS NULL \
+           AND calendar_alerted_at IS NULL \
+         UNION ALL \
+         SELECT id, artist, 'setlist' AS step, setlist_last_error AS last_error, \
+            setlist_first_failed_at AS first_failed_at \
+         FROM concerts \
+         WHERE setlist_first_failed_at < @cutoff \
+           AND setlist_found_at IS NULL \
+           AND setlist_alerted_at IS NULL \
+         ORDER BY first_failed_at ASC ;"
+      |> Sql.parameters [ "@cutoff", Sql.timestamptz (now.AddHours(-24.0)) ]
+      |> Sql.execute (fun read ->
+        read.uuid "id",
+        read.text "artist",
+        read.text "step",
+        read.textOrNone "last_error",
+        read.datetimeOffset "first_failed_at")
+
+    (Ok [], raw)
+    ||> List.fold (fun acc (id, artist, step, lastError, firstFailedAt) ->
+      acc
+      |> Result.bind (fun items ->
+        toStuckItem id artist step lastError firstFailedAt
+        |> Result.map (fun item -> item :: items)))
+    |> Result.map List.rev
+  with ex ->
+    Error(PersistenceError ex.Message)
+
+/// Stamp `*_alerted_at = now` for each (concert, step) just escalated, so the next
+/// run does not re-alert. Short-circuits on the first write failure.
+let markAlerted
+  (databaseUrl: string)
+  (now: DateTimeOffset)
+  (items: StuckItem list)
+  : Result<unit, MusyncError> =
+  try
+    let connStr = toConnectionString databaseUrl
+
+    (Ok(), items)
+    ||> List.fold (fun acc item ->
+      acc
+      |> Result.map (fun () ->
+        connStr
+        |> Sql.connect
+        |> Sql.query (
+          sprintf
+            "UPDATE concerts SET %s = @now WHERE id = @id ;"
+            (alertedColumn item.Step)
+        )
+        |> Sql.parameters [
+          "@now", Sql.timestamptz now
+          "@id", Sql.uuid item.ConcertId
+        ]
+        |> Sql.executeNonQuery
+        |> ignore))
   with ex ->
     Error(PersistenceError ex.Message)

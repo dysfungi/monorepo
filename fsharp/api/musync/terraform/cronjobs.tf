@@ -116,7 +116,7 @@ resource "kubernetes_cron_job_v1" "musync" {
               }
               # Synced from 1Password by ESO (external_secret_musync.tf). envFrom
               # merges these keys 1:1, so FsConfig sees SONGKICK_ICS_URL,
-              # SETLIST_FM_API_KEY, SMTP_*, and DEADMAN_* alongside DATABASE_URL.
+              # SETLIST_FM_API_KEY, and SMTP_* alongside DATABASE_URL.
               env_from {
                 secret_ref {
                   name     = "musync-onepassword"

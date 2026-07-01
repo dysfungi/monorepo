@@ -49,19 +49,91 @@ let private makeConcert () : Concert = {
   CalendarSentAt = None
   CalendarAttempts = 0
   CalendarLastError = None
+  CalendarFirstFailedAt = None
+  CalendarAlertedAt = None
   ProbableSetlist = None
   ProbableSetlistComputedAt = None
   SetlistNotifiedAt = None
   SetlistFoundAt = None
   SetlistAttempts = 0
   SetlistLastError = None
+  SetlistFirstFailedAt = None
+  SetlistAlertedAt = None
   CreatedAt = DateTimeOffset.MinValue
   UpdatedAt = DateTimeOffset.MinValue
 }
 
+let private stuckItems: StuckItem list = [
+  {
+    ConcertId = Guid.NewGuid()
+    Artist = ArtistName.create "Radiohead" |> Want.ok
+    Step = StuckStep.Calendar
+    LastError = Some "smtp timeout"
+    FirstFailedAt = fixedNow
+  }
+  {
+    ConcertId = Guid.NewGuid()
+    Artist = ArtistName.create "The Beatles" |> Want.ok
+    Step = StuckStep.Setlist
+    LastError = None
+    FirstFailedAt = fixedNow
+  }
+]
+
 [<Tests>]
 let notifierTests =
   testList "notifier (setlist nudge)" [
+    // ── SMTP transport-security selection (pure) ─────────────────────────────
+    testCase "secureSocketOptionsFor maps the declared security (case-insensitive)"
+    <| fun _ ->
+      Want.equal SecureSocketOptions.SslOnConnect (secureSocketOptionsFor "TLS")
+      Want.equal SecureSocketOptions.SslOnConnect (secureSocketOptionsFor "ssl")
+      Want.equal SecureSocketOptions.StartTls (secureSocketOptionsFor "STARTTLS")
+      Want.equal SecureSocketOptions.Auto (secureSocketOptionsFor "")
+
+    // ── stuck-alert message builder (pure) ───────────────────────────────────
+    testCase "buildStuckAlertMessage: To = user, subject counts items, lists each"
+    <| fun _ ->
+      use msg = buildStuckAlertMessage fromAddress userEmail stuckItems
+      Want.equal fromAddress (msg.From.Mailboxes |> Seq.head).Address
+      Want.equal userEmail (msg.To.Mailboxes |> Seq.head).Address
+      Want.equal true (msg.Subject.Contains "2 item(s) stuck")
+      Want.equal true (msg.TextBody.Contains "Radiohead")
+      Want.equal true (msg.TextBody.Contains "[calendar]")
+      Want.equal true (msg.TextBody.Contains "smtp timeout")
+      Want.equal true (msg.TextBody.Contains "The Beatles")
+      Want.equal true (msg.TextBody.Contains "[setlist]")
+
+    // ── stuck-alert delivery to a loopback fake SMTP sink ────────────────────
+    testCase "SmtpNotifier delivers the stuck alert to the user via fake SMTP"
+    <| fun _ ->
+      let server = SimpleSmtpServer.Start()
+
+      try
+        let smtp: SmtpConfig = {
+          Host = "127.0.0.1"
+          Port = server.Configuration.Port
+          Username = ""
+          Password = ""
+          From = fromAddress
+          Security = ""
+        }
+
+        let sender = EmailSender(smtp, SecureSocketOptions.None)
+        use message = buildStuckAlertMessage smtp.From userEmail stuckItems
+        sender.Send message |> Async.RunSynchronously |> Want.isOk
+
+        Threading.Thread.Sleep 250
+        Want.equal 1 server.ReceivedEmailCount
+
+        let raw = server.ReceivedEmail.[0].Data
+        use ms = new MemoryStream(Encoding.UTF8.GetBytes raw)
+        let parsed = MimeMessage.Load ms
+        Want.equal userEmail (parsed.To.Mailboxes |> Seq.head).Address
+        Want.equal true (parsed.TextBody.Contains "Radiohead")
+      finally
+        server.Stop()
+
     // ── pure message builder ─────────────────────────────────────────────────
     testCase "buildNudgeMessage: From = send addr, To = user, body has songs + link"
     <| fun _ ->
@@ -90,6 +162,7 @@ let notifierTests =
           Username = ""
           Password = ""
           From = fromAddress
+          Security = ""
         }
         // The pure builder + the reused EmailSender (plaintext override for the
         // fake sink) — exactly what SmtpNotifier wires internally.

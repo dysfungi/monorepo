@@ -36,4 +36,26 @@ let domainTests =
       }
 
       Want.equal expected (ProbableSetlist.empty computedAt)
+
+    testCase "PlanStatus serializes to the stable wire form"
+    <| fun _ ->
+      Want.equal "going" (PlanStatus.serialize Going)
+      Want.equal "interested" (PlanStatus.serialize Interested)
+
+    testCase "PlanStatus parses known values (case-insensitive, trimmed)"
+    <| fun _ ->
+      Want.equal Going (PlanStatus.parse "going" |> Want.ok)
+      Want.equal Interested (PlanStatus.parse "  INTERESTED " |> Want.ok)
+
+    testCase "PlanStatus parse/serialize round-trips"
+    <| fun _ ->
+      for status in
+        [
+          Going
+          Interested
+        ] do
+        Want.equal status (PlanStatus.parse (PlanStatus.serialize status) |> Want.ok)
+
+    testCase "PlanStatus rejects unknown values"
+    <| fun _ -> PlanStatus.parse "maybe" |> Want.isError
   ]

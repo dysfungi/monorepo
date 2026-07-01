@@ -2,6 +2,10 @@ locals {
   name      = "frankenbot"
   namespace = one(kubernetes_namespace.frankenbot.metadata).name
 
+  # sslmode for the Vultr managed Postgres connection URLs (databases.tf /
+  # secrets.tf). Vultr managed Postgres requires TLS. Mirrors automate.
+  dbsslmode = "require"
+
   labels = {
     "app.kubernetes.io/name"     = "frankenbot"
     "app.kubernetes.io/instance" = "frankenbot"

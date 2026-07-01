@@ -20,14 +20,24 @@ terraform {
       source  = "kbst/kustomization"
       version = "~> 0.9"
     }
-    # NOTE: the vultr provider is intentionally ABSENT in Phase 3 (slim: no CR
-    # data source, no managed Postgres). It returns in Phase 4 with durable state.
+    # Phase 4b: the vultr provider returns to provision durable state — a
+    # frankenbot DB + user on the shared Vultr managed Postgres (databases.tf).
+    vultr = {
+      source  = "vultr/vultr"
+      version = "~> 2.21"
+    }
   }
 }
 
 # https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs
 provider "kubernetes" {
   config_path = var.kubeconfig_path
+}
+
+provider "vultr" {
+  api_key     = var.vultr_api_key
+  rate_limit  = 100
+  retry_limit = 3
 }
 
 # https://registry.terraform.io/providers/kbst/kustomization/latest/docs#example-usage

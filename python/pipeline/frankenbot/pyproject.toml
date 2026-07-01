@@ -10,6 +10,9 @@ dependencies = [
     "httpx",
     "pydantic>=2",
     "PyYAML",
+    # psycopg3 (binary build: no local libpq/compiler needed) backs the Postgres
+    # state DAL (frankenbot/state.py). Used only by the dispatcher.
+    "psycopg[binary]",
 ]
 
 # NOTE (design decision): OpenTelemetry is intentionally NOT a hard dependency.
@@ -39,6 +42,16 @@ frankenbot = "frankenbot.cli:main"
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
+
+# Declare this directory as its own uv workspace root. Without this, uv walks UP
+# the tree during install and tries to parse the monorepo-root pyproject.toml,
+# which has a bare `[project]` table with no `name` and fails hard
+# ("required `project.name` field is not set"). An empty-member workspace stops
+# that upward walk so `uv pip install -e .` resolves THIS project cleanly. This
+# is the minimal fix for `mise run //python/pipeline/frankenbot:setup` — the
+# monorepo-root pyproject is intentionally left untouched.
+[tool.uv.workspace]
+members = []
 
 [tool.setuptools]
 packages = ["frankenbot"]

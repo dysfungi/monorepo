@@ -79,6 +79,13 @@ resource "kubernetes_cron_job_v1" "dispatcher" {
                   name = "frankenbot-anthropic"
                 }
               }
+              # DATABASE_URL (frankenbot app role) for cross-run dedup + the daily
+              # budget gate. ONLY the dispatcher gets this; triage workers do not.
+              env_from {
+                secret_ref {
+                  name = kubernetes_secret.db.metadata[0].name
+                }
+              }
 
               resources {
                 requests = {

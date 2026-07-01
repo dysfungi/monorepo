@@ -32,12 +32,13 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
 from kubernetes.client.rest import ApiException
 
-from frankenbot import githubapp
+from frankenbot import githubapp, state
 from frankenbot.config import (
     LABEL_FRANKENBOT,
     LABEL_TRIAGED,
@@ -57,6 +58,20 @@ _MAX_NAME_LEN = 63
 
 # Label applied to spawned Jobs so we can count "active frankenbot Jobs".
 _JOB_MANAGED_BY = "frankenbot"
+
+# work_state status recorded when the dispatcher spawns a triage Job.
+_STATUS_DISPATCHED = "dispatched"
+
+
+def _db_enabled() -> bool:
+    """Postgres state is active iff DATABASE_URL is set.
+
+    The frankenbot-db Secret (dispatcher-only) provides it in cluster. When
+    absent the dispatcher keeps its original PR-label-only dedup behavior — the
+    MVP-safe fallback so a DB outage or a DB-less deploy degrades gracefully
+    rather than failing.
+    """
+    return bool(os.environ.get("DATABASE_URL"))
 
 
 def run() -> int:
@@ -83,7 +98,32 @@ def load_settings_or_killswitch() -> Settings | None:
     return settings
 
 
+def _budget_exhausted(settings: Settings) -> bool:
+    """True when the daily spend cap is enforced (DB present) and already exceeded.
+
+    Refusing here is a guard clause: the dispatcher does nothing rather than spend
+    beyond the cap. The gate is a no-op without a database (returns False) and
+    with the default effectively-off cap.
+    """
+    if not _db_enabled():
+        return False
+    _tokens, cents = state.budget_today()
+    if cents > settings.daily_spend_cap_cents:
+        log.warning(
+            "daily budget cap exceeded; refusing dispatch",
+            extra={
+                "fb_spend_cents": cents,
+                "fb_cap_cents": settings.daily_spend_cap_cents,
+            },
+        )
+        return True
+    return False
+
+
 def _dispatch(settings: Settings) -> int:
+    if _budget_exhausted(settings):
+        return 0
+
     token = githubapp.mint_installation_token().token
 
     k8s_config.load_incluster_config()
@@ -144,15 +184,36 @@ def _dispatch_repo(
         },
     )
 
+    db_enabled = _db_enabled()
     created = 0
     for pull in candidates:
         if created >= remaining_slots:
             break
         pr_number = int(pull["number"])
+
+        # Cross-run dedup key: the head ref (Renovate names one branch per
+        # dependency-update stream) is the "surface"; the head SHA makes the
+        # fingerprint change when new commits land (so a re-pushed PR is
+        # re-triaged, but an unchanged one is not re-dispatched every tick).
+        surface = pull.get("head", {}).get("ref") or f"pr{pr_number}"
+        head_sha = pull.get("head", {}).get("sha") or ""
+        content_fp = state.fingerprint(repo=repo.name, surface=surface, sha=head_sha)
+
+        if db_enabled and state.already_done(repo.name, surface, content_fp):
+            log.info(
+                "skip: content already dispatched (db dedup)",
+                extra={"fb_repo": repo.name, "fb_pr": pr_number, "fb_surface": surface},
+            )
+            continue
+
         job_name = _job_name(repo, pr_number)
         try:
             _create_triage_job(batch_api, settings, repo.name, pr_number, job_name)
             created += 1
+            if db_enabled:
+                state.record_run(
+                    repo.name, surface, pr_number, _STATUS_DISPATCHED, content_fp, None
+                )
             log.info(
                 "triage job created",
                 extra={"fb_repo": repo.name, "fb_pr": pr_number, "fb_job": job_name},

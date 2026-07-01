@@ -16,8 +16,11 @@
 # ── Project setup ────────────────────────────────────────────────────────────
 [tasks.setup]
 description = "Install the package + dev tooling into a local venv (uv)"
+# --clear makes setup idempotent (safe to re-run over an existing .venv). The
+# editable install resolves THIS project (not the monorepo-root pyproject) thanks
+# to the [tool.uv.workspace] marker in pyproject.toml.
 run = '''
-uv venv --python 3.12 .venv
+uv venv --clear --python 3.12 .venv
 uv pip install --python .venv/bin/python -e '.[dev,otel]'
 '''
 

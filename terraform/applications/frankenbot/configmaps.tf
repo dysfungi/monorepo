@@ -30,3 +30,21 @@ resource "kubernetes_config_map" "repos" {
     "repos.yaml" = file("${path.module}/../../../python/pipeline/frankenbot/repos.yaml")
   }
 }
+
+# dbmate migration SQL, mounted into the schema-migrate Job (jobs.tf) at
+# /db/migrations. Sourced from files under ./migrations so the schema is
+# reviewable in-repo. Mirrors automate's dbmigrations ConfigMap.
+resource "kubernetes_config_map" "dbmigrations" {
+  metadata {
+    name      = "frankenbot-dbmigrations"
+    namespace = local.namespace
+    labels = merge(local.labels, {
+      "app.kubernetes.io/instance" = "dbmigrations"
+    })
+  }
+
+  data = {
+    for migration in fileset("${path.module}/migrations", "*.sql") :
+    migration => file("${path.module}/migrations/${migration}")
+  }
+}

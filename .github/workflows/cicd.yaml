@@ -428,3 +428,5 @@ jobs:
           op_refs: |
             TF_VAR_app_version=${{ needs.build-frankenbot.outputs.app_version }}
             TF_VAR_dockerconfigjson=op://Frankenstructure/Vultr Container Registry - Frankistry/credential
+            TF_VAR_frankenbot_postgres_password=op://Frankenstructure/Postgres - Frankenbot/password
+            TF_VAR_vultr_api_key=op://Frankenstructure/Vultr API Key/password

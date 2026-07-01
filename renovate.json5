@@ -1,0 +1,69 @@
+{
+  // Frankenbot — Renovate configuration (Phase 1: detection radar).
+  //
+  // Role in the platform: Renovate is the DETERMINISTIC RADAR only. It contributes
+  // detection (its datasources), dedup/state, and scheduling — NO reasoning. The
+  // Frankenbot agent fleet (later phases) reasons on top of every PR (changelog,
+  // risk tier, migration). See ~/.claude/plans/thoughts-on-a-project-validated-nova.md.
+  //
+  // MVP scope: THIS repo, three high-density, natively-managed surfaces only —
+  // GitHub Action pins, pre-commit revs, Dockerfile bases. Propose-only: NO
+  // auto-merge here; merges are human (MVP) or the agent's risk-tier engine (Phase 4+).
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+
+  extends: [
+    "config:recommended",
+    ":semanticCommits", // repo uses Conventional Commits → PRs land as chore(deps): ...
+    "helpers:pinGitHubActionDigests", // reproduces the repo's `@<sha> # vX.Y.Z` action-pin style
+  ],
+
+  // Cadence is controlled by the workflow cron (.github/workflows/renovate.yaml),
+  // NOT by a Renovate `schedule` field here. A config-level `schedule` that does not
+  // overlap the cron firing window silently no-ops every run — a well-known
+  // self-hosted footgun. The cron IS the schedule; keep it in one place.
+  timezone: "America/Los_Angeles",
+
+  dependencyDashboard: true,
+  dependencyDashboardTitle: "🧟 Frankenbot — Dependency Dashboard",
+
+  // Stable labels so the Phase 2 dispatcher can find Renovate PRs (label:frankenbot).
+  labels: ["frankenbot", "dependencies", "renovate"],
+
+  // Keep noise low and the tiny frank8s cluster calm while we're propose-only.
+  prConcurrentLimit: 3,
+  prHourlyLimit: 2,
+
+  // Worktrees live under .claude/worktrees/ (git worktrees, not the canonical tree).
+  // They won't exist in CI's clean checkout, but ignore defensively so a local
+  // Dockerfile duplicate can never become a second scanned surface.
+  ignorePaths: ["**/node_modules/**", "**/bower_components/**", ".claude/**"],
+
+  // --- MVP surface scoping: actions + pre-commit + docker ONLY ---
+  // Every other manager (tofu providers, Helm, nuget/paket, mise, uv/PEP723) stays
+  // OFF until later phases add the reasoning + risk-tier gates those surfaces need.
+  enabledManagers: ["github-actions", "pre-commit", "dockerfile"],
+
+  // pre-commit is opt-in in Renovate.
+  "pre-commit": {
+    enabled: true,
+  },
+
+  packageRules: [
+    // Group the mechanical, high-density surfaces into one PR each — less review churn.
+    {
+      matchManagers: ["github-actions"],
+      groupName: "github-actions",
+    },
+    {
+      matchManagers: ["pre-commit"],
+      groupName: "pre-commit hooks",
+    },
+    // Flag majors for human/agent attention. In the risk model a major bump is a
+    // T3 candidate (human-required); the extra label makes those PRs filterable
+    // before the Phase 4 classifier exists.
+    {
+      matchUpdateTypes: ["major"],
+      addLabels: ["major-update"],
+    },
+  ],
+}

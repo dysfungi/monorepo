@@ -27,6 +27,16 @@ let private showLine (concert: Concert) : string =
     concert.City
     concert.Country
 
+/// Setlist.fm ToS attribution target: the artist's setlist.fm search page when a
+/// name is available, else the bare site. Shown wherever setlist.fm data appears.
+let private setlistFmSourceUrl (concert: Concert) : string =
+  let artist = ArtistName.value concert.Artist
+
+  if String.IsNullOrWhiteSpace artist then
+    "https://www.setlist.fm"
+  else
+    "https://www.setlist.fm/search?query=" + Uri.EscapeDataString artist
+
 /// Plain-text body: numbered predicted setlist + the create link. An empty
 /// prediction (debut artist / no tour history) still nudges — the user may know
 /// the setlist even when Setlist.fm has no tour history to rank.
@@ -49,6 +59,15 @@ let private plainBody
   else
     for song in setlist.Songs do
       sb.AppendLine(sprintf "  %d. %s" song.Position song.Name) |> ignore
+
+  sb.AppendLine() |> ignore
+
+  sb.AppendLine(sprintf "Source: setlist.fm — %s" (setlistFmSourceUrl concert))
+  |> ignore
+
+  concert.SongkickEventUrl
+  |> Option.iter (fun url ->
+    sb.AppendLine(sprintf "Event source to cite on Setlist.fm: %s" url) |> ignore)
 
   sb.AppendLine().AppendLine(sprintf "Create it on Setlist.fm: %s" createUrl)
   |> ignore
@@ -75,12 +94,30 @@ let private htmlBody
     else
       sprintf "  <ol>\n%s\n  </ol>" items
 
+  let source =
+    sprintf
+      "  <p>Source: <a href=\"%s\">setlist.fm</a></p>"
+      (escape (setlistFmSourceUrl concert))
+
+  let proof =
+    match concert.SongkickEventUrl with
+    | Some url ->
+      let href = escape url
+
+      sprintf
+        "\n  <p>Event source to cite on Setlist.fm: <a href=\"%s\">%s</a></p>"
+        href
+        href
+    | None -> ""
+
   sprintf
     "<p>%s</p>\n<p>No Setlist.fm entry was found for this show yet. Predicted setlist \
-     (ranked from the artist's recent shows):</p>\n%s\n<p><a href=\"%s\">Create it on \
+     (ranked from the artist's recent shows):</p>\n%s\n%s%s\n<p><a href=\"%s\">Create it on \
      Setlist.fm</a></p>"
     (escape (showLine concert))
     list
+    source
+    proof
     (escape createUrl)
 
 /// Build the nudge MIME message. `fromAddress` = musync send address; `toAddress`

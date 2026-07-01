@@ -610,7 +610,8 @@ let markSetlistNotified
 
 /// Stamp `setlist_found_at` — TERMINAL. A confirmed Setlist.fm entry ends the
 /// loop: `listCurateWindow` excludes the row thereafter, so it is never
-/// recomputed or nudged again.
+/// recomputed or nudged again. The prediction was only a pre-show cache, so the
+/// same update drops it (`probable_setlist` + its timestamp).
 let markSetlistFound
   (databaseUrl: string)
   (id: Guid)
@@ -622,6 +623,8 @@ let markSetlistFound
     |> Sql.query
       "UPDATE concerts SET \
          setlist_found_at = @now, \
+         probable_setlist = NULL, \
+         probable_setlist_computed_at = NULL, \
          setlist_first_failed_at = NULL, \
          setlist_alerted_at = NULL \
        WHERE id = @id ;"
@@ -629,6 +632,29 @@ let markSetlistFound
       "@now", Sql.timestamptz now
       "@id", Sql.uuid id
     ]
+    |> Sql.executeNonQuery
+    |> ignore
+
+    Ok()
+  with ex ->
+    Error(PersistenceError ex.Message)
+
+/// Drop the ephemeral prediction cache for shows that have left the curate window
+/// (`starts_at` in the past). The stored aggregate only matters while the nudge is
+/// actionable, so a single UPDATE NULLs `probable_setlist` + its timestamp.
+let purgeStalePredictions
+  (databaseUrl: string)
+  (now: DateTimeOffset)
+  : Result<unit, MusyncError> =
+  try
+    toConnectionString databaseUrl
+    |> Sql.connect
+    |> Sql.query
+      "UPDATE concerts SET \
+         probable_setlist = NULL, \
+         probable_setlist_computed_at = NULL \
+       WHERE starts_at < @now AND probable_setlist IS NOT NULL ;"
+    |> Sql.parameters [ "@now", Sql.timestamptz now ]
     |> Sql.executeNonQuery
     |> ignore
 

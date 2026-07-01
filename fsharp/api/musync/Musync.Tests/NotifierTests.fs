@@ -43,7 +43,7 @@ let private makeConcert () : Concert = {
   StartsAt = DateTimeOffset(2026, 7, 2, 7, 0, 0, TimeSpan.Zero)
   Tz = "America/Los_Angeles"
   PlanStatus = PlanStatus.Going
-  SongkickEventUrl = None
+  SongkickEventUrl = Some "https://www.songkick.com/concerts/12345"
   EventStartAt = None
   DoorsAt = None
   ShowAt = None
@@ -148,11 +148,27 @@ let notifierTests =
       Want.equal fromAddress (msg.From.Mailboxes |> Seq.head).Address
       Want.equal userEmail (msg.To.Mailboxes |> Seq.head).Address
       Want.equal true (msg.Subject.Contains "Radiohead")
-      // Predicted setlist appears (ordered) in both bodies; deep-link in both.
+      // All four elements render in BOTH parts: predicted setlist, the
+      // Setlist.fm attribution link, the Songkick proof URL, and the /edit link.
+      let songkickUrl = "https://www.songkick.com/concerts/12345"
+      let sourceUrl = "https://www.setlist.fm/search?query=Radiohead"
+
+      // plain text: numbered setlist + raw URLs.
       Want.equal true (msg.TextBody.Contains "1. Bloom")
       Want.equal true (msg.TextBody.Contains "2. 15 Step")
+      Want.equal true (msg.TextBody.Contains "Source: setlist.fm")
+      Want.equal true (msg.TextBody.Contains sourceUrl)
+      Want.equal true (msg.TextBody.Contains songkickUrl)
       Want.equal true (msg.TextBody.Contains "https://www.setlist.fm/edit")
+
+      // HTML: ordered list + anchors (attribution is a plain, visible link).
       Want.equal true (msg.HtmlBody.Contains "<li>Bloom</li>")
+
+      Want.equal
+        true
+        (msg.HtmlBody.Contains(sprintf "href=\"%s\">setlist.fm</a>" sourceUrl))
+
+      Want.equal true (msg.HtmlBody.Contains songkickUrl)
       Want.equal true (msg.HtmlBody.Contains "https://www.setlist.fm/edit")
 
     // ── delivery to a loopback fake SMTP sink ────────────────────────────────

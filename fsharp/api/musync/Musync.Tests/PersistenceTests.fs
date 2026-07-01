@@ -220,6 +220,72 @@ let private integrationTests (databaseUrl: string) =
       finally
         exec "DELETE FROM concerts WHERE songkick_uid=@u" [ "@u", Sql.text uid ]
 
+    // ── prediction cache lifecycle ────────────────────────────────────────────
+    testCase "markSetlistFound NULLs the probable_setlist prediction cache"
+    <| fun _ ->
+      let uid = "it-" + Guid.NewGuid().ToString("N")
+
+      try
+        let id = insertReturningId uid
+        let json = serializeSetlist (ProbableSetlist.empty stampNow)
+        storeProbableSetlist databaseUrl id json stampNow |> wantOk
+
+        let stored = getBySongkickUid databaseUrl uid |> wantOk |> Option.get
+        Want.equal true (Option.isSome stored.ProbableSetlist)
+        Want.equal true (Option.isSome stored.ProbableSetlistComputedAt)
+
+        markSetlistFound databaseUrl id stampNow |> wantOk
+
+        let after = getBySongkickUid databaseUrl uid |> wantOk |> Option.get
+        Want.equal None after.ProbableSetlist
+        Want.equal None after.ProbableSetlistComputedAt
+        Want.equal true (Option.isSome after.SetlistFoundAt)
+      finally
+        exec "DELETE FROM concerts WHERE songkick_uid=@u" [ "@u", Sql.text uid ]
+
+    testCase "purgeStalePredictions NULLs past shows, keeps in-window ones"
+    <| fun _ ->
+      let pastUid = "it-" + Guid.NewGuid().ToString("N")
+      let futureUid = "it-" + Guid.NewGuid().ToString("N")
+
+      try
+        // stampNow = 2026-06-01: the past show already started, the future one hasn't.
+        upsert databaseUrl {
+          makeConcert pastUid "Past Venue" PlanStatus.Going with
+              StartsAt = stampNow.AddDays(-5.0)
+        }
+        |> wantOk
+
+        upsert databaseUrl {
+          makeConcert futureUid "Future Venue" PlanStatus.Going with
+              StartsAt = stampNow.AddDays(2.0)
+        }
+        |> wantOk
+
+        let pastId = (getBySongkickUid databaseUrl pastUid |> wantOk |> Option.get).Id
+
+        let futureId =
+          (getBySongkickUid databaseUrl futureUid |> wantOk |> Option.get).Id
+
+        let json = serializeSetlist (ProbableSetlist.empty stampNow)
+        storeProbableSetlist databaseUrl pastId json stampNow |> wantOk
+        storeProbableSetlist databaseUrl futureId json stampNow |> wantOk
+
+        purgeStalePredictions databaseUrl stampNow |> wantOk
+
+        let past = getBySongkickUid databaseUrl pastUid |> wantOk |> Option.get
+        Want.equal None past.ProbableSetlist
+        Want.equal None past.ProbableSetlistComputedAt
+
+        let future = getBySongkickUid databaseUrl futureUid |> wantOk |> Option.get
+        Want.equal true (Option.isSome future.ProbableSetlist)
+        Want.equal true (Option.isSome future.ProbableSetlistComputedAt)
+      finally
+        exec "DELETE FROM concerts WHERE songkick_uid IN (@a, @b)" [
+          "@a", Sql.text pastUid
+          "@b", Sql.text futureUid
+        ]
+
     // ── concert-page enrichment ───────────────────────────────────────────────
     testCase "storeEnrichment round-trips; event_start = doors precedence"
     <| fun _ ->

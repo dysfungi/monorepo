@@ -197,6 +197,12 @@ let main argv =
               (List.length stuck)
           | Error err -> eprintfn "[musync] WARN self-check: markAlerted failed: %A" err
 
+      // Evict predictions for shows that have dropped out of the curate window.
+      match Persistence.purgeStalePredictions config.DatabaseUrl (now ()) with
+      | Ok() -> ()
+      | Error err ->
+        eprintfn "[musync] WARN self-check: purgeStalePredictions failed: %A" err
+
       0
   | _ ->
     printfn "%s" (parser.PrintUsage())

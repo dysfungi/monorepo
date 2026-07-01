@@ -11,19 +11,19 @@ how this fits the full config/secrets/CI-CD picture.
 
 ## What this deploys
 
-| Resource                               | File                                | Purpose                                                          |
-| -------------------------------------- | ----------------------------------- | ---------------------------------------------------------------- |
-| ESO operator + CRDs                    | `helm.tf`                           | `external-secrets` chart `2.7.0`, `installCRDs = true`.          |
-| Stakater Reloader                      | `helm.tf`                           | `reloader` chart `2.2.12`; rolling-restarts annotated workloads. |
-| `ClusterSecretStore` **`onepassword`** | `cluster_secret_store.tf` / `.yaml` | `onepasswordSDK` provider → vault `Frankenstructure`.            |
-| Secret-zero `onepassword-sdk-token`    | `secrets.tf`                        | The read-only OP service-account token ESO authenticates with.   |
-| `external-secrets` namespace           | `namespaces.tf`                     | Holds all of the above.                                          |
+| Resource                                | File                                | Purpose                                                                                          |
+| --------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------ |
+| ESO operator + CRDs                     | `helm.tf`                           | `external-secrets` chart `2.7.0`, `installCRDs = true`.                                          |
+| Stakater Reloader                       | `helm.tf`                           | `reloader` chart `2.2.12`; rolling-restarts annotated workloads.                                 |
+| `ClusterSecretStore` **`onepassword`**  | `cluster_secret_store.tf` / `.yaml` | `onepassword` (Connect) provider → vault `Frankenstructure`.                                     |
+| Secret-zero `onepassword-connect-token` | `secrets.tf`                        | The Connect API token ESO authenticates with (plus bootstrap `onepassword-connect-credentials`). |
+| `external-secrets` namespace            | `namespaces.tf`                     | Holds all of the above.                                                                          |
 
 **Secret-zero:** ESO cannot source its own auth token through itself
-(chicken-and-egg), so the `onepassword-sdk-token` Secret is seeded directly from
-`var.op_service_account_token`, wired in CI to the read-only
-`OP_SERVICE_ACCOUNT_TOKEN` GitHub Actions secret (`TF_VAR_op_service_account_token`).
-Every other in-cluster secret derives from this one.
+(chicken-and-egg), so the `onepassword-connect-token` Secret (plus the bootstrap
+`onepassword-connect-credentials` the Connect server itself needs) is seeded
+directly from Terraform variables, wired in CI to the corresponding GitHub Actions
+secrets. Every other in-cluster secret derives from these.
 
 ## Runbook: add a new ExternalSecret
 
@@ -56,14 +56,16 @@ Every other in-cluster secret derives from this one.
      data:
        - secretKey: MY_KEY # key inside the produced Secret
          remoteRef:
-           key: "Item Title/field" # "<item>/[section/]<field>"; vault from the store
+           key: "Item Title" # the 1Password item title; vault from the store
+           property: field # the field label on that item
    ```
 
-   - **`remoteRef.key` = `"<item>/[section/]<field>"`.** The `onepasswordSDK`
-     provider has **no separate `property` field** — encode the field into `key`.
-     The vault is supplied by the ClusterSecretStore, so omit it. A sectioned
-     field (e.g. `op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/server`)
-     becomes `"ProtonMail SMTP - Monitoring/SMTP/server"`.
+   - **`remoteRef.key` = the item TITLE, `remoteRef.property` = the field label.**
+     The `onepassword` (Connect) provider reads `key` as the item title and takes
+     the field from a separate `property`. The vault is supplied by the
+     ClusterSecretStore, so omit it. (Historical: the superseded `onepasswordSDK`
+     provider had no `property` and slash-encoded the field into `key` as
+     `"<item>/[section/]<field>"`.)
    - **`creationPolicy: Owner`** — ESO owns the produced Secret's lifecycle.
 
 3. **Apply via the kbst `kustomization_resource` pattern** — never
@@ -108,8 +110,10 @@ Every other in-cluster secret derives from this one.
   CRDs; that fails when the CRD isn't installed yet (and these CRDs are created by
   the ESO Helm release in this very stack). `kustomization_resource` defers
   reconciliation to apply time and honors `depends_on`.
-- **`remoteRef.key` encodes the field** — there is no `property` field on the
-  `onepasswordSDK` provider (see runbook step 2).
+- **`remoteRef.key` is the item title; the field goes in `remoteRef.property`** on
+  the `onepassword` (Connect) provider (see runbook step 2). The old `onepasswordSDK`
+  provider slash-encoded the field into `key` with no `property` — that grammar no
+  longer applies.
 - **`creationPolicy: Owner`** means ESO will overwrite/delete a Secret of the
   same name it didn't create — don't point an ExternalSecret at a hand-managed
   Secret.

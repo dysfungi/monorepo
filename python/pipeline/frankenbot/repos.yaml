@@ -1,0 +1,23 @@
+# Frankenbot repository policy list.
+#
+# Only repositories listed here (and enabled) are dispatched against. Any repo
+# NOT listed defaults to "propose-only" behavior on dependency surfaces once it
+# is added in Phase 5 fan-out — i.e. Frankenbot will only ever propose fixes
+# (never auto-merge) until an explicit higher tier is configured for it.
+#
+# In production this file is mounted from the `frankenbot-config` ConfigMap at
+# /etc/frankenbot/repos.yaml (override with FRANKENBOT_REPOS_FILE).
+#
+# Fields per entry:
+#   name     - OWNER/NAME of the repository.
+#   tier     - action tier; MVP supports only "propose-only".
+#   surfaces - dependency surfaces in scope for triage.
+#   enabled  - whether the dispatcher scans this repo.
+repos:
+  - name: dysfungi/monorepo
+    tier: propose-only
+    surfaces:
+      - github-actions
+      - pre-commit
+      - dockerfile
+    enabled: true

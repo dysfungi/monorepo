@@ -1,0 +1,77 @@
+[project]
+name = "frankenbot"
+version = "0.1.0"
+description = "Frankenbot: an in-cluster agentic dependency-maintenance platform (MVP: propose-only Renovate PR triage)."
+requires-python = ">=3.12"
+dependencies = [
+    "kubernetes",
+    "PyJWT",
+    "cryptography",
+    "httpx",
+    "pydantic>=2",
+    "PyYAML",
+]
+
+# NOTE (design decision): OpenTelemetry is intentionally NOT a hard dependency.
+# The runtime treats tracing as best-effort — see frankenbot/otel.py, which
+# guards all OTel imports behind try/except and no-ops when the libs (or the
+# OTEL_EXPORTER_OTLP_ENDPOINT env var) are absent. This keeps the image slim
+# and lets the platform run in environments without a collector.
+
+[project.optional-dependencies]
+otel = [
+    "opentelemetry-api",
+    "opentelemetry-sdk",
+    "opentelemetry-exporter-otlp",
+]
+dev = [
+    "black",
+    "isort",
+    "flake8",
+    "mypy",
+    "pytest",
+    "types-PyYAML",
+]
+
+[project.scripts]
+frankenbot = "frankenbot.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["frankenbot"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.flake8]
+# flake8 does not natively read pyproject.toml (needs flake8-pyproject), but we
+# keep the config here for a single source of truth; CI installs flake8-pyproject.
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
+exclude = [".git", "__pycache__", "build", "dist", ".venv"]
+
+[tool.mypy]
+python_version = "3.12"
+# Strict-ish but pragmatic: we want real type safety without fighting the
+# third-party clients (kubernetes / httpx) that ship partial or no stubs.
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_return_any = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = ["kubernetes.*", "jwt.*"]
+ignore_missing_imports = true

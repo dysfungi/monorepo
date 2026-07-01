@@ -1,0 +1,58 @@
+# mise tasks for the Frankenbot Python container project.
+#
+# This `.mise.toml` is also the opt-in marker that makes this directory a
+# discoverable project for the root `//...:build` (etc.) fan-out.
+#
+# INHERITANCE: inherits the root .mise.toml [env] (1Password secrets, REGISTRY,
+# etc.); those are NOT re-declared here.
+#
+# WORKING DIR: mise runs each task from this directory (python/pipeline/
+# frankenbot), so the relative `docker compose` and `uv`/`python` paths resolve.
+#
+# TOOLING: linters/formatters are the project's dev extras (installed via
+# `setup`), invoked directly here for a fast local loop. Repo-wide linting is
+# also wired through pre-commit at the monorepo root.
+
+# ── Project setup ────────────────────────────────────────────────────────────
+[tasks.setup]
+description = "Install the package + dev tooling into a local venv (uv)"
+run = '''
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python -e '.[dev,otel]'
+'''
+
+# ── Build ────────────────────────────────────────────────────────────────────
+[tasks.build]
+description = "Build the agent container image (compose build)"
+run = "docker compose build"
+
+# ── Lint / format checks ─────────────────────────────────────────────────────
+[tasks.lint]
+description = "Run black --check, isort --check, flake8, and mypy"
+run = '''
+black --check .
+isort --check-only .
+flake8 frankenbot
+mypy frankenbot
+'''
+
+# ── Test ─────────────────────────────────────────────────────────────────────
+[tasks.test]
+description = "Run pytest if tests exist, else no-op"
+alias = "tests"
+run = '''
+if [ -d tests ]; then
+  pytest
+else
+  echo "no tests yet"
+fi
+'''
+
+# ── Start (usage hint) ───────────────────────────────────────────────────────
+[tasks.start]
+description = "Print usage (frankenbot runs as k8s CronJob/Job, not locally)"
+run = '''
+echo "frankenbot is a two-mode container:"
+echo "  frankenbot dispatch                       # CronJob: fan out triage Jobs"
+echo "  frankenbot triage --repo OWNER/NAME --pr N # ephemeral per-PR worker"
+'''

@@ -55,7 +55,7 @@ jobs:
     steps:
       - name: Load Frankenbot App credentials from 1Password
         id: op
-        uses: 1password/load-secrets-action@3a12b0ab7c56f88883f71b437c2b34f2809bde02 # v4.0.1
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
         with:
           export-env: false
         env:

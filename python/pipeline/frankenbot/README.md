@@ -41,10 +41,24 @@ PR updated / labeled  ──►  human review + merge (MVP)
 Everything else is automated; these two steps must be done by a human **before**
 the platform can authenticate, and are the only manual gate to going live.
 
-1. **Create the GitHub App** and install it on the target repo(s). Required
-   permissions (write): **contents**, **pull_requests**, **checks**,
-   **actions**, **workflows**. Capture the **App ID**, **Installation ID**, and a
-   generated **private key** (PEM).
+1. **Create the GitHub App** and install it on the target repo(s). Capture the
+   **App ID**, **Installation ID**, and a generated **private key** (PEM).
+
+   **GitHub App — repository permissions (least-privilege):**
+
+   | Permission      | Level        | Why                                                                                                         |
+   | --------------- | ------------ | ----------------------------------------------------------------------------------------------------------- |
+   | Metadata        | Read         | mandatory baseline                                                                                          |
+   | Contents        | Read & write | push branches / fix commits                                                                                 |
+   | Workflows       | Read & write | edit `.github/workflows/*` (Renovate action-pin bumps) — a **dedicated** permission, separate from Contents |
+   | Pull requests   | Read & write | open/update PRs + PR comments                                                                               |
+   | Issues          | Read & write | PR labels + Renovate's Dependency Dashboard (a real Issue)                                                  |
+   | Checks          | Read         | read CI check-runs to find failing PRs                                                                      |
+   | Commit statuses | Read & write | Renovate reads/sets commit statuses                                                                         |
+   | Actions         | Read & write | read = download run logs for triage; write = re-run failed workflows                                        |
+
+   Webhooks: **off** (MVP is cron-poll). Install on this repo only for the MVP; Phase 5 fan-out reuses the same set. Trim options: Actions → Read-only if you don't want triage to re-run workflows.
+
 2. **Create the 1Password items** (Frankenstructure vault) that ESO syncs into
    cluster Secrets:
    - `Frankenbot GitHub App` — `app-id`, `installation-id`, `private-key`

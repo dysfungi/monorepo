@@ -10,7 +10,7 @@ name: Renovate
 # token + which repo to scan.
 #
 # BLOCKED UNTIL PHASE 0 (user action): requires a 1Password item
-#   op://Frankenstructure/frankenbot-github-app/{app-id,private-key}
+#   op://Frankenstructure/GitHub App - Frankenbot/{app id,private key}
 # read via OP_SERVICE_ACCOUNT_TOKEN (already a repo secret, used by cicd.yaml).
 # Until that item exists, the "Load ... from 1Password" step fails and the run is a
 # harmless no-op — Renovate never gets a token, so nothing is written.
@@ -60,8 +60,8 @@ jobs:
           export-env: false
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          FRANKENBOT_APP_ID: op://Frankenstructure/frankenbot-github-app/app-id
-          FRANKENBOT_APP_PRIVATE_KEY: op://Frankenstructure/frankenbot-github-app/private-key
+          FRANKENBOT_APP_ID: op://Frankenstructure/GitHub App - Frankenbot/app id
+          FRANKENBOT_APP_PRIVATE_KEY: op://Frankenstructure/GitHub App - Frankenbot/private key
 
       - name: Mint short-lived GitHub App installation token
         id: app-token

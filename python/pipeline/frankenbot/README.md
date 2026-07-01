@@ -61,9 +61,13 @@ the platform can authenticate, and are the only manual gate to going live.
 
 2. **Create the 1Password items** (Frankenstructure vault) that ESO syncs into
    cluster Secrets:
-   - `Frankenbot GitHub App` — `app-id`, `installation-id`, `private-key`
-   - `Frankenbot Anthropic` — `api-key`
+
+   - `GitHub App - Frankenbot` — `app id`, `installation id`, `private key`
+   - `Anthropic - Frankenbot` — `credential`
    - `Postgres - Frankenbot` — `password`
+
+   Note: the GitHub App uses installation-token auth (App ID + private key),
+   NOT OAuth — so `client id`, `client secret`, and `username` are not used.
 
 ## Kill switch
 

@@ -4,8 +4,9 @@
 # in this directory is also the opt-in marker that makes it a discoverable
 # project (see `.mise/tasks/ls` and the root [monorepo] config).
 #
-# INHERITANCE: this nested config inherits the root .mise.toml [env] (1Password
-# secrets, TF_VAR_*, REGISTRY, AWS_*). Those are NOT re-declared here.
+# INHERITANCE: this nested config inherits the root mise.dev.toml [env] (1Password
+# secrets, TF_VAR_*, REGISTRY, AWS_*), active under MISE_ENV=dev (the committed
+# default in .miserc.toml). Those are NOT re-declared here.
 #
 # WORKING DIR: mise runs each task from this file's directory
 # (fsharp/api/automate) by default, so the relative `docker compose`, `dotnet`,

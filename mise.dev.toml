@@ -1,0 +1,94 @@
+# Dev-only mise environment (active when MISE_ENV=dev, the committed default in .miserc.toml).
+# Holds the 1Password/vultr-cli/git-config execs so base .mise.toml stays exec-free —
+# CI sets MISE_ENV=ci to exclude this file (keeps secrets out of CI mise).
+#
+# CACHING STRATEGY:
+#   Remote secrets (op read, curl): 24h TTL via exec() cache_key+cache_duration.
+#   Vultr-derived values (AWS_*, REGISTRY): no-TTL exec() cache_key (same semantics
+#     as the former secrets/frankenstorage.yaml and secrets/frankistry.json files,
+#     but shared cross-terminal via ~/.cache/mise instead of per-repo files).
+#   All cache is per-machine in ~/.cache/mise and shared across all terminals.
+#   To force refresh: `mise cache clear` (all), or per-key: not supported directly.
+#
+# QUOTING NOTE: exec(command=...) values use TOML double-quoted strings so that
+#   op:// references containing spaces can be wrapped in single quotes within the
+#   shell command, e.g. exec(command="op read 'op://vault/item with spaces/field'").
+#   Vultr jq commands use backslash-escaped inner double quotes.
+#
+# NOTE: [settings] experimental = true (required for exec() template caching) lives
+#   in the base .mise.toml, which is always loaded alongside this file.
+
+[env]
+# ── Local/dev-only statics (exec-free) ───────────────────────────────────────
+# Non-secret dotenv overlay + kubeconfig paths. Kept out of base so CI mise
+# (MISE_ENV=ci) never renders them — TF_VAR_kubeconfig_path in particular would
+# otherwise clobber the tofu-deploy composite's runtime-decoded $PWD/kubeconfig.yaml
+# (mise [env] overrides inherited process env) and point tofu at a nonexistent
+# file. CI reads none of these: the composite decodes its own kubeconfig and
+# load-secrets-action supplies secrets.
+# Optional local dotenv — skipped silently if absent (no .env required)
+_.file = ".env"
+KUBECONFIG_PATH = "{{ config_root }}/secrets/frank8s.yaml"
+KUBECONFIG      = "{{ config_root }}/secrets/frank8s.yaml"
+TF_VAR_kubeconfig_path = "{{ config_root }}/secrets/frank8s.yaml"
+
+# ── Identity ─────────────────────────────────────────────────────────────────
+GITHUB_USERNAME = "{{ exec(command='git config --get user.email') }}"
+
+# ── Remote secrets (24h TTL, cross-terminal) ─────────────────────────────────
+VULTR_API_KEY        = "{{ exec(command=\"op read 'op://Frankenstructure/Vultr API Key/password'\", cache_key='vultr_api_key', cache_duration='24h') }}"
+CLOUDFLARE_API_TOKEN = "{{ exec(command=\"op read 'op://Frankenstructure/Cloudflare API Token - frankenstructure/credential'\", cache_key='cloudflare_token', cache_duration='24h') }}"
+
+# ── Vultr-derived values (week-cached; replace secrets/frankenstorage.yaml and
+#    secrets/frankistry.json; require VULTR_API_KEY — rendered above — in env) ──
+#  ROBUST OFF-PATH INVOCATION: vultr-cli is a mise [tools] binary, but [tools]
+#    are NOT on PATH while [env] itself renders, so a bare `vultr-cli` is "command
+#    not found" and its pipe to jq silently yields "" (the bug this replaces).
+#    The mise shim can't be used either: the shim is a symlink back to mise, so
+#    calling it mid-render RE-ENTERS mise (re-renders [env] → recursion) and
+#    aborts ("failed to parse template"). Same for `mise x` / `mise which`. We
+#    therefore invoke the RAW install binary by absolute path — PATH-independent
+#    and mise-independent (no re-entry). `latest` tracks the highest installed
+#    version; the [tools] pin above is the source of truth. (jq resolves off the
+#    mise PATH via system/homebrew.)
+#  CACHE: cache_duration='168h' (~1 week) — avoids a Vultr API call every shell.
+#  FAIL-LOUD / NEVER-CACHE-EMPTY: `jq -er` exits non-zero on empty input (failed
+#    lookup) or no-match; `|| exit 1` and the `[ -n ]` guard propagate it. mise's
+#    exec runs under `sh -c -o errexit`, and a non-zero exec exit makes mise
+#    REFUSE to cache — critical with a 1-week TTL, where a cached "" would persist
+#    for a week. Only a real, non-empty value is ever printed (and thus cached).
+AWS_ACCESS_KEY_ID     = "{{ exec(command='v=$(\"${MISE_DATA_DIR:-$HOME/.local/share/mise}/installs/github-vultr-vultr-cli/latest/vultr-cli\" --output=json object-storage list | jq -er \".object_storages[] | select(.label == \\\"frankenstorage\\\") | .s3_access_key\") || exit 1; [ -n \"$v\" ] || exit 1; printf %s \"$v\"', cache_key='aws_akid', cache_duration='168h') }}"
+AWS_SECRET_ACCESS_KEY = "{{ exec(command='v=$(\"${MISE_DATA_DIR:-$HOME/.local/share/mise}/installs/github-vultr-vultr-cli/latest/vultr-cli\" --output=json object-storage list | jq -er \".object_storages[] | select(.label == \\\"frankenstorage\\\") | .s3_secret_key\") || exit 1; [ -n \"$v\" ] || exit 1; printf %s \"$v\"', cache_key='aws_secret', cache_duration='168h') }}"
+REGISTRY              = "{{ exec(command='v=$(\"${MISE_DATA_DIR:-$HOME/.local/share/mise}/installs/github-vultr-vultr-cli/latest/vultr-cli\" --output=json container-registry list | jq -er \".registries[] | select(.name == \\\"frankistry\\\") | .urn\") || exit 1; [ -n \"$v\" ] || exit 1; printf %s \"$v\"', cache_key='registry_urn', cache_duration='168h') }}"
+
+# ── OpenTofu / Terraform variables ───────────────────────────────────────────
+TF_VAR_automate_dropbox_client_id      = "{{ exec(command=\"op read 'op://Frankenstructure/Dropbox App - Automatox/username'\", cache_key='tf_dropbox_id', cache_duration='24h') }}"
+TF_VAR_automate_dropbox_client_secret  = "{{ exec(command=\"op read 'op://Frankenstructure/Dropbox App - Automatox/credential'\", cache_key='tf_dropbox_secret', cache_duration='24h') }}"
+TF_VAR_automate_postgres_password      = "{{ exec(command=\"op read 'op://Frankenstructure/Postgres - AutoMate/password'\", cache_key='tf_automate_pg_pw', cache_duration='24h') }}"
+TF_VAR_automate_todoist_client_id      = "{{ exec(command=\"op read 'op://Frankenstructure/Todoist App - AutoMate/username'\", cache_key='tf_todoist_id', cache_duration='24h') }}"
+TF_VAR_automate_todoist_client_secret  = "{{ exec(command=\"op read 'op://Frankenstructure/Todoist App - AutoMate/credential'\", cache_key='tf_todoist_secret', cache_duration='24h') }}"
+TF_VAR_automate_todoist_verification_token = "{{ exec(command=\"op read 'op://Frankenstructure/Todoist App - AutoMate/verification token'\", cache_key='tf_todoist_vtoken', cache_duration='24h') }}"
+TF_VAR_cloudflare_api_token            = "{{ exec(command=\"op read 'op://Frankenstructure/Cloudflare API Token - frankenstructure/credential'\", cache_key='cloudflare_token', cache_duration='24h') }}"
+TF_VAR_discord_webhook_alerts          = "{{ exec(command=\"op read 'op://Frankenstructure/Discord Webhook - breaktheloop/url'\", cache_key='tf_discord_webhook', cache_duration='24h') }}"
+TF_VAR_dockerconfigjson                = "{{ exec(command=\"op read 'op://Frankenstructure/Vultr Container Registry - Frankistry/credential'\", cache_key='tf_dockerconfigjson', cache_duration='24h') }}"
+TF_VAR_exporter_postgres_password      = "{{ exec(command=\"op read 'op://Frankenstructure/Postgres - Exporter/password'\", cache_key='tf_exporter_pg_pw', cache_duration='24h') }}"
+TF_VAR_github_username                 = "{{ exec(command='git config --get user.email') }}"
+TF_VAR_github_token                    = "{{ exec(command=\"op read 'op://Frankenstructure/GitHub Token - ghcr.io/token'\", cache_key='github_token', cache_duration='24h') }}"
+TF_VAR_grafana_cloud_instance_id       = "{{ exec(command=\"op read 'op://Frankenstructure/Grafana Cloud API Key - fungi/username'\", cache_key='tf_grafana_instance_id', cache_duration='24h') }}"
+TF_VAR_grafana_cloud_api_key           = "{{ exec(command=\"op read 'op://Frankenstructure/Grafana Cloud API Key - fungi/credential'\", cache_key='tf_grafana_api_key', cache_duration='24h') }}"
+TF_VAR_grafana_admin_password          = "{{ exec(command=\"op read 'op://Frankenstructure/Grafana - frank.sh/password'\", cache_key='tf_grafana_admin_pw', cache_duration='24h') }}"
+TF_VAR_grafana_auth                    = "{{ exec(command=\"op read 'op://Frankenstructure/Grafana Cloud Service Account Token - fungi/credential'\", cache_key='tf_grafana_auth', cache_duration='24h') }}"
+TF_VAR_healthchecksio_api_key          = "{{ exec(command=\"op read 'op://Frankenstructure/Healthchecks.io API Key/credential'\", cache_key='tf_healthchecks_key', cache_duration='24h') }}"
+TF_VAR_home_ip                         = "{{ exec(command='curl --silent icanhazip.com', cache_key='home_ip', cache_duration='24h') }}"
+TF_VAR_honeycomb_key_id                = "{{ exec(command=\"op read 'op://Frankenstructure/Honeycomb.io Management API Key/username'\", cache_key='tf_honeycomb_id', cache_duration='24h') }}"
+TF_VAR_honeycomb_key_secret            = "{{ exec(command=\"op read 'op://Frankenstructure/Honeycomb.io Management API Key/credential'\", cache_key='tf_honeycomb_secret', cache_duration='24h') }}"
+TF_VAR_honeycomb_api_key               = "{{ exec(command=\"op read 'op://Frankenstructure/Honeycomb.io Configuration API Key/credential'\", cache_key='tf_honeycomb_api_key', cache_duration='24h') }}"
+TF_VAR_miniflux_admin_username         = "{{ exec(command=\"op read 'op://Frankenstructure/Miniflux - frank.sh/username'\", cache_key='tf_miniflux_user', cache_duration='24h') }}"
+TF_VAR_miniflux_admin_password         = "{{ exec(command=\"op read 'op://Frankenstructure/Miniflux - frank.sh/password'\", cache_key='tf_miniflux_pw', cache_duration='24h') }}"
+TF_VAR_miniflux_postgres_password      = "{{ exec(command=\"op read 'op://Frankenstructure/Postgres - Miniflux/password'\", cache_key='tf_miniflux_pg_pw', cache_duration='24h') }}"
+TF_VAR_smtp_password                   = "{{ exec(command=\"op read 'op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/password'\", cache_key='tf_smtp_pw', cache_duration='24h') }}"
+TF_VAR_smtp_port                       = "{{ exec(command=\"op read 'op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/port'\", cache_key='tf_smtp_port', cache_duration='24h') }}"
+TF_VAR_smtp_server                     = "{{ exec(command=\"op read 'op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/server'\", cache_key='tf_smtp_server', cache_duration='24h') }}"
+TF_VAR_smtp_username                   = "{{ exec(command=\"op read 'op://Frankenstructure/ProtonMail SMTP - Monitoring/SMTP/username'\", cache_key='tf_smtp_user', cache_duration='24h') }}"
+TF_VAR_todoist_email                   = "{{ exec(command=\"op read 'op://Frankenstructure/Todoist Project - Frankenstructure/email'\", cache_key='tf_todoist_email', cache_duration='24h') }}"
+TF_VAR_vultr_api_key                   = "{{ exec(command=\"op read 'op://Frankenstructure/Vultr API Key/password'\", cache_key='vultr_api_key', cache_duration='24h') }}"

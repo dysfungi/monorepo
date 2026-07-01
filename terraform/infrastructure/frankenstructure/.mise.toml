@@ -4,9 +4,10 @@
 # in this directory is also the opt-in marker that makes it a discoverable
 # project (see `.mise/tasks/ls` and the root [monorepo] config).
 #
-# INHERITANCE: this nested config inherits the root .mise.toml [env] (1Password
-# secrets, every TF_VAR_*, VULTR_API_KEY, AWS_*, REGISTRY). Those are NOT
-# re-declared here — `tofu` and `vultr-cli` pick them up from the inherited env.
+# INHERITANCE: this nested config inherits the root mise.dev.toml [env] (1Password
+# secrets, every TF_VAR_*, VULTR_API_KEY, AWS_*, REGISTRY), active under
+# MISE_ENV=dev (the committed default in .miserc.toml). Those are NOT re-declared
+# here — `tofu` and `vultr-cli` pick them up from the inherited env.
 #
 # WORKING DIR: mise runs each task from this file's directory
 # (terraform/infrastructure/frankenstructure) by default. The .tf files live

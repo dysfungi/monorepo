@@ -208,8 +208,12 @@ against the per-account daily cap** — only 1Password's internal stability limi
 apply. Connect is confirmed available on the Families plan.
 
 The `ClusterSecretStore` `onepassword` switched from the **`onepasswordSDK`**
-provider to the **`onepassword`** Connect provider; the **3 ExternalSecrets are
-unchanged** (they reference the store by name):
+provider to the **`onepassword`** Connect provider. Unlike the SDK provider —
+which slash-encodes the field into `remoteRef.key` (`"<item>/[section/]<field>"`)
+with no separate `property` — the Connect provider reads `remoteRef.key` as the
+**item title** and requires the field in a separate **`property:`** (the field
+label). The **3 ExternalSecrets' `remoteRef`s were rewritten accordingly**
+(split each `key` into `key` = item title + `property` = field label):
 
 ```yaml
 # cluster_secret_store.yaml

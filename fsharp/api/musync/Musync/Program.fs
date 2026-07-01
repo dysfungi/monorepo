@@ -2,6 +2,8 @@ module Musync.Program
 
 open Argu
 open FsHttp
+open Musync.Ports
+open Musync.Adapters
 
 /// Top-level CLI commands. Argu lowercases + hyphenates the case names, so
 /// `Poll_Songkick` is invoked as `musync poll-songkick`. Bodies are stubs in
@@ -31,9 +33,31 @@ let main argv =
   match parser.ParseCommandLine(argv, raiseOnUsage = false).GetAllResults() with
   | [ Poll_Songkick ] ->
     let config = Config.load ()
-    printfn "[musync] poll-songkick: stub (Phase 1a) — no-op"
-    pingDeadman config.Deadman.PollSongkickUrl
-    0
+    let source = Songkick.SongkickShowSource(config.SongkickIcsUrl) :> IShowSource
+
+    // Fetch Going shows, then upsert each. `List.fold` short-circuits on the first
+    // persistence error (Result.bind), so a partial failure aborts and — crucially
+    // — withholds the deadman ping below, tripping the external alert.
+    let outcome =
+      source.FetchGoingConcerts()
+      |> Async.RunSynchronously
+      |> Result.bind (fun concerts ->
+        (Ok 0, concerts)
+        ||> List.fold (fun acc concert ->
+          acc
+          |> Result.bind (fun n ->
+            Persistence.upsert config.DatabaseUrl concert
+            |> Result.map (fun () -> n + 1))))
+
+    match outcome with
+    | Ok count ->
+      printfn "[musync] poll-songkick: upserted %d Going concert(s)" count
+      // Deadman ping ONLY on overall success — a failed run must not ping.
+      pingDeadman config.Deadman.PollSongkickUrl
+      0
+    | Error err ->
+      eprintfn "[musync] poll-songkick FAILED: %A" err
+      1
   | [ Curate_Preshow ] ->
     let config = Config.load ()
     printfn "[musync] curate-preshow: stub (Phase 1a) — no-op"

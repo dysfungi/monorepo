@@ -43,9 +43,28 @@ module ArtistName =
 
   let value (ArtistName v) = v
 
-/// The user's RSVP intent for a show. MVP only acts on `Going`; the DU leaves
-/// room for future states (e.g. Interested) without reshaping call sites.
-type PlanStatus = Going
+/// The user's RSVP intent for a show. The ingest pipeline only *persists*
+/// `Going` (fail-closed — see Adapters.Songkick), but `Interested` is modeled so
+/// downstream reads/round-trips of the `plan_status` column stay total.
+type PlanStatus =
+  | Going
+  | Interested
+
+module PlanStatus =
+  /// Wire form written to `concerts.plan_status` (lowercase, stable).
+  let serialize (status: PlanStatus) : string =
+    match status with
+    | Going -> "going"
+    | Interested -> "interested"
+
+  /// Total parse of the `plan_status` column. Unknown values fail loud rather
+  /// than defaulting, so a schema/data drift surfaces instead of silently
+  /// coercing to `Going`.
+  let parse (input: string) : Result<PlanStatus, MusyncError> =
+    match (if isNull input then "" else input.Trim().ToLowerInvariant()) with
+    | "going" -> Ok Going
+    | "interested" -> Ok Interested
+    | other -> Error(ValidationError [ $"unknown plan_status: '{other}'" ])
 
 // ── Probable setlist (shared computation) ────────────────────────────────────
 // These types are FINAL in Phase 1a; the ranking algorithm lands in Phase 4.

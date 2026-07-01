@@ -20,6 +20,8 @@
     <Compile Include="Domain.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="Ports.fs" />
+    <Compile Include="Persistence.fs" />
+    <Compile Include="Adapters/Songkick.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
@@ -27,6 +29,9 @@
     <PackageReference Include="Argu" Version="6.2.5" />
     <PackageReference Include="FsConfig" Version="4.1.0" />
     <PackageReference Include="FsHttp" Version="15.0.3" />
+    <PackageReference Include="Ical.Net" Version="4.3.1" />
+    <PackageReference Include="Npgsql.FSharp" Version="8.0.0" />
+    <PackageReference Include="NpgsqlFSharpAnalyzer" Version="3.26.1" />
     <PackageReference Include="Validus" Version="4.1.4" />
     <PackageReference Update="FSharp.Core" Version="9.0.201" />
   </ItemGroup>

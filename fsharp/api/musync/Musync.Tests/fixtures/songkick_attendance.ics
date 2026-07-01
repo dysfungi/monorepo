@@ -1,0 +1,53 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Songkick//Events//EN
+CALSCALE:GREGORIAN
+X-WR-CALNAME:Songkick attendance
+BEGIN:VEVENT
+UID:songkick-event-11111@songkick.com
+SUMMARY:Puscifer at Golden Gate Theatre (May 11, 2026)
+LOCATION:Golden Gate Theatre, San Francisco, CA, US
+DTSTART:20260511
+DESCRIPTION:You’re going.
+URL:https://www.songkick.com/concerts/11111
+END:VEVENT
+BEGIN:VEVENT
+UID:songkick-event-22222@songkick.com
+SUMMARY:Radiohead at The O2 (June 1, 2026)
+LOCATION:The O2, London, GB
+DTSTART:20260601
+DESCRIPTION:You’re interested in this event.
+URL:https://www.songkick.com/concerts/22222
+END:VEVENT
+BEGIN:VEVENT
+UID:songkick-event-33333@songkick.com
+SUMMARY:IDLES with Lambrini Girls at The Roundhouse (June 15, 2026)
+LOCATION:The Roundhouse, London, GB
+DTSTART;TZID=Europe/London:20260615T200000
+DESCRIPTION:You’re going.
+URL:https://www.songkick.com/concerts/33333
+END:VEVENT
+BEGIN:VEVENT
+UID:songkick-event-44444@songkick.com
+SUMMARY:boygenius at The Fillmore (July 4, 2026)
+LOCATION:The Fillmore, San Francisco, CA, US
+DTSTART:20260704
+URL:https://www.songkick.com/concerts/44444
+END:VEVENT
+BEGIN:VEVENT
+UID:songkick-event-55555@songkick.com
+SUMMARY:Justice at Le Bataclan (July 20, 2026)
+LOCATION:Le Bataclan, Paris, FR
+DTSTART:20260720T210000Z
+DESCRIPTION:You're going.
+URL:https://www.songkick.com/concerts/55555
+END:VEVENT
+BEGIN:VEVENT
+UID:songkick-event-66666@songkick.com
+SUMMARY:Sigur Rós at Harpa (August 1, 2026)
+LOCATION:Harpa, Reykjavik, IS
+DTSTART:20260801
+DESCRIPTION:You’re going.
+URL:https://www.songkick.com/concerts/66666
+END:VEVENT
+END:VCALENDAR

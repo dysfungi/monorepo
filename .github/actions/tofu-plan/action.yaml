@@ -1,0 +1,110 @@
+name: tofu-plan
+description: >-
+  Plan one OpenTofu stack (NEVER apply): install tofu, resolve that stack's
+  secrets from 1Password into the environment, optionally decode the cluster
+  kubeconfig, then `tofu init` + `tofu plan` + `tofu show -json`. Mirrors
+  tofu-deploy step-for-step up to init, but replaces `apply` with a plan that is
+  serialized to JSON so downstream tooling (the Frankenbot reversibility
+  classifier) can read `resource_changes`. Emits the absolute path to that JSON.
+
+inputs:
+  stack_path:
+    description: Working directory of the OpenTofu stack to plan.
+    required: true
+  op_service_account_token:
+    description: 1Password service-account token used to resolve op:// references.
+    required: true
+  needs_kubeconfig:
+    description: >-
+      'true' (default) to fetch + decode the cluster kubeconfig and export
+      TF_VAR_kubeconfig_path. Set 'false' for cluster-bootstrap stacks (e.g.
+      frankenstructure) that plan before a kubeconfig exists.
+    required: false
+    default: "true"
+  op_refs:
+    description: >-
+      Newline-separated NAME=VALUE pairs staged into the environment before the
+      1Password load step. NAME is the final env var tofu reads (e.g. TF_VAR_foo,
+      AWS_*). A VALUE of `op://...` is resolved by 1Password; any other VALUE
+      (github.token, a needs.* output, a raw secret) is passed through verbatim.
+      The shared S3 backend creds and the kubeconfig ref are added automatically
+      — list only stack-specific references here.
+    required: false
+    default: ""
+
+outputs:
+  plan_json:
+    description: Absolute path to the `tofu show -json` plan document.
+    value: ${{ steps.plan.outputs.plan_json }}
+
+runs:
+  using: composite
+  steps:
+    - name: Scope mise to CI (exclude dev secret env)
+      shell: bash
+      run: |
+        echo "MISE_ENV=ci" >> "$GITHUB_ENV"
+
+    - uses: jdx/mise-action@v4
+      with:
+        version: 2026.6.14
+        install: false
+        cache: true
+    - name: Install OpenTofu via mise
+      shell: bash
+      run: mise install opentofu
+
+    # Stage every op:// reference (and pass-through value) into $GITHUB_ENV under
+    # the final env var name tofu expects, so init/plan need no explicit env:
+    # maps. The S3 backend creds and kubeconfig ref are identical for every
+    # stack, so they live here rather than being repeated by each caller.
+    - name: Stage secret references
+      shell: bash
+      env:
+        OP_REFS: ${{ inputs.op_refs }}
+        NEEDS_KUBECONFIG: ${{ inputs.needs_kubeconfig }}
+      run: |
+        {
+          echo "AWS_ACCESS_KEY_ID=op://Frankenstructure/Vultr Object Storage - Frankenstorage/access_key"
+          echo "AWS_SECRET_ACCESS_KEY=op://Frankenstructure/Vultr Object Storage - Frankenstorage/secret_key"
+          if [ "$NEEDS_KUBECONFIG" = "true" ]; then
+            echo "kubeconfig=op://Frankenstructure/Kubeconfig - frank8s/kubeconfig"
+          fi
+          if [ -n "$OP_REFS" ]; then
+            printf '%s\n' "$OP_REFS" | grep -v '^[[:space:]]*$' || true
+          fi
+        } >> "$GITHUB_ENV"
+
+    # export-env: true resolves every op:// env var in place and re-exports the
+    # resolved (masked) value under the same name via $GITHUB_ENV. Non-op values
+    # staged above are left untouched.
+    - name: Load secrets from 1Password
+      uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
+      with:
+        export-env: true
+      env:
+        OP_SERVICE_ACCOUNT_TOKEN: ${{ inputs.op_service_account_token }}
+
+    - name: Decode kubeconfig
+      if: inputs.needs_kubeconfig == 'true'
+      shell: bash
+      run: |
+        base64 --decode > kubeconfig.yaml <<< "$kubeconfig"
+        echo "TF_VAR_kubeconfig_path=$PWD/kubeconfig.yaml" >> "$GITHUB_ENV"
+
+    - name: Initialize tofu
+      shell: bash
+      working-directory: ${{ inputs.stack_path }}
+      run: tofu init -input=false -upgrade
+
+    # Plan-only: NEVER apply. Serialize the plan to JSON so the reversibility
+    # classifier can read resource_changes[].change.actions, and export the
+    # absolute path for downstream steps.
+    - name: Plan
+      id: plan
+      shell: bash
+      working-directory: ${{ inputs.stack_path }}
+      run: |
+        tofu plan -input=false -out=tfplan.bin
+        tofu show -json tfplan.bin > tfplan.json
+        echo "plan_json=$PWD/tfplan.json" >> "$GITHUB_OUTPUT"

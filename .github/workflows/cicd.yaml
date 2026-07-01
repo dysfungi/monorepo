@@ -430,3 +430,88 @@ jobs:
             TF_VAR_dockerconfigjson=op://Frankenstructure/Vultr Container Registry - Frankistry/credential
             TF_VAR_frankenbot_postgres_password=op://Frankenstructure/Postgres - Frankenbot/password
             TF_VAR_vultr_api_key=op://Frankenstructure/Vultr API Key/password
+
+  plan-frankenbot:
+    # Phase 4c — the reversibility ORACLE. Runs `tofu plan` for the frankenbot
+    # stack on PRs, feeds the plan JSON to the risk-tier classifier, and upserts
+    # an INFORMATIONAL risk-tier PR comment.
+    #
+    # In the MVP this is informational ONLY: Frankenbot is propose-only and the
+    # TTL auto-merge path is DORMANT. This job exists so the classifier verdict
+    # is visible on every dependency-bump PR before we ever wire it to a merge
+    # button. It deliberately runs on PRs (unlike apply, which is main-only via
+    # check-deploy-prod) because the auto-merge decision must be made pre-merge.
+    #
+    # SECURITY: this job runs `tofu plan` with the S3 backend creds, cluster
+    # kubeconfig, and vultr API key against PR-authored code, so it is restricted
+    # to same-repo branches — fork PRs never receive prod credentials.
+    needs: [changes]
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.changes.outputs.frankenbot == 'true'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      pull-requests: write
+    concurrency:
+      group: ${{ github.workflow }}-plan-frankenbot-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - id: tofu-plan
+        uses: ./.github/actions/tofu-plan
+        with:
+          stack_path: terraform/applications/frankenbot
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          # Mirror deploy-frankenbot's op_refs. No image is built on a PR, so
+          # app_version is a synthetic placeholder — tofu requires the variable
+          # (no default) but the plan never pulls the image.
+          op_refs: |
+            TF_VAR_app_version=0.0.0-pr.${{ github.event.pull_request.number }}
+            TF_VAR_dockerconfigjson=op://Frankenstructure/Vultr Container Registry - Frankistry/credential
+            TF_VAR_frankenbot_postgres_password=op://Frankenstructure/Postgres - Frankenbot/password
+            TF_VAR_vultr_api_key=op://Frankenstructure/Vultr API Key/password
+      - name: Classify plan into a risk tier
+        id: classify
+        # Non-blocking: a classifier hiccup must not fail the PR check. Only the
+        # plan step (above) is allowed to surface failures.
+        continue-on-error: true
+        env:
+          PLAN_JSON: ${{ steps.tofu-plan.outputs.plan_json }}
+        run: |
+          # tofu-plan's mise-action left the mise shims on PATH but installed
+          # only opentofu (install: false), so `python` would resolve to an
+          # uninstalled 3.12 shim. Install the pinned interpreter first. The
+          # classifier is pure stdlib, so no pip install is needed.
+          mise install python
+          PYTHONPATH=python/pipeline/frankenbot \
+            python -m frankenbot.cli classify-plan "$PLAN_JSON" --format comment > tier.md
+          cat tier.md
+      # Non-blocking: a comment hiccup must not fail the PR check. Gate on both
+      # the plan and classify steps succeeding so we never post an empty tier.
+      - name: Upsert risk-tier PR comment
+        if: always() && steps.tofu-plan.outcome == 'success' && steps.classify.outcome == 'success'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- frankenbot-plan -->';
+            const tier = fs.readFileSync('tier.md', 'utf8');
+            const body = `${marker}\n${tier}`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number, per_page: 100,
+            });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number, body,
+              });
+            }

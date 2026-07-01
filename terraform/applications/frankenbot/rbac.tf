@@ -6,6 +6,15 @@ resource "kubernetes_service_account" "frankenbot" {
     namespace = local.namespace
     labels    = local.labels
   }
+
+  # Attach the Vultr CR pull secret at the SA level so EVERY pod running as this
+  # SA can pull the private agent image — including the triage worker Jobs the
+  # dispatcher creates in code (dispatch.py), whose pod specs do NOT set
+  # image_pull_secrets. Without this they hit ImagePullBackOff. (The dispatcher
+  # CronJob pod also sets it explicitly at the pod level; belt-and-suspenders.)
+  image_pull_secret {
+    name = kubernetes_secret.cr.metadata[0].name
+  }
 }
 
 # Namespaced Role (NOT a ClusterRole): the dispatcher only ever manages triage

@@ -134,10 +134,35 @@ jobs:
     outputs:
       app_version: ${{ steps.app-version.outputs.out }}
 
+  test-frankenbot:
+    # Runs the frankenbot pytest suite before the image is built/pushed. Mirrors
+    # test-automate-api's post-#16 shape: MISE_ENV=ci renders zero project [env]
+    # (no 1Password reads), and jdx/mise-action provisions the pinned toolchain.
+    # `setup` installs the package + dev deps into the project .venv (auto-
+    # activated via python/pipeline/frankenbot/.mise.toml [env]); `test` then runs
+    # pytest inside that venv.
+    needs: [changes]
+    if: needs.changes.outputs.frankenbot == 'true'
+    runs-on: ubuntu-latest
+    env:
+      MISE_ENV: ci
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+        with:
+          version: 2026.6.14
+          install: false
+          cache: true
+      - run: mise install python uv
+      - name: Install package + dev deps
+        run: mise run //python/pipeline/frankenbot:setup
+      - name: Test
+        run: mise run //python/pipeline/frankenbot:test
+
   build-frankenbot:
     # Frankenbot agent image (dispatch + triage). Mirrors build-automate-api:
     # always builds when frankenbot changes; logs in + pushes only on main.
-    needs: [changes]
+    needs: [changes, test-frankenbot]
     if: needs.changes.outputs.frankenbot == 'true'
     runs-on: ubuntu-latest
     outputs:
@@ -442,10 +467,20 @@ jobs:
     # button. It deliberately runs on PRs (unlike apply, which is main-only via
     # check-deploy-prod) because the auto-merge decision must be made pre-merge.
     #
-    # SECURITY: this job runs `tofu plan` with the S3 backend creds, cluster
-    # kubeconfig, and vultr API key against PR-authored code, so it is restricted
-    # to same-repo branches — fork PRs never receive prod credentials.
-    needs: [changes]
+    # SECURITY / RESIDUAL RISK: this job runs `tofu plan` with the S3 backend
+    # creds, cluster kubeconfig, and vultr API key against PR-authored code. The
+    # `if` below restricts it to SAME-REPO branches, so fork PRs never receive
+    # prod credentials (the fork guard). The residual exfiltration risk is a
+    # same-repo branch pushed by someone who can write to the repo but whose PR
+    # you would not otherwise trust: their code executes in a prod-credentialed
+    # context and could attempt to leak secrets. Mitigate with branch protection
+    # — restrict who may push branches. Revisit if the dormant TTL auto-merge
+    # path is ever activated.
+    #
+    # ADVISORY: continue-on-error (below) keeps this job from ever blocking or
+    # red-flagging a PR — it is an informational oracle only, and it WILL fail
+    # until the Phase-0 1Password frankenbot items exist.
+    needs: [changes, test-frankenbot]
     if: >-
       github.event_name == 'pull_request'
       && needs.changes.outputs.frankenbot == 'true'
@@ -453,6 +488,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    continue-on-error: true
     concurrency:
       group: ${{ github.workflow }}-plan-frankenbot-${{ github.event.pull_request.number }}
       cancel-in-progress: true

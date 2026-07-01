@@ -13,6 +13,15 @@
 # `setup`), invoked directly here for a fast local loop. Repo-wide linting is
 # also wired through pre-commit at the monorepo root.
 
+# ── Environment ──────────────────────────────────────────────────────────────
+# Auto-activate the uv-created .venv (built by `setup`) so the lint/test tasks
+# below invoke their tools (pytest, black, isort, flake8, mypy) directly, with no
+# manual `source .venv/bin/activate` — locally AND in CI. create = false: `setup`
+# owns venv creation (`uv venv --clear`); this only prepends .venv/bin to PATH
+# when the venv already exists.
+[env]
+_.python.venv = { path = ".venv", create = false }
+
 # ── Project setup ────────────────────────────────────────────────────────────
 [tasks.setup]
 description = "Install the package + dev tooling into a local venv (uv)"

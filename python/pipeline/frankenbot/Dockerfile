@@ -57,7 +57,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     WORKSPACE_DIR="/workspace"
 
 # Runtime toolbelt only. ripgrep powers the agent's Grep tool; jq/openssh/curl
-# are common triage utilities; git is required for clone/commit/push. NOTE: no
+# are common triage utilities; git is required for clone/commit/push. unzip and
+# gnupg are required by the OpenTofu standalone installer below: it unzips the
+# release archive (fails "Unzip is missing" without unzip) and GPG-verifies the
+# signed download (it aborts when neither cosign nor GPG is on PATH). NOTE: no
 # distro python3 — the frankenbot venv (copied below) ships its own pinned 3.12,
 # and a stray Debian 3.11 would only be a misleading, unused interpreter.
 RUN apt-get update \
@@ -65,17 +68,23 @@ RUN apt-get update \
         ca-certificates \
         curl \
         git \
+        gnupg \
         jq \
         ripgrep \
         openssh-client \
+        unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Install mise (per-repo toolchain resolution) and OpenTofu (tofu) leanly.
 # mise resolves language runtimes on demand inside the cloned repo at triage time.
+# The standalone installer places the binary in --install-path and drops a
+# symlink in --symlink-path; these MUST differ (pointing both at /usr/local/bin
+# makes it try to symlink tofu onto itself: "ln: ... are the same file"). So the
+# binary lives in /opt/opentofu and the symlink lands on PATH at /usr/local/bin.
 RUN curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh \
     && curl -fsSL https://get.opentofu.org/install-opentofu.sh -o /tmp/install-tofu.sh \
     && chmod +x /tmp/install-tofu.sh \
-    && /tmp/install-tofu.sh --install-method standalone --install-path /usr/local/bin \
+    && /tmp/install-tofu.sh --install-method standalone --install-path /opt/opentofu --symlink-path /usr/local/bin \
     && rm -f /tmp/install-tofu.sh
 
 # Install the Claude Code CLI globally (Node package).
@@ -89,8 +98,11 @@ RUN npm install -g @anthropic-ai/claude-code \
 COPY --from=builder /opt/uv-python /opt/uv-python
 COPY --from=builder /opt/frankenbot-venv /opt/frankenbot-venv
 
-# Non-root runtime user.
-RUN useradd --create-home --uid 1000 --shell /bin/bash frankenbot
+# Non-root runtime user. UID 1001 (not 1000): the node:22-slim base already
+# ships a `node` user at UID 1000, so `useradd --uid 1000` fails with "UID
+# already in use" (exit 4). Nothing pins runAsUser in the k8s podSpec, so the
+# exact number is not load-bearing — it only has to be a stable non-root uid.
+RUN useradd --create-home --uid 1001 --shell /bin/bash frankenbot
 
 # Bake the curated, headless-safe agent config (CLAUDE.md + skills) so the CLI
 # picks them up from CLAUDE_CONFIG_DIR.

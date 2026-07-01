@@ -32,6 +32,7 @@ monorepo_root = true
 # yamllint, yamlfmt, shellcheck-py, fantomas) are NOT here — pre-commit vendors
 # them in isolated envs. CI uses GitHub setup-* actions, not mise.
 python = "3.12"        # consolidates .tool-versions; matches CI setup-python
+uv = "0.11"            # frankenbot setup task's venv/installer (uv venv, uv pip)
 dotnet = "9.0"         # full SDK (net9.0 target); drives `dotnet tool restore` (fantomas)
 kubectl = "1.36"
 helm = "4.2"

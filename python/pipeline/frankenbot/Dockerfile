@@ -7,36 +7,44 @@
 # cloned repo. This keeps the image small and avoids toolchain drift.
 #
 # Base is node:22-slim (Debian bookworm) because the Claude CLI is a Node
-# package; Debian bookworm ships Python 3.12 via the deadsnakes-free default
-# only on trixie, so we install Python from the distro packages available.
+# package. Debian bookworm's ``python3`` is 3.11, but the frankenbot package
+# requires >=3.12 (see pyproject.toml). We therefore do NOT use the distro
+# Python: uv installs a pinned CPython 3.12 into a STABLE, copyable location and
+# builds the venv against it, so the interpreter travels to the runtime image.
 
 # ---- builder: create a self-contained venv with the frankenbot package -------
 FROM node:22-slim AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    # Pin uv's managed-interpreter install dir to a stable path so the venv's
+    # python symlink resolves after we COPY it into the runtime image.
+    UV_PYTHON_INSTALL_DIR=/opt/uv-python
 
-# Build deps: python + venv + curl for the uv installer.
+# Build deps: curl + ca-certificates for the uv installer. No distro Python and
+# no compiler — every runtime dependency ships a manylinux wheel for cpython3.12
+# (psycopg[binary], cryptography, pydantic-core, PyYAML), so uv installs from
+# wheels with nothing to build.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
-        python3 \
-        python3-venv \
-        python3-dev \
-        build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv (fast, reproducible Python installs) into a stable location.
 RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
 
+# Install a pinned CPython 3.12 (matches requires-python >=3.12).
+RUN /usr/local/bin/uv python install 3.12
+
 WORKDIR /src
 COPY pyproject.toml ./
 COPY frankenbot ./frankenbot
 
-# Build an isolated venv and install the package into it. Using a venv (rather
-# than --system) keeps the runtime image's system Python pristine and portable.
-RUN python3 -m venv /opt/frankenbot-venv \
+# Build an isolated venv on 3.12 and install the package into it. Using a venv
+# (rather than --system) keeps the runtime image portable; the venv's python
+# symlinks into /opt/uv-python, which we copy alongside it into the final image.
+RUN /usr/local/bin/uv venv --python 3.12 /opt/frankenbot-venv \
     && /usr/local/bin/uv pip install --python /opt/frankenbot-venv/bin/python .
 
 # ---- runtime: slim final image ----------------------------------------------
@@ -49,7 +57,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
     WORKSPACE_DIR="/workspace"
 
 # Runtime toolbelt only. ripgrep powers the agent's Grep tool; jq/openssh/curl
-# are common triage utilities; git is required for clone/commit/push.
+# are common triage utilities; git is required for clone/commit/push. NOTE: no
+# distro python3 — the frankenbot venv (copied below) ships its own pinned 3.12,
+# and a stray Debian 3.11 would only be a misleading, unused interpreter.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -58,7 +68,6 @@ RUN apt-get update \
         jq \
         ripgrep \
         openssh-client \
-        python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install mise (per-repo toolchain resolution) and OpenTofu (tofu) leanly.
@@ -73,7 +82,11 @@ RUN curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh \
 RUN npm install -g @anthropic-ai/claude-code \
     && npm cache clean --force
 
-# Bring in the frankenbot venv from the builder.
+# Bring in the frankenbot venv from the builder, plus the pinned CPython 3.12 it
+# symlinks to. Both land at the same absolute paths as in the builder, so the
+# venv's ``bin/python`` symlink (and the ``frankenbot`` console-script shebang)
+# resolve and run on 3.12.
+COPY --from=builder /opt/uv-python /opt/uv-python
 COPY --from=builder /opt/frankenbot-venv /opt/frankenbot-venv
 
 # Non-root runtime user.

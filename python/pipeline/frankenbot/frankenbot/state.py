@@ -1,11 +1,20 @@
-"""Postgres state DAL for Frankenbot (work_state + budget_daily).
+"""Postgres state DAL for Frankenbot (work_state).
 
 Intent
 ------
 Give the dispatcher durable, cross-run memory so it does not re-triage identical
-content on every 30-minute tick, and a place to accumulate/consult a daily spend
-budget. Backed by the ``frankenbot`` database on the shared Vultr managed
-Postgres (provisioned in terraform/applications/frankenbot).
+content on every 30-minute tick. Backed by the ``frankenbot`` database on the
+shared Vultr managed Postgres (provisioned in terraform/applications/frankenbot).
+
+TODO (Phase 4 — budget accounting): a real daily spend cap is deferred. The
+per-triage cost is only observable inside the ephemeral triage Job (via the
+``claude`` CLI ``--output-format json`` ``total_cost_usd`` field), but those Jobs
+are intentionally DB-less (blast-radius minimization — they run an agent over
+UNTRUSTED CI logs, see triage.py's minimal-env hardening). Wiring a cap honestly
+therefore needs a safe cost-reporting channel from triage back to the dispatcher
+(e.g. a Job annotation/metric the dispatcher reads) rather than handing DB
+credentials to the untrusted-content pod. Until that exists we ship NO budget
+gate rather than a guardrail that can never fire.
 
 Architecture
 ------------
@@ -24,9 +33,9 @@ Design decisions
   dedup-relevant fields. Order-INDEPENDENT for unordered collections (sets), and
   order-PRESERVING for sequences (lists/tuples) — because in some fields order is
   meaningful and in others it is not. This is unit-tested without a database.
-- Upserts (``ON CONFLICT``) make ``record_run`` / ``add_budget`` idempotent and
-  safe under the dispatcher's ``concurrency_policy: Forbid`` (no two ticks run at
-  once, but a retried tick must not double-count).
+- Upserts (``ON CONFLICT``) make ``record_run`` idempotent and safe under the
+  dispatcher's ``concurrency_policy: Forbid`` (no two ticks run at once, but a
+  retried tick must not double-count).
 """
 
 from __future__ import annotations
@@ -153,33 +162,3 @@ def already_done(repo: str, surface: str, fingerprint: str) -> bool:
                 (repo, surface, fingerprint),
             )
             return cur.fetchone() is not None
-
-
-def add_budget(tokens: int, cents: int) -> None:
-    """Add ``tokens``/``cents`` to today's (UTC) budget accumulator (upsert)."""
-    with psycopg.connect(_dsn()) as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO budget_daily (day, tokens_used, spend_cents)
-                VALUES (CURRENT_DATE, %s, %s)
-                ON CONFLICT (day) DO UPDATE SET
-                    tokens_used = budget_daily.tokens_used + EXCLUDED.tokens_used,
-                    spend_cents = budget_daily.spend_cents + EXCLUDED.spend_cents
-                """,
-                (tokens, cents),
-            )
-
-
-def budget_today() -> tuple[int, int]:
-    """Return ``(tokens_used, spend_cents)`` for today (UTC); ``(0, 0)`` if none."""
-    with psycopg.connect(_dsn()) as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT tokens_used, spend_cents FROM budget_daily "
-                "WHERE day = CURRENT_DATE"
-            )
-            row = cur.fetchone()
-            if row is None:
-                return (0, 0)
-            return (int(row[0]), int(row[1]))

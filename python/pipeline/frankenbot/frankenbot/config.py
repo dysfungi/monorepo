@@ -133,16 +133,9 @@ class Settings(BaseModel):
     max_concurrent_jobs: int = Field(
         default=1, ge=1, description="Cap on simultaneously-active triage Jobs."
     )
-    daily_spend_cap_cents: int = Field(
-        default=1_000_000_000,
-        ge=0,
-        description=(
-            "Daily spend ceiling (cents). The dispatcher refuses to dispatch once "
-            "budget_today exceeds this. Defaults effectively OFF (very high); set "
-            "FRANKENBOT_DAILY_SPEND_CAP_CENTS to enable. Only enforced when "
-            "DATABASE_URL is present."
-        ),
-    )
+    # NOTE: a daily spend cap is intentionally NOT modeled here. It was removed
+    # because the cost signal lives only in the DB-less triage Jobs, so the gate
+    # could never fire (false assurance). See the Phase-4 TODO in state.py.
     image: str = Field(..., description="Container image for spawned triage Jobs.")
     infra_nodepool_label: str = Field(
         default=INFRA_NODEPOOL_LABEL_DEFAULT,
@@ -269,14 +262,6 @@ def load_settings() -> Settings:
             f"FRANKENBOT_MAX_CONCURRENT_JOBS={max_concurrent_raw!r} is not an integer."
         ) from exc
 
-    spend_cap_raw = os.environ.get("FRANKENBOT_DAILY_SPEND_CAP_CENTS", "1000000000")
-    try:
-        spend_cap = int(spend_cap_raw)
-    except ValueError as exc:
-        raise ValueError(
-            f"FRANKENBOT_DAILY_SPEND_CAP_CENTS={spend_cap_raw!r} is not an integer."
-        ) from exc
-
     discovery_from_file, repos = _load_repo_file(repos_file)
     # Env override wins over the file (FRANKENBOT_DISCOVERY=auto|off). Validate the
     # final resolved value loudly rather than silently defaulting an unknown mode.
@@ -293,7 +278,6 @@ def load_settings() -> Settings:
         enabled=enabled,
         namespace=os.environ.get("FRANKENBOT_NAMESPACE", "frankenbot"),
         max_concurrent_jobs=max_concurrent,
-        daily_spend_cap_cents=spend_cap,
         image=image,
         infra_nodepool_label=os.environ.get(
             "FRANKENBOT_INFRA_NODEPOOL_LABEL", INFRA_NODEPOOL_LABEL_DEFAULT

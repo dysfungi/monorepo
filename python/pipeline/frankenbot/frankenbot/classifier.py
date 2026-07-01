@@ -38,11 +38,15 @@ Tier rules (worst wins)
                             No TTL.
     T2 auto (post-MVP)    : reversible change that required a codemod. TTL 72h.
     T1 auto               : reversible dependency/config/infra change, no
-                            codemod. TTL 48h. INFRA changes (any path under
-                            ``terraform/``) are additionally gated by
-                            ``INFRA_AUTOMERGE_ALLOWLIST`` — the real safety gate:
-                            a resource type not on the allowlist keeps the tier
-                            at T1 but flips ``auto_eligible`` off.
+                            codemod. TTL 48h.
+    INFRA allowlist gate  : applies to BOTH auto infra tiers (T1 and T2). A change
+                            "has infra" when the plan contains resource changes OR
+                            a changed path lives under a known infra directory
+                            (``terraform``/``tofu``/``infra``/``live``) — so a
+                            renamed stack cannot dodge the gate. Every changed
+                            resource type must be on ``INFRA_AUTOMERGE_ALLOWLIST``
+                            or ``auto_eligible`` is flipped off (the tier is
+                            unchanged).
     T0 auto              : docs / lint / format-only change with a non-
                             destructive plan. TTL 24h.
 
@@ -106,6 +110,14 @@ _FORMAT_CONFIG_BASENAMES = frozenset(
 
 # tofu actions that represent a real change to a resource (used for allowlisting).
 _CHANGING_ACTIONS = frozenset({"create", "update", "delete"})
+
+# Path segments that signal an infrastructure change. Kept broad on purpose: a
+# stack living under any of these MUST NOT dodge the infra allowlist gate just
+# because it does not use the literal ``terraform`` directory name. This is only
+# ONE of two "has infra" signals — the other is the plan actually containing
+# resource changes (see ``_has_infra`` below), so a bare plan with resource
+# changes is gated even when no path signal is present.
+_INFRA_PATH_SEGMENTS = frozenset({"terraform", "tofu", "infra", "live"})
 
 
 class Tier(IntEnum):
@@ -301,6 +313,21 @@ def _on_allowlist(resource_type: str) -> bool:
     )
 
 
+def _has_infra(plan: dict[str, Any], paths: list[str]) -> bool:
+    """True if this change touches infrastructure and must clear the allowlist.
+
+    "Has infra" is (the plan contains real resource changes) OR (a changed path
+    lives under a known infra directory). Relying on the path alone was unsafe —
+    a stack under ``infra/``/``tofu/``/``live/`` (or a renamed dir) could dodge
+    the gate — so a plan with resource changes is enough on its own.
+    """
+    if _changed_resource_types(plan):
+        return True
+    return any(
+        _has_segment(path, seg) for path in paths for seg in _INFRA_PATH_SEGMENTS
+    )
+
+
 # ---------------------------------------------------------------------------
 # Public API.
 # ---------------------------------------------------------------------------
@@ -388,9 +415,11 @@ def classify(
     # Base auto-eligibility from the tier; the infra allowlist may withdraw it.
     auto_eligible = tier in _AUTO_TIERS
     allowlisted = True
-    has_infra = any(_has_segment(p, "terraform") for p in paths)
+    has_infra = _has_infra(plan, paths)
 
-    if tier == Tier.T1 and has_infra:
+    # Gate BOTH auto infra tiers (T1 and T2). A codemod'd infra change (T2) is no
+    # less in need of the allowlist than a plain one (T1).
+    if tier in (Tier.T1, Tier.T2) and has_infra:
         resource_types = _changed_resource_types(plan)
         if resource_types:
             offenders = sorted(t for t in resource_types if not _on_allowlist(t))

@@ -176,8 +176,9 @@ class GitHubClient:
     ) -> list[dict[str, Any]]:
         """List OPEN PRs for ``OWNER/NAME``, optionally filtered by a label.
 
-        The PRs endpoint has no label filter, so when ``label`` is given we use
-        the issues search-free listing endpoint and post-filter by label name.
+        The ``/repos/{repo}/pulls`` endpoint has no label filter, so we page
+        through it and, when ``label`` is given, post-filter the results by label
+        name client-side.
         """
         pulls: list[dict[str, Any]] = []
         page = 1

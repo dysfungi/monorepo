@@ -18,7 +18,7 @@ Renovate radar (.github/workflows/renovate.yaml + renovate.json5)
 CI (GitHub Actions)  ── PR CI goes RED ──►  needs triage
       ▼
 in-cluster CronJob dispatcher (frankenbot dispatch)
-      │  finds RED, un-triaged frankenbot PRs; concurrency- + budget-gated
+      │  finds RED, un-triaged frankenbot PRs; concurrency-gated
       ▼
 ephemeral triage Job per PR (frankenbot triage)  ── one per PR, isolated ──►
       │  reads failing logs, attempts ≤1 fix commit, else posts triage comment
@@ -30,8 +30,9 @@ PR updated / labeled  ──►  human review + merge (MVP)
   Renovate semver delta → tier **T0..T4** (reversible → irreversible).
 - **Plan-on-PR oracle**: the classifier runs against the PR's tofu plan to judge
   reversibility before any autonomous action would be considered.
-- **State**: Postgres (`state.py`) for cross-run dedup + daily spend cap.
-  Degrades gracefully to PR-label dedup when `DATABASE_URL` is absent.
+- **State**: Postgres (`state.py`) for cross-run dedup. Degrades gracefully to
+  PR-label dedup when `DATABASE_URL` is absent. (A daily spend cap is a Phase-4
+  follow-up — see the TODO in `state.py`.)
 - **Autonomy**: `autonomy.py` decides MERGE/REVERT/HOLD/PAGE but is **DORMANT** —
   `execute()` no-ops unless explicitly armed (see the flag below).
 
@@ -94,7 +95,7 @@ Any ONE of these halts the platform:
 | `frankenbot/triage.py`       | Ephemeral per-PR worker                                             |
 | `frankenbot/classifier.py`   | Risk-tier (T0..T4) classifier                                       |
 | `frankenbot/autonomy.py`     | MERGE/REVERT/HOLD/PAGE decision engine (dormant)                    |
-| `frankenbot/state.py`        | Postgres dedup + spend cap                                          |
+| `frankenbot/state.py`        | Postgres cross-run dedup (spend cap deferred — Phase 4)             |
 | `frankenbot/discovery.py`    | App-installations repo discovery (Phase 5)                          |
 | `frankenbot/backlog.py`      | `WorkItem` schema + backlog adapters (Phase 5 stubs)                |
 | `frankenbot/config.py`       | Typed settings + `repos.yaml` policy loading                        |

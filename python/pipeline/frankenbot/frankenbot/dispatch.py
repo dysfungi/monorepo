@@ -98,31 +98,15 @@ def load_settings_or_killswitch() -> Settings | None:
     return settings
 
 
-def _budget_exhausted(settings: Settings) -> bool:
-    """True when the daily spend cap is enforced (DB present) and already exceeded.
-
-    Refusing here is a guard clause: the dispatcher does nothing rather than spend
-    beyond the cap. The gate is a no-op without a database (returns False) and
-    with the default effectively-off cap.
-    """
-    if not _db_enabled():
-        return False
-    _tokens, cents = state.budget_today()
-    if cents > settings.daily_spend_cap_cents:
-        log.warning(
-            "daily budget cap exceeded; refusing dispatch",
-            extra={
-                "fb_spend_cents": cents,
-                "fb_cap_cents": settings.daily_spend_cap_cents,
-            },
-        )
-        return True
-    return False
-
-
 def _dispatch(settings: Settings) -> int:
-    if _budget_exhausted(settings):
-        return 0
+    # discovery=auto is dormant scaffolding (see frankenbot.discovery). Fail LOUD
+    # rather than silently ignore the setting and scan only the explicit list —
+    # a silent no-op would hide a misconfiguration.
+    # TODO (Phase 5): wire live installation-repo discovery here.
+    if settings.discovery_is_auto():
+        raise NotImplementedError(
+            "discovery=auto not wired yet; set discovery=off / list repos explicitly"
+        )
 
     token = githubapp.mint_installation_token().token
 
@@ -248,19 +232,39 @@ def _is_triage_candidate(gh: githubapp.GitHubClient, repo: str, pull: dict) -> b
     return any(cr.get("conclusion") in _FAILING_CONCLUSIONS for cr in check_runs)
 
 
+def _job_is_terminal(status: object) -> bool:
+    """True if a Job has reached a terminal state (succeeded or failed).
+
+    Terminal = a ``completion_time`` is set (succeeded) OR a ``Complete``/``Failed``
+    condition is present with status ``"True"``. Everything else — including a
+    just-created Job that is still ``Pending`` with no active pod yet — is
+    NON-terminal and must count toward the concurrency cap, otherwise a burst of
+    ticks could over-dispatch past ``max_concurrent_jobs`` before pods start.
+    """
+    if status is None:
+        return False
+    if getattr(status, "completion_time", None) is not None:
+        return True
+    conditions = getattr(status, "conditions", None) or []
+    return any(
+        getattr(c, "type", None) in ("Complete", "Failed")
+        and getattr(c, "status", None) == "True"
+        for c in conditions
+    )
+
+
 def _count_active_jobs(batch_api: "k8s_client.BatchV1Api", namespace: str) -> int:
-    """Count non-complete frankenbot-managed Jobs in the namespace."""
+    """Count NON-TERMINAL frankenbot-managed Jobs in the namespace.
+
+    Counts Pending as well as Running Jobs (anything not succeeded/failed) so the
+    concurrency cap holds even for freshly-created Jobs whose pods have not yet
+    become active.
+    """
     jobs = batch_api.list_namespaced_job(
         namespace=namespace,
         label_selector=f"app.kubernetes.io/managed-by={_JOB_MANAGED_BY}",
     )
-    active = 0
-    for job in jobs.items:
-        status = job.status
-        # "Active" = pods running; a Job with no succeeded/failed terminal count.
-        if status and (status.active or 0) > 0:
-            active += 1
-    return active
+    return sum(1 for job in jobs.items if not _job_is_terminal(job.status))
 
 
 def _job_name(repo: RepoConfig, pr_number: int) -> str:

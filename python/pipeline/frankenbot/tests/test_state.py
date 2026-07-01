@@ -16,7 +16,7 @@ from typing import Any
 
 import pytest
 
-from frankenbot.state import already_done, budget_today, fingerprint, record_run
+from frankenbot.state import already_done, fingerprint, record_run
 
 
 def test_fingerprint_is_stable() -> None:
@@ -66,12 +66,6 @@ def test_fingerprint_nested_dict_key_order_independent() -> None:
 
 
 # --- DB functions fail loud without DATABASE_URL (no live DB required) -------
-
-
-def test_budget_today_requires_database_url(monkeypatch: Any) -> None:
-    monkeypatch.delenv("DATABASE_URL", raising=False)
-    with pytest.raises(RuntimeError):
-        budget_today()
 
 
 def test_already_done_requires_database_url(monkeypatch: Any) -> None:

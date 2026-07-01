@@ -159,6 +159,51 @@ def test_infra_path_without_parseable_resources_is_not_auto() -> None:
     assert result.allowlisted is False
 
 
+def test_t2_infra_non_allowlisted_is_not_auto() -> None:
+    # S1: the infra allowlist gate must cover T2 (codemod'd) infra changes too,
+    # not only T1. A reversible codemod (T2) touching a non-allowlisted infra
+    # resource must NOT be auto-eligible.
+    result = classify(
+        _plan((["update"], "vultr_kubernetes")),
+        update_type="minor",
+        needs_codemod=True,
+        changed_paths=["terraform/infrastructure/frankenstructure/cluster.tf"],
+    )
+    assert result.tier is Tier.T2
+    assert result.reversible is True
+    assert result.auto_eligible is False
+    assert result.allowlisted is False
+    assert result.merge_policy == "human"
+    assert any("allowlist" in r for r in result.reasons)
+
+
+def test_infra_detected_from_plan_without_terraform_path_is_not_auto() -> None:
+    # S2: "has infra" must not rely solely on a `terraform` path segment. Here the
+    # changed paths carry NO infra directory, but the plan changes a
+    # non-allowlisted resource — the gate must still engage.
+    result = classify(
+        _plan((["update"], "vultr_kubernetes")),
+        update_type="minor",
+        changed_paths=["config/values.yaml"],
+    )
+    assert result.tier is Tier.T1
+    assert result.auto_eligible is False
+    assert result.allowlisted is False
+    assert any("allowlist" in r for r in result.reasons)
+
+
+def test_infra_detected_from_non_terraform_dir_segment() -> None:
+    # S2: a stack under `infra/` (not `terraform/`) cannot dodge the gate.
+    result = classify(
+        _plan((["update"], "vultr_kubernetes")),
+        update_type="minor",
+        changed_paths=["infra/live/prod/cluster.tf"],
+    )
+    assert result.tier is Tier.T1
+    assert result.auto_eligible is False
+    assert result.allowlisted is False
+
+
 def test_invalid_update_type_raises() -> None:
     with pytest.raises(ValueError):
         classify({}, update_type="megabump")

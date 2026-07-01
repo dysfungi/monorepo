@@ -34,7 +34,19 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: opentofu/setup-opentofu@v2
+    - name: Scope mise to CI (exclude dev secret env)
+      shell: bash
+      run: |
+        echo "MISE_ENV=ci" >> "$GITHUB_ENV"
+
+    - uses: jdx/mise-action@v4
+      with:
+        version: 2026.6.14
+        install: false
+        cache: true
+    - name: Install OpenTofu via mise
+      shell: bash
+      run: mise install opentofu
 
     # Stage every op:// reference (and pass-through value) into $GITHUB_ENV under
     # the final env var name tofu expects, so init/apply need no explicit env:

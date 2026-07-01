@@ -28,6 +28,8 @@ import sys
 import time
 from typing import Sequence
 
+from frankenbot.classifier import VALID_UPDATE_TYPES
+
 _LOG_CONFIGURED = False
 
 
@@ -89,6 +91,40 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="N",
         help="Pull request number.",
     )
+
+    classify_plan = sub.add_parser(
+        "classify-plan",
+        help="Classify a `tofu show -json` plan into a risk tier (T0-T4).",
+    )
+    classify_plan.add_argument(
+        "plan",
+        metavar="PLAN.json",
+        help="Path to a `tofu show -json` plan document.",
+    )
+    classify_plan.add_argument(
+        "--update-type",
+        choices=sorted(VALID_UPDATE_TYPES),
+        default=None,
+        help="Renovate semver delta (major/minor/patch/digest/pin).",
+    )
+    classify_plan.add_argument(
+        "--paths",
+        default=None,
+        metavar="p1,p2,...",
+        help="Comma-separated list of the PR's changed file paths.",
+    )
+    classify_plan.add_argument(
+        "--needs-codemod",
+        action="store_true",
+        help="Set if the triage agent had to migrate code to make CI pass.",
+    )
+    classify_plan.add_argument(
+        "--format",
+        dest="fmt",
+        choices=["json", "comment"],
+        default="json",
+        help="Output format: machine-readable json or a PR-comment markdown block.",
+    )
     return parser
 
 
@@ -119,6 +155,27 @@ def main(argv: Sequence[str] | None = None) -> int:
         from frankenbot import triage
 
         return triage.run(repo=args.repo, pr_number=args.pr)
+
+    if args.command == "classify-plan":
+        from frankenbot import classifier
+
+        plan = classifier.load_plan(args.plan)
+        paths = (
+            [p.strip() for p in args.paths.split(",") if p.strip()]
+            if args.paths
+            else None
+        )
+        result = classifier.classify(
+            plan,
+            update_type=args.update_type,
+            needs_codemod=args.needs_codemod,
+            changed_paths=paths,
+        )
+        if args.fmt == "json":
+            print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+        else:
+            print(result.to_comment())
+        return 0
 
     # argparse's required=True should prevent reaching here.
     parser.error(f"unknown command: {args.command!r}")

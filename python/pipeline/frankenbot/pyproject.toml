@@ -43,6 +43,13 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["frankenbot"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+# Put the project dir on sys.path so `import frankenbot` resolves without an
+# editable install (keeps the local test loop independent of the build backend).
+pythonpath = ["."]
+
 [tool.black]
 line-length = 88
 target-version = ["py312"]

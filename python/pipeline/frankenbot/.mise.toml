@@ -38,15 +38,9 @@ mypy frankenbot
 
 # ── Test ─────────────────────────────────────────────────────────────────────
 [tasks.test]
-description = "Run pytest if tests exist, else no-op"
+description = "Run the pytest suite"
 alias = "tests"
-run = '''
-if [ -d tests ]; then
-  pytest
-else
-  echo "no tests yet"
-fi
-'''
+run = "pytest"
 
 # ── Start (usage hint) ───────────────────────────────────────────────────────
 [tasks.start]

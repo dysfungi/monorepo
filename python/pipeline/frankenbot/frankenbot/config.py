@@ -55,6 +55,28 @@ LABEL_FRANKENBOT = "frankenbot"  # Renovate PRs carry this; our work queue.
 LABEL_TRIAGED = "triaged"  # Set once a PR has been triaged (idempotency guard).
 LABEL_NEEDS_HUMAN = "needs-human"  # Set when triage could not auto-fix.
 
+# --- Discovery modes (Phase 5 multi-repo fan-out) --------------------------
+# "off"  : the explicit repos.yaml list is the sole source of truth (MVP).
+# "auto" : the GitHub App installations API is the dynamic source of truth;
+#          explicit repos.yaml entries still override per-repo config.
+DISCOVERY_OFF = "off"
+DISCOVERY_AUTO = "auto"
+VALID_DISCOVERY_MODES = frozenset({DISCOVERY_OFF, DISCOVERY_AUTO})
+
+# Default policy for repos surfaced by auto-discovery that have NO explicit
+# repos.yaml entry: propose-only (RepoConfig default) on the dependency surfaces
+# below. Any explicit entry always overrides these defaults (including opting a
+# repo out via ``enabled: false``).
+DEFAULT_AUTO_SURFACES = [
+    "github-actions",
+    "pre-commit",
+    "dockerfile",
+    "terraform",
+    "helmv3",
+    "helm-values",
+    "nuget",
+]
+
 
 def _env_bool(name: str, default: bool) -> bool:
     """Parse a boolean env var, treating common truthy/falsey spellings.
@@ -129,8 +151,12 @@ class Settings(BaseModel):
     repos_file: str = Field(
         default=REPOS_FILE_DEFAULT, description="Path to repos.yaml."
     )
+    discovery: str = Field(
+        default=DISCOVERY_OFF,
+        description="Repo-discovery mode: 'off' (explicit list) or 'auto' (App API).",
+    )
     repos: list[RepoConfig] = Field(
-        default_factory=list, description="Loaded repo policies."
+        default_factory=list, description="Explicit repo policies from repos.yaml."
     )
 
     def nodepool_key_value(self) -> tuple[str, str]:
@@ -156,12 +182,37 @@ class Settings(BaseModel):
         """Return only the repos that are enabled for dispatch."""
         return [r for r in self.repos if r.enabled]
 
+    def discovery_is_auto(self) -> bool:
+        """True when repos are sourced dynamically from the App installations API."""
+        return self.discovery == DISCOVERY_AUTO
 
-def _load_repos(repos_file: str) -> list[RepoConfig]:
-    """Load and validate the repo policy list from ``repos_file``.
+    def merge_discovered(self, slugs: list[str]) -> list[RepoConfig]:
+        """Merge auto-discovered ``owner/name`` slugs with explicit overrides.
+
+        Explicit ``repos.yaml`` entries WIN: a discovered slug that also has an
+        explicit entry keeps the explicit config (tier/surfaces/enabled, including
+        an ``enabled: false`` opt-out). Discovered slugs without an explicit entry
+        get a default propose-only policy over the standard dependency surfaces.
+
+        The explicit entries are returned first (verbatim), then the newly
+        discovered ones in first-seen order.
+        """
+        explicit_names = {r.name for r in self.repos}
+        merged = list(self.repos)
+        for slug in slugs:
+            if slug in explicit_names:
+                continue
+            merged.append(RepoConfig(name=slug, surfaces=list(DEFAULT_AUTO_SURFACES)))
+        return merged
+
+
+def _load_repo_file(repos_file: str) -> tuple[str, list[RepoConfig]]:
+    """Load the repo policy file, returning ``(discovery_mode, repos)``.
 
     Fails loud if the file is missing or malformed — a silent empty list would
-    make the dispatcher a confusing no-op.
+    make the dispatcher a confusing no-op. The optional top-level ``discovery``
+    key selects the source-of-truth mode (default ``off``); it is validated in
+    ``load_settings`` after any env override.
     """
     path = Path(repos_file)
     if not path.is_file():
@@ -176,14 +227,22 @@ def _load_repos(repos_file: str) -> list[RepoConfig]:
             f"repos file {repos_file!r} must be a YAML mapping with a 'repos' key."
         )
 
+    discovery = raw.get("discovery", DISCOVERY_OFF)
+    if not isinstance(discovery, str):
+        raise ValueError(
+            f"'discovery' in {repos_file!r} must be a string "
+            f"(one of {sorted(VALID_DISCOVERY_MODES)})."
+        )
+
     entries = raw.get("repos", [])
     if not isinstance(entries, list):
         raise ValueError(f"'repos' in {repos_file!r} must be a list.")
 
     try:
-        return [RepoConfig.model_validate(entry) for entry in entries]
+        repos = [RepoConfig.model_validate(entry) for entry in entries]
     except ValidationError as exc:  # pragma: no cover - exercised via bad config
         raise ValueError(f"invalid repo entry in {repos_file!r}: {exc}") from exc
+    return discovery, repos
 
 
 def load_settings() -> Settings:
@@ -218,6 +277,18 @@ def load_settings() -> Settings:
             f"FRANKENBOT_DAILY_SPEND_CAP_CENTS={spend_cap_raw!r} is not an integer."
         ) from exc
 
+    discovery_from_file, repos = _load_repo_file(repos_file)
+    # Env override wins over the file (FRANKENBOT_DISCOVERY=auto|off). Validate the
+    # final resolved value loudly rather than silently defaulting an unknown mode.
+    discovery = (
+        os.environ.get("FRANKENBOT_DISCOVERY", discovery_from_file).strip().lower()
+    )
+    if discovery not in VALID_DISCOVERY_MODES:
+        raise ValueError(
+            f"discovery mode {discovery!r} is invalid; expected one of "
+            f"{sorted(VALID_DISCOVERY_MODES)}."
+        )
+
     return Settings(
         enabled=enabled,
         namespace=os.environ.get("FRANKENBOT_NAMESPACE", "frankenbot"),
@@ -228,5 +299,6 @@ def load_settings() -> Settings:
             "FRANKENBOT_INFRA_NODEPOOL_LABEL", INFRA_NODEPOOL_LABEL_DEFAULT
         ),
         repos_file=repos_file,
-        repos=_load_repos(repos_file),
+        discovery=discovery,
+        repos=repos,
     )

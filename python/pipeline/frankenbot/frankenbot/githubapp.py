@@ -152,6 +152,16 @@ class GitHubClient:
     def close(self) -> None:
         self._client.close()
 
+    @property
+    def http(self) -> httpx.Client:
+        """The underlying authed httpx client.
+
+        Exposed so sibling modules (e.g. ``frankenbot.discovery``) can issue
+        additional authenticated GET calls without re-minting a token or
+        duplicating the base URL / header / timeout setup.
+        """
+        return self._client
+
     # -- reads ---------------------------------------------------------------
 
     def get_pull(self, repo: str, pr_number: int) -> dict[str, Any]:

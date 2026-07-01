@@ -13,6 +13,10 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = "~> 2.32"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
     # The kbst kustomization provider applies single custom-resource instances
     # (here, the ESO ExternalSecret) without the plan-time CRD dry-run that
     # kubernetes_manifest performs. See external_secret_musync.tf for details.

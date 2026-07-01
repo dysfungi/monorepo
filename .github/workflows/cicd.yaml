@@ -446,6 +446,5 @@ jobs:
           # external_secret_musync.tf), so they are not injected here.
           op_refs: |
             TF_VAR_app_version=${{ needs.build-musync.outputs.app_version }}
-            TF_VAR_musync_postgres_password=op://Frankenstructure/Postgres - Musync/password
             TF_VAR_dockerconfigjson=op://Frankenstructure/Vultr Container Registry - Frankistry/credential
             TF_VAR_vultr_api_key=op://Frankenstructure/Vultr API Key/password

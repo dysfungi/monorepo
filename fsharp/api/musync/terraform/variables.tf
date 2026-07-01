@@ -2,12 +2,6 @@ variable "app_version" {
   type = string
 }
 
-variable "musync_postgres_password" {
-  type      = string
-  nullable  = false
-  sensitive = true
-}
-
 variable "dockerconfigjson" {
   type      = string
   sensitive = true

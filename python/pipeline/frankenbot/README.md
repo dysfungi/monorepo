@@ -63,7 +63,7 @@ the platform can authenticate, and are the only manual gate to going live.
    cluster Secrets:
 
    - `GitHub App - Frankenbot` — `app id`, `installation id`, `private key`
-   - `Anthropic - Frankenbot` — `credential`
+   - `Anthropic API Key - Frankenbot` — `credential`
    - `Postgres - Frankenbot` — `password`
 
    Note: the GitHub App uses installation-token auth (App ID + private key),

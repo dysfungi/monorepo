@@ -10,18 +10,17 @@ open Musync.Email
 // no calendar-write API, so this is the whole "write" path — the user's native
 // client ingests the emailed METHOD:REQUEST invite.
 //
-// Self-invite: the invite's From/To/ORGANIZER/ATTENDEE are all the user's own
-// mailbox (`smtp.From`). Whether the recipient should instead be the user's
-// PRIMARY Proton address (vs the musync send address) is a live-apply question —
-// see the phase notes.
+// Recipient split (Phase 4): `From`/ORGANIZER = `smtp.From` (the musync send
+// address); `To`/ATTENDEE = `userEmail` (the user's primary Proton mailbox, from
+// Config.UserEmail). This closes the Phase-3 gap where both were `smtp.From`.
 
-type SmtpCalendarTarget(smtp: SmtpConfig) =
+type SmtpCalendarTarget(smtp: SmtpConfig, userEmail: string) =
   let sender = EmailSender(smtp)
 
   interface ICalendarTarget with
     member _.SendInvite(concert) =
       async {
-        use message = Musync.Calendar.buildMessage concert smtp.From
+        use message = Musync.Calendar.buildMessage concert smtp.From userEmail
         let! result = sender.Send message
         // EmailSender is port-agnostic (Result<_, string>); map onto CalendarError.
         return result |> Result.mapError CalendarError

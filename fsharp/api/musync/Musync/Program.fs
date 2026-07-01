@@ -38,7 +38,7 @@ let main argv =
     let source = Songkick.SongkickShowSource(config.SongkickIcsUrl) :> IShowSource
 
     let calendarTarget =
-      CalendarEmail.SmtpCalendarTarget(config.Smtp) :> ICalendarTarget
+      CalendarEmail.SmtpCalendarTarget(config.Smtp, config.UserEmail) :> ICalendarTarget
 
     // ── Core: fetch Going shows, then upsert each. `List.fold` short-circuits on
     // the first persistence error (Result.bind), so a partial failure aborts and
@@ -106,9 +106,51 @@ let main argv =
       0
   | [ Curate_Preshow ] ->
     let config = Config.load ()
-    printfn "[musync] curate-preshow: stub (Phase 1a) — no-op"
-    pingDeadman config.Deadman.CuratePreshowUrl
-    0
+    let provider = Setlist.SetlistFmProvider(config.SetlistFmApiKey) :> ISetlistProvider
+    let notifier = Notifier.SmtpNotifier(config.Smtp, config.UserEmail) :> INotifier
+    let now () = DateTimeOffset.UtcNow
+    // ~3-day pre-show window. The user pre-creates the Setlist.fm entry ≤3 days
+    // out, so that is when a nudge is actionable.
+    let horizonDays = 3
+
+    // ── Core: select the in-window, not-yet-found concerts. A window-query
+    // failure aborts and withholds the deadman ping (tripping the external alert).
+    match Persistence.listCurateWindow config.DatabaseUrl (now ()) horizonDays with
+    | Error err ->
+      eprintfn "[musync] curate-preshow FAILED (window query): %A" err
+      1
+    | Ok rows ->
+      // Per-concert curate. A per-concert failure is tallied + WARN-logged (via
+      // SetlistCurate) but NEVER aborts the run — the window-select CORE succeeded,
+      // so the deadman still pings below.
+      let found, nudged, already, failed =
+        ((0, 0, 0, 0), rows)
+        ||> List.fold (fun (fo, nu, al, fa) row ->
+          let stepOutcome =
+            SetlistCurate.runStep config.DatabaseUrl provider notifier now row
+            |> Async.RunSynchronously
+
+          match stepOutcome with
+          | Ok SetlistCurate.Found -> (fo + 1, nu, al, fa)
+          | Ok SetlistCurate.Nudged -> (fo, nu + 1, al, fa)
+          | Ok SetlistCurate.AlreadyNotified -> (fo, nu, al + 1, fa)
+          | Ok(SetlistCurate.Failed _) -> (fo, nu, al, fa + 1)
+          | Error err ->
+            eprintfn "[musync] WARN setlist: step error for %s: %A" row.SongkickUid err
+
+            (fo, nu, al, fa + 1))
+
+      printfn
+        "[musync] curate-preshow: window=%d found=%d nudged=%d already-notified=%d failed=%d"
+        (List.length rows)
+        found
+        nudged
+        already
+        failed
+      // Deadman ping: the window-select core succeeded. Per-concert failures are
+      // surfaced (WARN + setlist_last_error) but do NOT withhold the ping.
+      pingDeadman config.Deadman.CuratePreshowUrl
+      0
   | _ ->
     printfn "%s" (parser.PrintUsage())
     0

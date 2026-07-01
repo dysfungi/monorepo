@@ -32,6 +32,12 @@ type AppConfig = {
   SongkickIcsUrl: string
   /// Setlist.fm API key (secret).
   SetlistFmApiKey: string
+  /// The user's own mailbox (their Proton address). This is the RECIPIENT of
+  /// everything musync delivers: the calendar self-invite's ATTENDEE + `To:` AND
+  /// the pre-show setlist-nudge `To:`. `Smtp.From` stays the musync SEND address
+  /// (ORGANIZER / `From:`). Reads env `USER_EMAIL` (compose maps the host's
+  /// `MUSYNC_USER_EMAIL` onto it, mirroring the other `MUSYNC_*` vars).
+  UserEmail: string
   Smtp: SmtpConfig
   Deadman: DeadmanConfig
 }

@@ -2,8 +2,6 @@ module Musync.Tests.CalendarTests
 
 open System
 open System.IO
-open System.Net
-open System.Net.Sockets
 open Expecto
 open Ical.Net
 open MimeKit
@@ -20,6 +18,9 @@ open Musync.Email
 // A fixed Id makes the UID deterministic; a known LA instant fixes the all-day
 // date (midnight 2026-05-11 America/Los_Angeles == 07:00Z).
 let private sampleId = Guid.Parse "11111111-1111-1111-1111-111111111111"
+// Phase 4 recipient split: ORGANIZER/From = the musync SEND address; ATTENDEE/To
+// = the user's own mailbox (the invite lands in THIS calendar).
+let private fromAddress = "musync@frank.sh"
 let private userAddress = "user@frank.sh"
 
 let private makeConcert () : Concert = {
@@ -64,13 +65,6 @@ let rec private findCalendarPart (entity: MimeEntity) : TextPart option =
   | :? TextPart as tp when tp.ContentType.MimeType = "text/calendar" -> Some tp
   | _ -> None
 
-let private freePort () =
-  let listener = new TcpListener(IPAddress.Loopback, 0)
-  listener.Start()
-  let port = (listener.LocalEndpoint :?> IPEndPoint).Port
-  listener.Stop()
-  port
-
 [<Tests>]
 let calendarTests =
   testList "calendar" [
@@ -78,7 +72,7 @@ let calendarTests =
     testList "VEVENT" [
       testCase "UID / SEQUENCE / METHOD:REQUEST are the musync-owned values"
       <| fun _ ->
-        let ics = Musync.Calendar.buildIcs (makeConcert ()) userAddress
+        let ics = Musync.Calendar.buildIcs (makeConcert ()) fromAddress userAddress
         let cal, evt = firstEvent ics
         Want.equal "REQUEST" cal.Method
         Want.equal expectedUid evt.Uid
@@ -86,7 +80,7 @@ let calendarTests =
 
       testCase "all-day DTSTART/DTEND are date-only (no invented showtime)"
       <| fun _ ->
-        let ics = Musync.Calendar.buildIcs (makeConcert ()) userAddress
+        let ics = Musync.Calendar.buildIcs (makeConcert ()) fromAddress userAddress
         let _, evt = firstEvent ics
         Want.equal true evt.IsAllDay
         Want.equal false evt.Start.HasTime
@@ -99,16 +93,18 @@ let calendarTests =
 
       testCase "SUMMARY / LOCATION carry the show fields"
       <| fun _ ->
-        let ics = Musync.Calendar.buildIcs (makeConcert ()) userAddress
+        let ics = Musync.Calendar.buildIcs (makeConcert ()) fromAddress userAddress
         let _, evt = firstEvent ics
         Want.equal "Puscifer" evt.Summary
         Want.equal "Golden Gate Theatre, San Francisco, US" evt.Location
 
-      testCase "ORGANIZER == ATTENDEE == the user (self-invite)"
+      testCase "ORGANIZER = musync send addr; ATTENDEE = the user (recipient split)"
       <| fun _ ->
-        let ics = Musync.Calendar.buildIcs (makeConcert ()) userAddress
+        let ics = Musync.Calendar.buildIcs (makeConcert ()) fromAddress userAddress
         let _, evt = firstEvent ics
-        Want.equal ("mailto:" + userAddress) (evt.Organizer.Value.ToString())
+        // Phase 4 retrofit: ORGANIZER is the musync From; the single ATTENDEE is
+        // the user's own mailbox (whose calendar ingests the invite).
+        Want.equal ("mailto:" + fromAddress) (evt.Organizer.Value.ToString())
         Want.equal 1 evt.Attendees.Count
         Want.equal ("mailto:" + userAddress) (evt.Attendees.[0].Value.ToString())
     ]
@@ -145,11 +141,17 @@ let calendarTests =
     // ── MIME ─────────────────────────────────────────────────────────────────
     testCase "MIME calendar part is text/calendar;method=REQUEST and re-parses"
     <| fun _ ->
-      use message = Musync.Calendar.buildMessage (makeConcert ()) userAddress
+      use message =
+        Musync.Calendar.buildMessage (makeConcert ()) fromAddress userAddress
+
       use ms = new MemoryStream()
       message.WriteTo ms
       ms.Position <- 0L
       let reparsed = MimeMessage.Load ms
+
+      // From = musync send address; To = the user's mailbox (recipient split).
+      Want.equal fromAddress (reparsed.From.Mailboxes |> Seq.head).Address
+      Want.equal userAddress (reparsed.To.Mailboxes |> Seq.head).Address
 
       match findCalendarPart reparsed.Body with
       | None -> failtest "no text/calendar part found"
@@ -164,13 +166,14 @@ let calendarTests =
     // ── SMTP send against a loopback fake sink (netDumbster) ──────────────────
     testCase "EmailSender delivers the MIME to a fake SMTP server"
     <| fun _ ->
-      let port = freePort ()
-      let server = SimpleSmtpServer.Start port
+      // Auto-bind a random free port (no TOCTOU race with the nudge fake-SMTP
+      // test under Expecto's parallel runner).
+      let server = SimpleSmtpServer.Start()
 
       try
         let smtp: SmtpConfig = {
           Host = "127.0.0.1"
-          Port = port
+          Port = server.Configuration.Port
           Username = "" // empty => EmailSender skips AUTH (the sink has none)
           Password = ""
           From = userAddress
@@ -179,7 +182,8 @@ let calendarTests =
         // security that production would pick for this port.
         let sender = EmailSender(smtp, SecureSocketOptions.None)
 
-        use message = Musync.Calendar.buildMessage (makeConcert ()) userAddress
+        use message =
+          Musync.Calendar.buildMessage (makeConcert ()) fromAddress userAddress
 
         sender.Send message |> Async.RunSynchronously |> Want.isOk
 

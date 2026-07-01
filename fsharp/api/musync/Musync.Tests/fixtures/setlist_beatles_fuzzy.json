@@ -1,0 +1,27 @@
+{
+  "type": "setlists",
+  "itemsPerPage": 20,
+  "page": 1,
+  "total": 1,
+  "setlist": {
+    "id": "beat1",
+    "eventDate": "22-08-2026",
+    "artist": {
+      "mbid": "beatles-mbid",
+      "name": "The Beatles",
+      "sortName": "Beatles, The"
+    },
+    "venue": {
+      "name": "Shea Stadium",
+      "city": {
+        "name": "Queens",
+        "country": { "code": "US", "name": "United States" }
+      }
+    },
+    "sets": {
+      "set": {
+        "song": [{ "name": "Twist and Shout" }, { "name": "I Feel Fine" }]
+      }
+    }
+  }
+}

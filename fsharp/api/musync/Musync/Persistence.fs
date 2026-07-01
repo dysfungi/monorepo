@@ -1,6 +1,7 @@
 module Musync.Persistence
 
 open System
+open System.Text.Json
 open Npgsql
 open Npgsql.FSharp
 open Musync.Errors
@@ -75,6 +76,9 @@ type ConcertRow = {
   CalendarSentAt: DateTimeOffset option
   CalendarAttempts: int
   ProbableSetlist: string option
+  ProbableSetlistComputedAt: DateTimeOffset option
+  SetlistNotifiedAt: DateTimeOffset option
+  SetlistFoundAt: DateTimeOffset option
   SetlistAttempts: int
   CreatedAt: DateTimeOffset
   UpdatedAt: DateTimeOffset
@@ -97,6 +101,9 @@ let private readConcertRow (read: RowReader) : ConcertRow = {
   CalendarSentAt = read.datetimeOffsetOrNone "calendar_sent_at"
   CalendarAttempts = read.int "calendar_attempts"
   ProbableSetlist = read.textOrNone "probable_setlist"
+  ProbableSetlistComputedAt = read.datetimeOffsetOrNone "probable_setlist_computed_at"
+  SetlistNotifiedAt = read.datetimeOffsetOrNone "setlist_notified_at"
+  SetlistFoundAt = read.datetimeOffsetOrNone "setlist_found_at"
   SetlistAttempts = read.int "setlist_attempts"
   CreatedAt = read.datetimeOffset "created_at"
   UpdatedAt = read.datetimeOffset "updated_at"
@@ -106,8 +113,9 @@ let private readConcertRow (read: RowReader) : ConcertRow = {
 let private selectColumns =
   "SELECT id, account_id, songkick_uid, artist, venue, city, country, starts_at, tz, \
    plan_status, calendar_uid, content_hash, calendar_sequence, calendar_sent_at, \
-   calendar_attempts, probable_setlist::text AS probable_setlist, setlist_attempts, \
-   created_at, updated_at FROM concerts"
+   calendar_attempts, probable_setlist::text AS probable_setlist, \
+   probable_setlist_computed_at, setlist_notified_at, setlist_found_at, \
+   setlist_attempts, created_at, updated_at FROM concerts"
 
 /// Upsert a concert keyed on `songkick_uid`. The `ON CONFLICT ... DO UPDATE` set
 /// touches ONLY the show/plan columns (artist/venue/city/country/starts_at/tz/
@@ -206,10 +214,13 @@ let toConcert (row: ConcertRow) : Result<Concert, MusyncError> =
         CalendarSentAt = row.CalendarSentAt
         CalendarAttempts = row.CalendarAttempts
         CalendarLastError = None
+        // The stored `probable_setlist` jsonb is recomputed each curate run, so the
+        // rehydrated domain value carries None here; the *state* columns the curate
+        // step branches on (notified/found/computed_at) ARE surfaced from the row.
         ProbableSetlist = None
-        ProbableSetlistComputedAt = None
-        SetlistNotifiedAt = None
-        SetlistFoundAt = None
+        ProbableSetlistComputedAt = row.ProbableSetlistComputedAt
+        SetlistNotifiedAt = row.SetlistNotifiedAt
+        SetlistFoundAt = row.SetlistFoundAt
         SetlistAttempts = row.SetlistAttempts
         SetlistLastError = None
         CreatedAt = row.CreatedAt
@@ -319,6 +330,161 @@ let recordCalendarError
       "UPDATE concerts SET \
          calendar_attempts = calendar_attempts + 1, \
          calendar_last_error = @error \
+       WHERE id = @id ;"
+    |> Sql.parameters [
+      "@error", Sql.text error
+      "@id", Sql.uuid id
+    ]
+    |> Sql.executeNonQuery
+    |> ignore
+
+    Ok()
+  with ex ->
+    Error(PersistenceError ex.Message)
+
+// ── Setlist state machine (Phase 4) ──────────────────────────────────────────
+// Per-concert setlist columns. Recompute policy: every curate run (while not
+// found) re-derives the `ProbableSetlist` and overwrites `probable_setlist` +
+// `probable_setlist_computed_at`. `setlist_notified_at` is the nudge DEDUPE
+// (set once, never re-nudge); `setlist_found_at` is TERMINAL (a confirmed
+// Setlist.fm entry ends the loop — no more recompute/nudge). A false "found"
+// would permanently suppress the nudge, which is why the existence check is
+// deliberately fail-OPEN (see Adapters.Setlist).
+
+/// Stable jsonb serialization of a `ProbableSetlist`. System.Text.Json emits
+/// record properties in declaration order (Songs, then ComputedAt), so the same
+/// prediction always serializes to byte-identical JSON — deterministic for tests
+/// and for hash/diff stability. Written into the `probable_setlist` jsonb column.
+let serializeSetlist (setlist: ProbableSetlist) : string =
+  JsonSerializer.Serialize setlist
+
+/// Inverse of `serializeSetlist`. Returns None on any parse failure rather than
+/// throwing — a drifted/legacy jsonb value degrades to "no stored prediction"
+/// instead of aborting a read (the curate loop recomputes regardless).
+let tryDeserializeSetlist (json: string) : ProbableSetlist option =
+  try
+    Some(JsonSerializer.Deserialize<ProbableSetlist> json)
+  with _ ->
+    None
+
+/// Concerts in the pre-show curate WINDOW: not yet found, starting between `now`
+/// and `now + horizonDays`. Excludes past shows (`starts_at >= now`) and terminal
+/// ones (`setlist_found_at IS NULL`). Soonest first.
+let listCurateWindow
+  (databaseUrl: string)
+  (now: DateTimeOffset)
+  (horizonDays: int)
+  : Result<ConcertRow list, MusyncError> =
+  try
+    toConnectionString databaseUrl
+    |> Sql.connect
+    |> Sql.query (
+      selectColumns
+      + " WHERE setlist_found_at IS NULL \
+           AND starts_at >= @now AND starts_at <= @horizon \
+         ORDER BY starts_at ASC ;"
+    )
+    |> Sql.parameters [
+      "@now", Sql.timestamptz now
+      "@horizon", Sql.timestamptz (now.AddDays(float horizonDays))
+    ]
+    |> Sql.execute readConcertRow
+    |> Ok
+  with ex ->
+    Error(PersistenceError ex.Message)
+
+/// Store (overwrite) the recomputed prediction + its compute timestamp. Casts the
+/// serialized text to jsonb server-side.
+let storeProbableSetlist
+  (databaseUrl: string)
+  (id: Guid)
+  (setlistJson: string)
+  (computedAt: DateTimeOffset)
+  : Result<unit, MusyncError> =
+  try
+    toConnectionString databaseUrl
+    |> Sql.connect
+    |> Sql.query
+      "UPDATE concerts SET \
+         probable_setlist = @setlist::jsonb, \
+         probable_setlist_computed_at = @computed_at \
+       WHERE id = @id ;"
+    |> Sql.parameters [
+      "@setlist", Sql.text setlistJson
+      "@computed_at", Sql.timestamptz computedAt
+      "@id", Sql.uuid id
+    ]
+    |> Sql.executeNonQuery
+    |> ignore
+
+    Ok()
+  with ex ->
+    Error(PersistenceError ex.Message)
+
+/// Stamp `setlist_notified_at` (the nudge dedupe) and clear the last error. Set
+/// ONCE after a nudge sends; a later run sees it non-NULL and never re-nudges.
+let markSetlistNotified
+  (databaseUrl: string)
+  (id: Guid)
+  (now: DateTimeOffset)
+  : Result<unit, MusyncError> =
+  try
+    toConnectionString databaseUrl
+    |> Sql.connect
+    |> Sql.query
+      "UPDATE concerts SET \
+         setlist_notified_at = @now, \
+         setlist_attempts = setlist_attempts + 1, \
+         setlist_last_error = NULL \
+       WHERE id = @id ;"
+    |> Sql.parameters [
+      "@now", Sql.timestamptz now
+      "@id", Sql.uuid id
+    ]
+    |> Sql.executeNonQuery
+    |> ignore
+
+    Ok()
+  with ex ->
+    Error(PersistenceError ex.Message)
+
+/// Stamp `setlist_found_at` — TERMINAL. A confirmed Setlist.fm entry ends the
+/// loop: `listCurateWindow` excludes the row thereafter, so it is never
+/// recomputed or nudged again.
+let markSetlistFound
+  (databaseUrl: string)
+  (id: Guid)
+  (now: DateTimeOffset)
+  : Result<unit, MusyncError> =
+  try
+    toConnectionString databaseUrl
+    |> Sql.connect
+    |> Sql.query "UPDATE concerts SET setlist_found_at = @now WHERE id = @id ;"
+    |> Sql.parameters [
+      "@now", Sql.timestamptz now
+      "@id", Sql.uuid id
+    ]
+    |> Sql.executeNonQuery
+    |> ignore
+
+    Ok()
+  with ex ->
+    Error(PersistenceError ex.Message)
+
+/// Record a curate-step failure (prediction/notify): bump attempts + store the
+/// error. Leaves notified/found untouched so the next run retries.
+let recordSetlistError
+  (databaseUrl: string)
+  (id: Guid)
+  (error: string)
+  : Result<unit, MusyncError> =
+  try
+    toConnectionString databaseUrl
+    |> Sql.connect
+    |> Sql.query
+      "UPDATE concerts SET \
+         setlist_attempts = setlist_attempts + 1, \
+         setlist_last_error = @error \
        WHERE id = @id ;"
     |> Sql.parameters [
       "@error", Sql.text error

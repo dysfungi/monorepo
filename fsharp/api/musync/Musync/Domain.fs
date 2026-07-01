@@ -86,12 +86,113 @@ type ProbableSetlist = {
 }
 
 module ProbableSetlist =
-  /// Deterministic empty prediction. Placeholder until the Phase 4 ranking
-  /// algorithm replaces the body; the TYPE stays as-is.
+  /// Deterministic empty prediction (no tour history to rank). The TYPE is final;
+  /// `fromSetlists` below is the real Phase 4 ranking.
   let empty (computedAt: DateTimeOffset) : ProbableSetlist = {
     Songs = []
     ComputedAt = computedAt
   }
+
+  /// Per-song accumulator used only while ranking. `Display` is the first-seen
+  /// raw spelling (stable in input order); `Key` is the case-folded match key.
+  type private SongAgg = {
+    Display: string
+    Key: string
+    /// Number of DISTINCT setlists the song appeared in (its frequency).
+    Count: int
+    /// Sum of the song's first-occurrence 0-based position across those setlists.
+    PosSum: int
+  }
+
+  /// Rank songs across an artist's recent tour setlists into a probable setlist.
+  ///
+  /// Input: `setlists` — the recent shows, each an ORDERED list of song names
+  /// (index 0 = opener). Output ordering:
+  ///   1. play frequency, DESCENDING (how many setlists the song appears in);
+  ///   2. tie-break: typical (mean first-occurrence) position, ASCENDING, so
+  ///      equally-frequent songs keep their usual running order;
+  ///   3. tie-break: display name, ORDINAL ascending — a total, deterministic key.
+  /// `Position` is the 1-based slot in the resulting order; `Frequency` is the
+  /// setlist count. A song repeated within ONE setlist counts once (its first
+  /// position wins). PURE + deterministic: identical input -> identical output,
+  /// no wall-clock or randomness (the only time input is the caller's timestamp).
+  let fromSetlists
+    (computedAt: DateTimeOffset)
+    (setlists: string list list)
+    : ProbableSetlist =
+    // Collapse ONE setlist to its unique (key, display, firstPosition) triples,
+    // preserving first-occurrence order and dropping empty names.
+    let dedupeSetlist (songs: string list) : (string * string * int) list =
+      songs
+      |> List.mapi (fun pos name -> pos, (if isNull name then "" else name.Trim()))
+      |> List.filter (fun (_, name) -> name <> "")
+      |> List.fold
+        (fun (seen: Set<string>, acc) (pos, name) ->
+          let key = name.ToLowerInvariant()
+
+          if Set.contains key seen then
+            seen, acc
+          else
+            Set.add key seen, (key, name, pos) :: acc)
+        (Set.empty, [])
+      |> snd
+      |> List.rev
+
+    let aggregated =
+      setlists
+      |> List.collect dedupeSetlist
+      |> List.fold
+        (fun (m: Map<string, SongAgg>) (key, display, pos) ->
+          match Map.tryFind key m with
+          | Some agg ->
+            Map.add
+              key
+              {
+                agg with
+                    Count = agg.Count + 1
+                    PosSum = agg.PosSum + pos
+              }
+              m
+          | None ->
+            Map.add
+              key
+              {
+                Display = display
+                Key = key
+                Count = 1
+                PosSum = pos
+              }
+              m)
+        Map.empty
+
+    let songs =
+      aggregated
+      |> Map.toList
+      |> List.map snd
+      |> List.sortWith (fun a b ->
+        let byFreq = compare b.Count a.Count // frequency DESC
+
+        if byFreq <> 0 then
+          byFreq
+        else
+          let meanA = float a.PosSum / float a.Count
+          let meanB = float b.PosSum / float b.Count
+          let byPos = compare meanA meanB // typical position ASC
+
+          if byPos <> 0 then
+            byPos
+          else
+            String.CompareOrdinal(a.Display, b.Display)) // name ASC (total order)
+      |> List.mapi (fun i agg -> {
+        Name = agg.Display
+        Frequency = agg.Count
+        Position = i + 1
+      })
+
+    {
+      Songs = songs
+      ComputedAt = computedAt
+    }
 
 // ── Concert aggregate ────────────────────────────────────────────────────────
 // Maps 1:1 to the `concerts` table (see db/migrations). Nullable columns are

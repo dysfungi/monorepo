@@ -25,7 +25,10 @@
     <Compile Include="Persistence.fs" />
     <Compile Include="Adapters/Songkick.fs" />
     <Compile Include="Adapters/CalendarEmail.fs" />
+    <Compile Include="Adapters/Setlist.fs" />
+    <Compile Include="Adapters/Notifier.fs" />
     <Compile Include="CalendarSync.fs" />
+    <Compile Include="SetlistCurate.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

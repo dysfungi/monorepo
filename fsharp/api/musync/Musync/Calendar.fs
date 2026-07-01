@@ -116,11 +116,18 @@ let contentHash (c: Concert) : string =
   |> Array.map (fun b -> b.ToString "x2")
   |> String.concat ""
 
-/// Build the iCalendar text for a concert. `userAddress` is the user's own
-/// mailbox: because Proton has no calendar-write API, musync mails the user an
-/// invite that the native client ingests — so ORGANIZER and ATTENDEE are the
-/// SAME address (a self-invite). SEQUENCE comes from `c.CalendarSequence`.
-let buildIcs (c: Concert) (userAddress: string) : string =
+/// Build the iCalendar text for a concert. Because Proton has no calendar-write
+/// API, musync mails an invite the native client ingests. `organizerAddress` is
+/// the musync SEND address (ORGANIZER); `attendeeAddress` is the user's own
+/// mailbox (ATTENDEE) — the invitee whose calendar the event lands in. Phase 4
+/// split these (they were one self-invite address in Phase 3) so the ATTENDEE is
+/// the user's primary Proton address, not the musync send address. SEQUENCE comes
+/// from `c.CalendarSequence`.
+let buildIcs
+  (c: Concert)
+  (organizerAddress: string)
+  (attendeeAddress: string)
+  : string =
   let p = project c
 
   let cal = Calendar()
@@ -138,9 +145,8 @@ let buildIcs (c: Concert) (userAddress: string) : string =
   evt.End <- CalDateTime(e.Year, e.Month, e.Day)
   evt.IsAllDay <- true
 
-  let mailto = "mailto:" + userAddress
-  evt.Organizer <- Organizer(mailto)
-  let attendee = Attendee(mailto)
+  evt.Organizer <- Organizer("mailto:" + organizerAddress)
+  let attendee = Attendee("mailto:" + attendeeAddress)
   attendee.ParticipationStatus <- "NEEDS-ACTION"
   attendee.Rsvp <- true
   evt.Attendees.Add attendee
@@ -149,15 +155,19 @@ let buildIcs (c: Concert) (userAddress: string) : string =
   CalendarSerializer().SerializeToString cal
 
 /// Wrap the ICS as a `multipart/alternative` (text/plain + text/calendar;
-/// method=REQUEST) message. Self-invite => From == To == `userAddress`. Caller
-/// owns disposal of the returned message.
-let buildMessage (c: Concert) (userAddress: string) : MimeMessage =
+/// method=REQUEST) message. `From` = `organizerAddress` (musync send address);
+/// `To` = `attendeeAddress` (the user's mailbox). Caller owns disposal.
+let buildMessage
+  (c: Concert)
+  (organizerAddress: string)
+  (attendeeAddress: string)
+  : MimeMessage =
   let p = project c
-  let ics = buildIcs c userAddress
+  let ics = buildIcs c organizerAddress attendeeAddress
 
   let msg = new MimeMessage()
-  msg.From.Add(MailboxAddress("musync", userAddress))
-  msg.To.Add(MailboxAddress("musync", userAddress))
+  msg.From.Add(MailboxAddress("musync", organizerAddress))
+  msg.To.Add(MailboxAddress("musync", attendeeAddress))
   msg.Subject <- sprintf "%s at %s" p.Artist p.Venue
 
   let plain = new TextPart(TextFormat.Plain)

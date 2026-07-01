@@ -15,12 +15,25 @@
     <Compile Include="PersistenceTests.fs" />
     <Compile Include="CalendarTests.fs" />
     <Compile Include="CalendarStateTests.fs" />
+    <Compile Include="SetlistTests.fs" />
+    <Compile Include="NotifierTests.fs" />
+    <Compile Include="SetlistCurateTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
-  <!-- ICS fixtures must sit next to the test assembly so parseIcs can read them. -->
+  <!-- Fixtures must sit next to the test assembly so the pure parsers can read
+       them (ICS for Songkick; JSON for Setlist.fm). -->
   <ItemGroup>
     <None Include="fixtures/songkick_attendance.ics">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="fixtures/setlist_radiohead_setlists.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="fixtures/setlist_search_empty.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="fixtures/setlist_beatles_fuzzy.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

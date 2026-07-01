@@ -26,12 +26,6 @@ variable "max_concurrent_jobs" {
   description = "Cap on simultaneously-active triage Jobs -> FRANKENBOT_MAX_CONCURRENT_JOBS."
 }
 
-variable "frankenbot_postgres_password" {
-  type        = string
-  sensitive   = true
-  description = "Password for the frankenbot login role on the shared Vultr managed Postgres (databases.tf)."
-}
-
 variable "vultr_api_key" {
   type        = string
   sensitive   = true

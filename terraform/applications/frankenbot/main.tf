@@ -26,6 +26,12 @@ terraform {
       source  = "vultr/vultr"
       version = "~> 2.21"
     }
+    # Generates the frankenbot DB app-user password (databases.tf) — a
+    # machine-only credential owned by IaC rather than a 1Password item.
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
   }
 }
 

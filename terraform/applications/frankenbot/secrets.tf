@@ -23,7 +23,7 @@ resource "kubernetes_secret" "db" {
   data = {
     DATABASE_URL = join("", [
       "postgres:",
-      "//${vultr_database_user.frankenbot.username}:${var.frankenbot_postgres_password}",
+      "//${vultr_database_user.frankenbot.username}:${random_password.frankenbot_db.result}",
       "@${data.vultr_database.pg.host}:${data.vultr_database.pg.port}",
       "/${vultr_database_db.frankenbot.name}",
       "?sslmode=${local.dbsslmode}",

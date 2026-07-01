@@ -21,8 +21,17 @@ resource "vultr_database_db" "frankenbot" {
   name        = "frankenbot"
 }
 
+# The frankenbot login role's password is a machine-only credential: Tofu
+# creates the user and the only consumer is the DATABASE_URL secret (secrets.tf)
+# ESO hands the dispatcher. Generate it here instead of sourcing a hand-created
+# 1Password item + TF_VAR.
+resource "random_password" "frankenbot_db" {
+  length  = 32
+  special = false # alphanumeric -> safe in the DATABASE_URL and as a Vultr DB user password (no URL-encoding needed)
+}
+
 resource "vultr_database_user" "frankenbot" {
   database_id = data.vultr_database.pg.id
   username    = "frankenbot"
-  password    = var.frankenbot_postgres_password
+  password    = random_password.frankenbot_db.result
 }

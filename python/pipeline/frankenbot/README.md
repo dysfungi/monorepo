@@ -64,10 +64,16 @@ the platform can authenticate, and are the only manual gate to going live.
 
    - `GitHub App - Frankenbot` — `app id`, `installation id`, `private key`
    - `Anthropic API Key - Frankenbot` — `credential`
-   - `Postgres - Frankenbot` — `password`
 
    Note: the GitHub App uses installation-token auth (App ID + private key),
    NOT OAuth — so `client id`, `client secret`, and `username` are not used.
+
+   The DB app-user password is no longer a 1Password item: Tofu generates it
+   with `random_password` (`terraform/applications/frankenbot/databases.tf`,
+   IaC-owned) and wires it straight into the `DATABASE_URL` secret. Any
+   previously-created `Postgres - Frankenbot` item can be deleted. (The Vultr
+   managed-DB admin credential used by the dbmate migrate job is a separate
+   secret and is unaffected.)
 
 ## Kill switch
 

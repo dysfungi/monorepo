@@ -146,7 +146,7 @@ jobs:
       run:
         working-directory: python/pipeline/frankenbot
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@v7
       - name: Compute app version
         id: app-version
         run: |
@@ -404,3 +404,27 @@ jobs:
             TF_VAR_automate_postgres_password=op://Frankenstructure/Postgres - AutoMate/password
             TF_VAR_dockerconfigjson=op://Frankenstructure/Vultr Container Registry - Frankistry/credential
             TF_VAR_vultr_api_key=op://Frankenstructure/Vultr API Key/password
+
+  deploy-frankenbot:
+    if: needs.changes.outputs.frankenbot == 'true'
+    concurrency:
+      group: ${{ github.workflow }}-deploy-frankenbot
+      cancel-in-progress: false
+    environment: production
+    needs:
+      - deployed-foundation
+      - build-frankenbot
+      - changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/tofu-deploy
+        with:
+          stack_path: terraform/applications/frankenbot
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          # GitHub App + Anthropic creds are NOT injected here: the ESO
+          # ExternalSecrets "frankenbot-github-app" / "frankenbot-anthropic" sync
+          # them from 1Password into the cluster (see external_secret_*.tf).
+          op_refs: |
+            TF_VAR_app_version=${{ needs.build-frankenbot.outputs.app_version }}
+            TF_VAR_dockerconfigjson=op://Frankenstructure/Vultr Container Registry - Frankistry/credential

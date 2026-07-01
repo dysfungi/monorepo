@@ -60,7 +60,15 @@ CREATE TABLE public.concerts (
     calendar_first_failed_at timestamp with time zone,
     calendar_alerted_at timestamp with time zone,
     setlist_first_failed_at timestamp with time zone,
-    setlist_alerted_at timestamp with time zone
+    setlist_alerted_at timestamp with time zone,
+    songkick_event_url text,
+    event_start_at timestamp with time zone,
+    doors_at timestamp with time zone,
+    show_at timestamp with time zone,
+    openers text,
+    ticket_vendor text,
+    ticket_url text,
+    enriched_at timestamp with time zone
 );
 
 
@@ -116,4 +124,5 @@ CREATE TRIGGER touch_updated_at BEFORE UPDATE ON public.concerts FOR EACH ROW EX
 INSERT INTO public.schema_migrations (version) VALUES
     ('20260630000001'),
     ('20260630000002'),
-    ('20260701000001');
+    ('20260701000001'),
+    ('20260701000002');

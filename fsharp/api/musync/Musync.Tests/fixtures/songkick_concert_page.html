@@ -1,0 +1,73 @@
+<!doctype html>
+<!--
+  Captured verbatim from the real Songkick concert page
+  https://www.songkick.com/concerts/43115574-angine-de-poitrine-at-teragram-ballroom
+  Trimmed to the <head> metadata that the enrich parser reads. The JSON-LD block is
+  byte-for-byte as served: a top-level ARRAY holding a single MusicEvent, whose
+  `startDate` is a naive wall-clock (no tz offset), with NO doorTime, a single
+  performer (no openers), and offers WITHOUT a seller (no ticket vendor). It is the
+  real-world "mostly unknown -> ?" case.
+-->
+<html>
+  <head>
+    <link
+      rel="canonical"
+      href="https://www.songkick.com/concerts/43115574-angine-de-poitrine-at-teragram-ballroom"
+    />
+    <meta
+      property="og:url"
+      content="https://www.songkick.com/concerts/43115574-angine-de-poitrine-at-teragram-ballroom"
+    />
+    <script type="application/ld+json">
+      [
+        {
+          "@context": "http://schema.org",
+          "@type": "MusicEvent",
+          "name": "Angine de Poitrine @ Teragram Ballroom",
+          "url": "https://www.songkick.com/concerts/43115574-angine-de-poitrine-at-teragram-ballroom?utm_medium=organic&utm_source=microformat",
+          "image": "https://images.sk-static.com/images/media/profile_images/artists/10366104/huge_avatar",
+          "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+          "location": {
+            "@type": "Place",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Los Angeles (LA)",
+              "addressCountry": "US",
+              "addressRegion": "CA",
+              "streetAddress": "1234 W. Seventh St.",
+              "postalCode": "90017"
+            },
+            "name": "Teragram Ballroom",
+            "sameAs": "http://www.teragramballroom.com/"
+          },
+          "eventStatus": "https://schema.org/EventScheduled",
+          "startDate": "2026-08-17T19:00:00",
+          "endDate": "2026-08-17",
+          "performer": [
+            {
+              "@type": "MusicGroup",
+              "name": "Angine de Poitrine",
+              "genre": [],
+              "sameAs": "https://www.songkick.com/artists/10366104-angine-de-poitrine?utm_medium=organic&utm_source=microformat"
+            }
+          ],
+          "description": "Angine de Poitrine at Teragram Ballroom at 2026-08-17T19:00:00-0700",
+          "organizer": {
+            "@type": "Organization",
+            "name": "Angine de Poitrine",
+            "url": "https://www.songkick.com/concerts/43115574-angine-de-poitrine-at-teragram-ballroom?utm_medium=organic&utm_source=microformat"
+          },
+          "offers": [
+            {
+              "@type": "Offer",
+              "url": "https://www.songkick.com/concerts/43115574-angine-de-poitrine-at-teragram-ballroom?utm_medium=organic&utm_source=microformat",
+              "availability": "https://schema.org/InStock",
+              "validFrom": "2026-08-17"
+            }
+          ]
+        }
+      ]
+    </script>
+  </head>
+  <body></body>
+</html>

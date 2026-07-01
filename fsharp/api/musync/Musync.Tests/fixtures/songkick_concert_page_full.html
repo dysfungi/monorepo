@@ -1,0 +1,55 @@
+<!doctype html>
+<!--
+  Synthetic Songkick-shaped concert page exercising every enrichment field's
+  PRESENT path (the real page above leaves most unknown). Same schema.org
+  MusicEvent shape, but with: a doorTime (7 PM), a startDate show time (8 PM),
+  three performers (headliner + two openers), and an offer carrying a real seller
+  (name + deep-link url). Times are naive wall-clock, interpreted in the venue tz.
+-->
+<html>
+  <head>
+    <link
+      rel="canonical"
+      href="https://www.songkick.com/concerts/99999999-the-headliners-at-the-greek-theatre"
+    />
+    <script type="application/ld+json">
+      [
+        {
+          "@context": "http://schema.org",
+          "@type": "MusicEvent",
+          "name": "The Headliners @ The Greek Theatre",
+          "url": "https://www.songkick.com/concerts/99999999-the-headliners-at-the-greek-theatre?utm_medium=organic&utm_source=microformat",
+          "location": {
+            "@type": "Place",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Los Angeles",
+              "addressCountry": "US",
+              "addressRegion": "CA"
+            },
+            "name": "The Greek Theatre"
+          },
+          "eventStatus": "https://schema.org/EventScheduled",
+          "startDate": "2026-09-05T20:00:00",
+          "doorTime": "2026-09-05T19:00:00",
+          "endDate": "2026-09-05",
+          "performer": [
+            { "@type": "MusicGroup", "name": "The Headliners" },
+            { "@type": "MusicGroup", "name": "First Opener" },
+            { "@type": "MusicGroup", "name": "Second Opener" }
+          ],
+          "offers": [
+            {
+              "@type": "Offer",
+              "seller": { "@type": "Organization", "name": "AXS" },
+              "url": "https://www.axs.com/events/123456/the-headliners-tickets",
+              "availability": "https://schema.org/InStock",
+              "validFrom": "2026-07-01"
+            }
+          ]
+        }
+      ]
+    </script>
+  </head>
+  <body></body>
+</html>

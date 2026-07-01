@@ -18,6 +18,36 @@ type Command =
       | Poll_Songkick -> "Ingest 'Going' shows from the source and upsert concerts."
       | Curate_Preshow -> "Compute probable setlists and send pre-show nudges."
 
+/// Best-effort concert-page enrichment, run BEFORE the (usually only) calendar
+/// send so the first invite already carries doors/show/openers/vendor. Skipped
+/// once `enriched_at` is set (a reschedule resets it, forcing a re-enrich) or when
+/// there is no page URL. Returns true iff it wrote enrichment (so the caller
+/// re-reads the row). Every failure is WARN-logged and swallowed — the content
+/// hash excludes enriched fields, so late enrichment never forces a clobbering
+/// resend over the user's hand-edits.
+let private tryEnrich
+  (databaseUrl: string)
+  (enricher: IShowEnricher)
+  (now: unit -> DateTimeOffset)
+  (concert: Concert)
+  : bool =
+  let label = SongkickUid.value concert.SongkickUid
+
+  match concert.EnrichedAt, concert.SongkickEventUrl with
+  | Some _, _
+  | None, None -> false
+  | None, Some _ ->
+    match enricher.Enrich concert |> Async.RunSynchronously with
+    | Ok enriched ->
+      match Persistence.storeEnrichment databaseUrl concert.Id enriched (now ()) with
+      | Ok() -> true
+      | Error err ->
+        eprintfn "[musync] WARN enrich: store failed for %s: %A" label err
+        false
+    | Error err ->
+      eprintfn "[musync] WARN enrich: fetch/parse failed for %s: %A" label err
+      false
+
 [<EntryPoint>]
 let main argv =
   let parser = ArgumentParser.Create<Command>(programName = "musync")
@@ -29,6 +59,9 @@ let main argv =
 
     let calendarTarget =
       CalendarEmail.SmtpCalendarTarget(config.Smtp, config.UserEmail) :> ICalendarTarget
+
+    let enricher = SongkickEnrich.SongkickEnricher() :> IShowEnricher
+    let now () = DateTimeOffset.UtcNow
 
     // ── Core: fetch Going shows, then upsert each. `List.fold` short-circuits on
     // the first persistence error (Result.bind), so a partial failure aborts the
@@ -69,12 +102,21 @@ let main argv =
             |> Result.bind (function
               | None ->
                 Error(Errors.PersistenceError(sprintf "row missing for uid %s" uid))
-              | Some row ->
-                CalendarSync.runStep
-                  config.DatabaseUrl
-                  calendarTarget
-                  (fun () -> DateTimeOffset.UtcNow)
-                  row
+              | Some row0 ->
+                // Enrich (best-effort) before the send; re-read only if it wrote,
+                // so the invite carries the fresh doors/show/openers/vendor.
+                let row =
+                  match Persistence.toConcert row0 with
+                  | Error _ -> row0
+                  | Ok concert ->
+                    if tryEnrich config.DatabaseUrl enricher now concert then
+                      match Persistence.getBySongkickUid config.DatabaseUrl uid with
+                      | Ok(Some fresh) -> fresh
+                      | _ -> row0
+                    else
+                      row0
+
+                CalendarSync.runStep config.DatabaseUrl calendarTarget now row
                 |> Async.RunSynchronously)
 
           match stepOutcome with

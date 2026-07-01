@@ -37,6 +37,13 @@ let private concert
     StartsAt = DateTimeOffset(2026, month, day, 7, 0, 0, TimeSpan.Zero)
     Tz = "America/Los_Angeles"
     PlanStatus = PlanStatus.Going
+    SongkickEventUrl = None
+    EventStartAt = None
+    DoorsAt = None
+    ShowAt = None
+    Openers = []
+    TicketVendor = None
+    EnrichedAt = None
     CalendarUid = None
     ContentHash = None
     CalendarSequence = 0

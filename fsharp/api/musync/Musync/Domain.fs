@@ -194,6 +194,26 @@ module ProbableSetlist =
       ComputedAt = computedAt
     }
 
+// ── Concert-page enrichment ──────────────────────────────────────────────────
+// Scraped from the Songkick concert page's schema.org MusicEvent JSON-LD (see
+// Adapters.SongkickEnrich). Every field is best-effort: a missing value stays
+// `None`/empty and renders as "?" on the calendar event.
+
+/// The primary ticket seller for a show (schema.org offers.seller / offers.url).
+type TicketVendor = {
+  Name: string
+  Url: string
+}
+
+/// What one concert-page scrape yields. The write path resolves these into the
+/// Concert's enriched columns; unknown fields never fail the ingest.
+type EnrichedShow = {
+  DoorsAt: DateTimeOffset option
+  ShowAt: DateTimeOffset option
+  Openers: string list
+  TicketVendor: TicketVendor option
+}
+
 // ── Concert aggregate ────────────────────────────────────────────────────────
 // Maps 1:1 to the `concerts` table (see db/migrations). Nullable columns are
 // `option`; timestamps are `DateTimeOffset`; counters are `int`.
@@ -212,6 +232,18 @@ type Concert = {
   /// Venue-local IANA timezone (e.g. "America/Los_Angeles").
   Tz: string
   PlanStatus: PlanStatus
+  // enrichment (Songkick concert page — see Adapters.SongkickEnrich)
+  /// The concert's Songkick page URL, captured from the ICS feed at ingest.
+  SongkickEventUrl: string option
+  /// Resolved page-derived event start (doors if known, else show). None => the
+  /// calendar falls back to a labeled 19:00 venue-local start.
+  EventStartAt: DateTimeOffset option
+  DoorsAt: DateTimeOffset option
+  ShowAt: DateTimeOffset option
+  Openers: string list
+  TicketVendor: TicketVendor option
+  /// Set when the concert page was last scraped; None => not yet enriched.
+  EnrichedAt: DateTimeOffset option
   // calendar
   CalendarUid: string option
   ContentHash: string option

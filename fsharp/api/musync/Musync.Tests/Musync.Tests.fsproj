@@ -12,6 +12,7 @@
     <Compile Include="Core.fs" />
     <Compile Include="DomainTests.fs" />
     <Compile Include="SongkickTests.fs" />
+    <Compile Include="SongkickEnrichTests.fs" />
     <Compile Include="PersistenceTests.fs" />
     <Compile Include="CalendarTests.fs" />
     <Compile Include="CalendarStateTests.fs" />
@@ -25,6 +26,12 @@
        them (ICS for Songkick; JSON for Setlist.fm). -->
   <ItemGroup>
     <None Include="fixtures/songkick_attendance.ics">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="fixtures/songkick_concert_page.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="fixtures/songkick_concert_page_full.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="fixtures/setlist_radiohead_setlists.json">

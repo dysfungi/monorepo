@@ -24,6 +24,7 @@
     <Compile Include="Email.fs" />
     <Compile Include="Persistence.fs" />
     <Compile Include="Adapters/Songkick.fs" />
+    <Compile Include="Adapters/SongkickEnrich.fs" />
     <Compile Include="Adapters/CalendarEmail.fs" />
     <Compile Include="Adapters/Setlist.fs" />
     <Compile Include="Adapters/Notifier.fs" />

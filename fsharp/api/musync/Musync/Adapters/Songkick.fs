@@ -216,6 +216,10 @@ let private toConcert (evt: CalendarEvent) : Result<Concert, MusyncError> =
     else
       evt.Uid
 
+  // The concert page URL rides on the VEVENT's URL property when the feed emits
+  // one; enrichment is skipped (renders "?") when it is absent.
+  let eventUrl = if isNull evt.Url then None else Some(evt.Url.ToString())
+
   let build uid artist =
     let instant, tz = resolveStart evt.Start city country label
 
@@ -230,6 +234,13 @@ let private toConcert (evt: CalendarEvent) : Result<Concert, MusyncError> =
       StartsAt = instant
       Tz = tz
       PlanStatus = PlanStatus.Going
+      SongkickEventUrl = eventUrl
+      EventStartAt = None
+      DoorsAt = None
+      ShowAt = None
+      Openers = []
+      TicketVendor = None
+      EnrichedAt = None
       CalendarUid = None
       ContentHash = None
       CalendarSequence = 0

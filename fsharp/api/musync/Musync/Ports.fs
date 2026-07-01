@@ -15,6 +15,11 @@ type IShowSource =
 type ICalendarTarget =
   abstract member SendInvite: Concert -> Async<Result<unit, MusyncError>>
 
+/// Enriches a concert from its Songkick page (doors/show times, openers, ticket
+/// vendor). Best-effort: failures never block the calendar send.
+type IShowEnricher =
+  abstract member Enrich: Concert -> Async<Result<EnrichedShow, MusyncError>>
+
 /// Predicts setlists and reports whether an actual setlist has been posted.
 type ISetlistProvider =
   abstract member PredictSetlist:

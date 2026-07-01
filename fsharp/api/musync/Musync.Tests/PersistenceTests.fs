@@ -29,6 +29,13 @@ let private makeConcert (uid: string) (venue: string) (plan: PlanStatus) : Conce
   StartsAt = DateTimeOffset(2026, 5, 11, 3, 0, 0, TimeSpan.Zero)
   Tz = "America/Los_Angeles"
   PlanStatus = plan
+  SongkickEventUrl = None
+  EventStartAt = None
+  DoorsAt = None
+  ShowAt = None
+  Openers = []
+  TicketVendor = None
+  EnrichedAt = None
   CalendarUid = None
   ContentHash = None
   CalendarSequence = 0
@@ -47,6 +54,21 @@ let private makeConcert (uid: string) (venue: string) (plan: PlanStatus) : Conce
   SetlistAlertedAt = None
   CreatedAt = DateTimeOffset.MinValue
   UpdatedAt = DateTimeOffset.MinValue
+}
+
+/// A concert-page scrape (arbitrary instants; only their round-trip matters here).
+let private sampleEnriched: EnrichedShow = {
+  DoorsAt = Some(DateTimeOffset(2026, 5, 11, 1, 0, 0, TimeSpan.Zero))
+  ShowAt = Some(DateTimeOffset(2026, 5, 11, 2, 0, 0, TimeSpan.Zero))
+  Openers = [
+    "Op A"
+    "Op B"
+  ]
+  TicketVendor =
+    Some {
+      Name = "AXS"
+      Url = "https://www.axs.com/x"
+    }
 }
 
 let private integrationTests (databaseUrl: string) =
@@ -197,6 +219,104 @@ let private integrationTests (databaseUrl: string) =
         Want.equal None afterFound.SetAlerted
       finally
         exec "DELETE FROM concerts WHERE songkick_uid=@u" [ "@u", Sql.text uid ]
+
+    // ── concert-page enrichment ───────────────────────────────────────────────
+    testCase "storeEnrichment round-trips; event_start = doors precedence"
+    <| fun _ ->
+      let uid = "it-" + Guid.NewGuid().ToString("N")
+
+      try
+        let id = insertReturningId uid
+        storeEnrichment databaseUrl id sampleEnriched stampNow |> wantOk
+
+        let c =
+          getBySongkickUid databaseUrl uid
+          |> wantOk
+          |> Option.get
+          |> toConcert
+          |> wantOk
+
+        Want.equal sampleEnriched.DoorsAt c.DoorsAt
+        Want.equal sampleEnriched.ShowAt c.ShowAt
+
+        Want.equal
+          [
+            "Op A"
+            "Op B"
+          ]
+          c.Openers
+
+        Want.equal
+          (Some {
+            Name = "AXS"
+            Url = "https://www.axs.com/x"
+          })
+          c.TicketVendor
+
+        Want.equal sampleEnriched.DoorsAt c.EventStartAt // doors, not show
+        Want.equal (Some stampNow) c.EnrichedAt
+      finally
+        exec "DELETE FROM concerts WHERE songkick_uid=@u" [ "@u", Sql.text uid ]
+
+    testCase "enriched columns survive a benign re-ingest (identity unchanged)"
+    <| fun _ ->
+      let uid = "it-" + Guid.NewGuid().ToString("N")
+
+      try
+        let id = insertReturningId uid // artist/venue/starts_at fixed by makeConcert
+        storeEnrichment databaseUrl id sampleEnriched stampNow |> wantOk
+
+        // Re-ingest with the SAME identity (artist/venue/starts_at) but a benign
+        // change: plan flips + a feed URL arrives.
+        let reingest = {
+          makeConcert uid "DLQ Venue" PlanStatus.Interested with
+              SongkickEventUrl = Some "https://www.songkick.com/concerts/xyz"
+        }
+
+        upsert databaseUrl reingest |> wantOk
+        let row = getBySongkickUid databaseUrl uid |> wantOk |> Option.get
+        // feed columns updated
+        Want.equal "interested" row.PlanStatus
+        Want.equal (Some "https://www.songkick.com/concerts/xyz") row.SongkickEventUrl
+        // enriched columns PRESERVED (not in the feed); openers are newline-joined
+        Want.equal true (Option.isSome row.DoorsAt)
+        Want.equal (Some "Op A\nOp B") row.Openers
+        Want.equal (Some "AXS") row.TicketVendor
+        Want.equal true (Option.isSome row.EnrichedAt)
+      finally
+        exec "DELETE FROM concerts WHERE songkick_uid=@u" [ "@u", Sql.text uid ]
+
+    testCase "material-identity change (date OR venue) resets enriched columns"
+    <| fun _ ->
+      // Both a reschedule (date) and a same-date relocation (venue) move the hash,
+      // so both must re-arm enrichment or the resend would carry the old scrape.
+      let expectReset (mutate: Concert -> Concert) =
+        let uid = "it-" + Guid.NewGuid().ToString("N")
+
+        try
+          let id = insertReturningId uid
+          storeEnrichment databaseUrl id sampleEnriched stampNow |> wantOk
+
+          upsert databaseUrl (mutate (makeConcert uid "DLQ Venue" PlanStatus.Going))
+          |> wantOk
+
+          let row = getBySongkickUid databaseUrl uid |> wantOk |> Option.get
+          Want.equal None row.EventStartAt
+          Want.equal None row.DoorsAt
+          Want.equal None row.ShowAt
+          Want.equal None row.Openers
+          Want.equal None row.TicketVendor
+          Want.equal None row.EnrichedAt
+        finally
+          exec "DELETE FROM concerts WHERE songkick_uid=@u" [ "@u", Sql.text uid ]
+
+      // reschedule: different starts_at
+      expectReset (fun c -> {
+        c with
+            StartsAt = DateTimeOffset(2026, 6, 20, 3, 0, 0, TimeSpan.Zero)
+      })
+      // relocation: same date, different venue
+      expectReset (fun c -> { c with Venue = "Relocated Hall" })
 
     testCase "listStuck: 24h window, both-steps-stuck, markAlerted dedupes"
     <| fun _ ->

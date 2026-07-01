@@ -1,8 +1,11 @@
 # mise environment configuration for the monorepo.
 #
-# EXEC-FREE BASE: the secret/identity execs (op read, vultr-cli, git config, curl)
-#   live in mise.dev.toml, auto-activated locally via .miserc.toml (env = ["dev"]).
-#   CI sets MISE_ENV=ci to exclude mise.dev.toml — keeping secrets out of CI's mise.
+# NO [env] IN BASE: base is fully environment-neutral. ALL project env lives in
+#   mise.dev.toml — both the secret/identity execs (op read, vultr-cli, git config,
+#   curl) AND the dev/local-only statics (dotenv overlay + kubeconfig paths). That
+#   file auto-activates locally via .miserc.toml (env = ["dev"]); CI sets
+#   MISE_ENV=ci to exclude it, so CI mise renders zero project env (no secrets, and
+#   nothing that could clobber the tofu-deploy composite's runtime kubeconfig).
 #   Caching/quoting/off-path-invocation details are documented in mise.dev.toml.
 #
 #   To refresh kubeconfig: rm secrets/frank8s.yaml (hooks.enter re-creates it).
@@ -45,18 +48,6 @@ jq = "1.8"
 
 [settings]
 experimental = true  # required for the exec-template caching used by mise.dev.toml [env]
-
-[env]
-# Optional local dotenv — skipped silently if absent (no .env required)
-_.file = ".env"
-
-# ── Static paths (exec-free; the secret/identity execs live in mise.dev.toml) ─
-KUBECONFIG_PATH = "{{ config_root }}/secrets/frank8s.yaml"
-KUBECONFIG      = "{{ config_root }}/secrets/frank8s.yaml"
-
-# ── OpenTofu / Terraform static variables (exec-free; TF_VAR_* execs are in
-#    mise.dev.toml) ────────────────────────────────────────────────────────────
-TF_VAR_kubeconfig_path = "{{ config_root }}/secrets/frank8s.yaml"
 
 [[hooks.enter]]
 # Use `run` (not `script`) so the path is evaluated by the shell at runtime.

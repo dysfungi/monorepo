@@ -19,6 +19,19 @@
 #   in the base .mise.toml, which is always loaded alongside this file.
 
 [env]
+# ── Local/dev-only statics (exec-free) ───────────────────────────────────────
+# Non-secret dotenv overlay + kubeconfig paths. Kept out of base so CI mise
+# (MISE_ENV=ci) never renders them — TF_VAR_kubeconfig_path in particular would
+# otherwise clobber the tofu-deploy composite's runtime-decoded $PWD/kubeconfig.yaml
+# (mise [env] overrides inherited process env) and point tofu at a nonexistent
+# file. CI reads none of these: the composite decodes its own kubeconfig and
+# load-secrets-action supplies secrets.
+# Optional local dotenv — skipped silently if absent (no .env required)
+_.file = ".env"
+KUBECONFIG_PATH = "{{ config_root }}/secrets/frank8s.yaml"
+KUBECONFIG      = "{{ config_root }}/secrets/frank8s.yaml"
+TF_VAR_kubeconfig_path = "{{ config_root }}/secrets/frank8s.yaml"
+
 # ── Identity ─────────────────────────────────────────────────────────────────
 GITHUB_USERNAME = "{{ exec(command='git config --get user.email') }}"
 

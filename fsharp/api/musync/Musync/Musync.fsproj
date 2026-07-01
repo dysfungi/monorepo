@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Musync</AssemblyName>
+    <Version>0.1.0</Version>
+
+    <!-- General Info -->
+    <Authors>Derek M Frank</Authors>
+
+    <!-- Build config -->
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+
+    <!-- NuGet config -->
+    <PackageId>Musync</PackageId>
+  </PropertyGroup>
+
+  <!-- F# is order-sensitive top-to-bottom: dependency order is load-bearing. -->
+  <ItemGroup>
+    <Compile Include="Errors.fs" />
+    <Compile Include="Domain.fs" />
+    <Compile Include="Config.fs" />
+    <Compile Include="Ports.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Argu" Version="6.2.5" />
+    <PackageReference Include="FsConfig" Version="4.1.0" />
+    <PackageReference Include="Validus" Version="4.1.4" />
+    <PackageReference Update="FSharp.Core" Version="9.0.201" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,21 @@
+-- migrate:up
+GRANT ALL PRIVILEGES
+  ON DATABASE musync_app
+  TO musync_api;
+
+ALTER DEFAULT PRIVILEGES
+  IN SCHEMA public
+  GRANT ALL PRIVILEGES
+  ON TABLES
+  TO musync_api;
+
+-- migrate:down
+ALTER DEFAULT PRIVILEGES
+  IN SCHEMA public
+  REVOKE ALL PRIVILEGES
+  ON TABLES
+  FROM musync_api;
+
+REVOKE ALL PRIVILEGES
+  ON DATABASE musync_app
+  FROM musync_api;

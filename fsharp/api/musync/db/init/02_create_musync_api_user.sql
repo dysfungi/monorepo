@@ -1,0 +1,2 @@
+CREATE USER musync_api
+  WITH ENCRYPTED PASSWORD 'postgres';

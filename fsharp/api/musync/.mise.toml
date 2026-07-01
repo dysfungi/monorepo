@@ -1,0 +1,53 @@
+# mise tasks for the F# musync CLI project.
+#
+# This file's presence is also the opt-in marker that makes this directory a
+# discoverable monorepo project (see the root .mise.toml [monorepo] config), so
+# `mise run //fsharp/api/musync:<task>` resolves here.
+#
+# INHERITANCE: inherits the root .mise.toml [env] (1Password secrets, REGISTRY,
+# etc.) — NOT re-declared here.
+#
+# WORKING DIR: mise runs each task from this file's directory
+# (fsharp/api/musync), so the relative `dotnet`, `docker compose`, and `./db`
+# paths resolve.
+
+# ── Build / test ─────────────────────────────────────────────────────────────
+[tasks.build]
+description = "Build the Musync solution (dotnet build)"
+run = "dotnet build Musync.sln"
+
+[tasks.test]
+description = "Run the .NET test project (dotnet test)"
+alias = "tests"
+run = "dotnet test Musync.Tests/Musync.Tests.fsproj"
+
+[tasks.outdated]
+description = "List outdated NuGet package references (dotnet list package --outdated)"
+run = "dotnet list package Musync.sln --outdated"
+
+# ── docker image build ───────────────────────────────────────────────────────
+[tasks.dockerbuild]
+description = "Build all docker-compose images (compose build)"
+run = "docker compose build"
+
+# ── docker-compose lifecycle ─────────────────────────────────────────────────
+[tasks.up]
+description = "Start Postgres + run migrations, detached, wait for health"
+run = "docker compose up --detach --wait -- postgres dbmigrate"
+
+[tasks.down]
+description = "Stop the stack and remove orphan containers (compose down)"
+run = "docker compose down --remove-orphans"
+
+[tasks.cleandocker]
+description = "Stop the stack, removing orphans AND volumes (compose down -v)"
+run = "docker compose down --remove-orphans --volumes"
+
+# ── Database migrations (dbmate via compose one-shot) ────────────────────────
+[tasks.dbmigrate]
+description = "Apply DB migrations up (dbmate up, containerized)"
+run = "docker compose run --rm -- dbmigrate up --strict --verbose"
+
+[tasks.dbrollback]
+description = "Roll DB migrations down (dbmate down, containerized)"
+run = "docker compose run --rm -- dbmigrate down --verbose"

@@ -1,0 +1,53 @@
+# Frankenbot repository policy list.
+#
+# Only repositories listed here (and enabled) are dispatched against. Any repo
+# NOT listed defaults to "propose-only" behavior on dependency surfaces once it
+# is added in Phase 5 fan-out — i.e. Frankenbot will only ever propose fixes
+# (never auto-merge) until an explicit higher tier is configured for it.
+#
+# In production this file is mounted from the `frankenbot-config` ConfigMap at
+# /etc/frankenbot/repos.yaml (override with FRANKENBOT_REPOS_FILE).
+#
+# Top-level keys:
+#   discovery - source-of-truth mode (Phase 5). Optional; default "off".
+#               "off"  -> the `repos:` list below is the ONLY source of truth (MVP).
+#               "auto" -> the GitHub App installations API is the DYNAMIC source
+#                         of truth: every repo the App is installed on is in scope
+#                         at propose-only over the default dependency surfaces.
+#                         Explicit `repos:` entries still OVERRIDE per-repo config
+#                         (tier / surfaces / enabled — including opting a repo out
+#                         with `enabled: false`). Env override: FRANKENBOT_DISCOVERY.
+#   repos     - explicit per-repo policy entries (see fields below).
+#
+# Fields per repos[] entry:
+#   name     - OWNER/NAME of the repository.
+#   tier     - action tier; MVP supports only "propose-only".
+#   surfaces - dependency surfaces in scope for triage.
+#   enabled  - whether the dispatcher scans this repo.
+
+# MVP: explicit mode. NOTE the quotes — bare `off`/`on` are YAML 1.1 booleans.
+discovery: "off"
+
+repos:
+  - name: dysfungi/monorepo
+    tier: propose-only
+    surfaces:
+      - github-actions
+      - pre-commit
+      - dockerfile
+    enabled: true
+
+  # --- Phase 5 fan-out examples (commented; enable when discovery goes live) ---
+  #
+  # Override an auto-discovered repo's surfaces (still propose-only):
+  # - name: dysfungi/some-service
+  #   tier: propose-only
+  #   surfaces:
+  #     - github-actions
+  #     - dockerfile
+  #     - terraform
+  #   enabled: true
+  #
+  # Opt a repo OUT even though the App is installed on it (discovery: auto):
+  # - name: dysfungi/archived-thing
+  #   enabled: false

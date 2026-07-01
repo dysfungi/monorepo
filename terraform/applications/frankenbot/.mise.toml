@@ -1,0 +1,36 @@
+# mise tasks for the frankenbot application stack (Phase 3).
+#
+# This is the FIRST terraform/applications/* stack to carry its own .mise.toml —
+# deliberately, so the in-cluster control plane can be iterated with a scoped
+# local dev loop (plan/deploy/destroy) instead of only through the CI deploy job.
+# The `.mise.toml` here is also the opt-in marker that makes this a discoverable
+# project (see the root [monorepo] config).
+#
+# INHERITANCE: this nested config inherits the root .mise.toml [env] (1Password
+# secrets, every TF_VAR_*, AWS_*, REGISTRY). Those are NOT re-declared here —
+# `tofu` picks them up from the inherited env.
+#
+# WORKING DIR: mise runs each task from this file's directory
+# (terraform/applications/frankenbot) by default. The .tf files live directly
+# here, so bare `tofu plan/apply/init` resolve.
+
+# ── tofu lifecycle ───────────────────────────────────────────────────────────
+[tasks.setup]
+description = "Initialize the stack's tofu working dir (tofu init)"
+run = "tofu init"
+
+[tasks.build]
+description = "Preview app changes (tofu plan) — discovered by //...:build fan-out"
+run = "tofu plan"
+
+[tasks.plan]
+description = "Preview app changes (tofu plan)"
+run = "tofu plan"
+
+[tasks.deploy]
+description = "Apply app changes non-interactively (tofu apply -auto-approve)"
+run = "tofu apply -auto-approve"
+
+[tasks.destroy]
+description = "Tear down the stack non-interactively (tofu destroy -auto-approve)"
+run = "tofu destroy -auto-approve"

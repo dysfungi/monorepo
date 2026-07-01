@@ -1,0 +1,64 @@
+# mise tasks for the Frankenbot Python container project.
+#
+# This `.mise.toml` is also the opt-in marker that makes this directory a
+# discoverable project for the root `//...:build` (etc.) fan-out.
+#
+# INHERITANCE: inherits the root .mise.toml [env] (1Password secrets, REGISTRY,
+# etc.); those are NOT re-declared here.
+#
+# WORKING DIR: mise runs each task from this directory (python/pipeline/
+# frankenbot), so the relative `docker compose` and `uv`/`python` paths resolve.
+#
+# TOOLING: linters/formatters are the project's dev extras (installed via
+# `setup`), invoked directly here for a fast local loop. Repo-wide linting is
+# also wired through pre-commit at the monorepo root.
+
+# ── Environment ──────────────────────────────────────────────────────────────
+# Auto-activate the uv-created .venv (built by `setup`) so the lint/test tasks
+# below invoke their tools (pytest, black, isort, flake8, mypy) directly, with no
+# manual `source .venv/bin/activate` — locally AND in CI. create = false: `setup`
+# owns venv creation (`uv venv --clear`); this only prepends .venv/bin to PATH
+# when the venv already exists.
+[env]
+_.python.venv = { path = ".venv", create = false }
+
+# ── Project setup ────────────────────────────────────────────────────────────
+[tasks.setup]
+description = "Install the package + dev tooling into a local venv (uv)"
+# --clear makes setup idempotent (safe to re-run over an existing .venv). The
+# editable install resolves THIS project (not the monorepo-root pyproject) thanks
+# to the [tool.uv.workspace] marker in pyproject.toml.
+run = '''
+uv venv --clear --python 3.12 .venv
+uv pip install --python .venv/bin/python -e '.[dev,otel]'
+'''
+
+# ── Build ────────────────────────────────────────────────────────────────────
+[tasks.build]
+description = "Build the agent container image (compose build)"
+run = "docker compose build"
+
+# ── Lint / format checks ─────────────────────────────────────────────────────
+[tasks.lint]
+description = "Run black --check, isort --check, flake8, and mypy"
+run = '''
+black --check .
+isort --check-only .
+flake8 frankenbot
+mypy frankenbot
+'''
+
+# ── Test ─────────────────────────────────────────────────────────────────────
+[tasks.test]
+description = "Run the pytest suite"
+alias = "tests"
+run = "pytest"
+
+# ── Start (usage hint) ───────────────────────────────────────────────────────
+[tasks.start]
+description = "Print usage (frankenbot runs as k8s CronJob/Job, not locally)"
+run = '''
+echo "frankenbot is a two-mode container:"
+echo "  frankenbot dispatch                       # CronJob: fan out triage Jobs"
+echo "  frankenbot triage --repo OWNER/NAME --pr N # ephemeral per-PR worker"
+'''

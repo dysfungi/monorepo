@@ -3,3 +3,9 @@ requires-python = ">= 3.12"
 
 [tool.isort]
 profile = "black"
+# `pre-commit run --all-files` runs isort from the monorepo root and resolves
+# THIS config (not each project's nested pyproject), so first-party packages must
+# be declared here too — otherwise isort treats them as third-party and orders
+# imports differently than the per-project/commit-time run, and the two never
+# converge. Keep in sync with each project's own [tool.isort].known_first_party.
+known_first_party = ["frankenbot"]

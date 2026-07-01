@@ -1,0 +1,87 @@
+name: Renovate
+
+# Frankenbot — Phase 1: scheduled Renovate (the deterministic "radar").
+#
+# Runs self-hosted Renovate under the Frankenbot GitHub App. The App (not the PAT,
+# not GITHUB_TOKEN) is required because Renovate must edit .github/workflows/* — the
+# #1 MVP surface — which needs `workflows:write`, and because App-authored PRs trigger
+# downstream CI (GITHUB_TOKEN-authored PRs do not). Config lives in /renovate.json5
+# and is auto-discovered by Renovate from the repo; this workflow only supplies the
+# token + which repo to scan.
+#
+# BLOCKED UNTIL PHASE 0 (user action): requires a 1Password item
+#   op://Frankenstructure/GitHub App - Frankenbot/{app id,private key}
+# read via OP_SERVICE_ACCOUNT_TOKEN (already a repo secret, used by cicd.yaml).
+# Until that item exists, the "Load ... from 1Password" step fails and the run is a
+# harmless no-op — Renovate never gets a token, so nothing is written.
+
+on:
+  # This cron is the SOLE cadence. We deliberately do NOT set a `schedule` inside
+  # renovate.json5: a config-level schedule that doesn't overlap the cron firing
+  # window silently no-ops the run (Renovate docs, Key concepts → Scheduling).
+  # Mondays 07:17 UTC; the :17 offset dodges the top-of-hour GitHub Actions
+  # scheduling congestion that delays cron-triggered runs.
+  schedule:
+    - cron: "17 7 * * 1"
+  # Manual runs for testing. Default to a safe no-write dry run so a curious click
+  # can never open PRs; clear the field (or pick '') for a real run.
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: "Dry run mode (no writes): 'full', 'lookup', 'extract', or '' for a real run"
+        type: choice
+        options: ["full", "lookup", "extract", ""]
+        default: "full"
+      logLevel:
+        description: "Renovate log level"
+        type: choice
+        options: ["info", "debug"]
+        default: "info"
+
+# All write operations flow through the minted App token, so the workflow's own
+# GITHUB_TOKEN needs nothing beyond read-for-checkout.
+permissions:
+  contents: read
+
+# Match the repo's job-level concurrency convention; never cancel an in-flight
+# Renovate run (a half-run can leave PRs in an inconsistent state).
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Load Frankenbot App credentials from 1Password
+        id: op
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          FRANKENBOT_APP_ID: op://Frankenstructure/GitHub App - Frankenbot/app id
+          FRANKENBOT_APP_PRIVATE_KEY: op://Frankenstructure/GitHub App - Frankenbot/private key
+
+      - name: Mint short-lived GitHub App installation token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          app-id: ${{ steps.op.outputs.FRANKENBOT_APP_ID }}
+          private-key: ${{ steps.op.outputs.FRANKENBOT_APP_PRIVATE_KEY }}
+          # Default owner + repositories scope the token to THIS repo only — correct
+          # for the MVP. Phase 5 widens scope via the App installations API.
+
+      - name: Run Renovate
+        uses: renovatebot/github-action@dd5302ec17783b2fc721b19ae7209b57b1587765 # v46.1.17
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+        env:
+          # Self-hosted Renovate must be told which repos to scan; renovate.json5 at
+          # the repo root is then auto-discovered (no configurationFile needed).
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+          # Real run on schedule; honor the chosen mode on manual dispatch.
+          RENOVATE_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dryRun || '' }}
+          LOG_LEVEL: ${{ github.event_name == 'workflow_dispatch' && inputs.logLevel || 'info' }}
+          # The Renovate BINARY version is pinned by the action (default '43'); bump
+          # it deliberately via the action's `renovate-version` input when desired.

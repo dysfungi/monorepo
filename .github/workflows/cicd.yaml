@@ -22,6 +22,7 @@ jobs:
       ollama: ${{ steps.filter.outputs.ollama }}
       automate: ${{ steps.filter.outputs.automate }}
       ntfy: ${{ steps.filter.outputs.ntfy }}
+      frankenbot: ${{ steps.filter.outputs.frankenbot }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -35,6 +36,7 @@ jobs:
               - 'terraform/applications/**'
               - 'terraform/modules/**'
               - 'fsharp/api/automate/**'
+              - 'python/pipeline/frankenbot/**'
               - '.github/workflows/cicd.yaml'
               - '.mise.toml'
             httpbin:
@@ -58,6 +60,10 @@ jobs:
             automate:
               - 'fsharp/api/automate/**'
               - 'terraform/modules/gateway-route/**'
+              - '.github/workflows/cicd.yaml'
+            frankenbot:
+              - 'python/pipeline/frankenbot/**'
+              - 'terraform/applications/frankenbot/**'
               - '.github/workflows/cicd.yaml'
 
   test-automate-api:
@@ -127,6 +133,75 @@ jobs:
           APP_VERSION: ${{ steps.app-version.outputs.out }}
     outputs:
       app_version: ${{ steps.app-version.outputs.out }}
+
+  test-frankenbot:
+    # Runs the frankenbot pytest suite before the image is built/pushed. Mirrors
+    # test-automate-api's post-#16 shape: MISE_ENV=ci renders zero project [env]
+    # (no 1Password reads), and jdx/mise-action provisions the pinned toolchain.
+    # `setup` installs the package + dev deps into the project .venv (auto-
+    # activated via python/pipeline/frankenbot/.mise.toml [env]); `test` then runs
+    # pytest inside that venv.
+    needs: [changes]
+    if: needs.changes.outputs.frankenbot == 'true'
+    runs-on: ubuntu-latest
+    env:
+      MISE_ENV: ci
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+        with:
+          version: 2026.6.14
+          install: false
+          cache: true
+      - run: mise install python uv
+      - name: Install package + dev deps
+        run: mise run //python/pipeline/frankenbot:setup
+      - name: Test
+        run: mise run //python/pipeline/frankenbot:test
+
+  build-frankenbot:
+    # Frankenbot agent image (dispatch + triage). Mirrors build-automate-api:
+    # always builds when frankenbot changes; logs in + pushes only on main.
+    needs: [changes, test-frankenbot]
+    if: needs.changes.outputs.frankenbot == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      app_version: ${{ steps.app-version.outputs.out }}
+    defaults:
+      run:
+        working-directory: python/pipeline/frankenbot
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compute app version
+        id: app-version
+        run: |
+          version="$(grep -m1 -oP '^version\s*=\s*"\K[^"]+' pyproject.toml)"
+          app_version="${version}-${{ github.ref_name }}.${{ github.run_number }}"
+          app_version="$(printf '%s' "$app_version" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9_.-]/-/g')"
+          echo "out=${app_version}" >> "$GITHUB_OUTPUT"
+      - name: Build
+        env:
+          APP_VERSION: ${{ steps.app-version.outputs.out }}
+        run: docker compose build agent
+      - name: Load registry credentials from 1Password
+        id: op-secrets
+        if: github.ref_name == 'main'
+        uses: 1password/load-secrets-action@3a12b0ab99d9cd590a3e9b5a90ea017210ed9556 # v4.0.1
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          registry_password: op://Frankenstructure/Vultr Container Registry - Frankistry/password
+          registry_urn: op://Frankenstructure/Vultr Container Registry - Frankistry/urn
+          registry_username: op://Frankenstructure/Vultr Container Registry - Frankistry/username
+      - name: Docker login
+        if: github.ref_name == 'main'
+        run: printf '%s' "${{ steps.op-secrets.outputs.registry_password }}" | docker login --username "${{ steps.op-secrets.outputs.registry_username }}" --password-stdin "${{ steps.op-secrets.outputs.registry_urn }}"
+      - name: Push
+        if: github.ref_name == 'main'
+        env:
+          APP_VERSION: ${{ steps.app-version.outputs.out }}
+        run: docker compose push agent
 
   check-deploy-prod:
     if: github.ref_name == 'main' && needs.changes.outputs.any == 'true'
@@ -354,3 +429,123 @@ jobs:
             TF_VAR_automate_postgres_password=op://Frankenstructure/Postgres - AutoMate/password
             TF_VAR_dockerconfigjson=op://Frankenstructure/Vultr Container Registry - Frankistry/credential
             TF_VAR_vultr_api_key=op://Frankenstructure/Vultr API Key/password
+
+  deploy-frankenbot:
+    if: needs.changes.outputs.frankenbot == 'true'
+    concurrency:
+      group: ${{ github.workflow }}-deploy-frankenbot
+      cancel-in-progress: false
+    environment: production
+    needs:
+      - deployed-foundation
+      - build-frankenbot
+      - changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/tofu-deploy
+        with:
+          stack_path: terraform/applications/frankenbot
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          # GitHub App + Anthropic creds are NOT injected here: the ESO
+          # ExternalSecrets "frankenbot-github-app" / "frankenbot-anthropic" sync
+          # them from 1Password into the cluster (see external_secret_*.tf).
+          op_refs: |
+            TF_VAR_app_version=${{ needs.build-frankenbot.outputs.app_version }}
+            TF_VAR_dockerconfigjson=op://Frankenstructure/Vultr Container Registry - Frankistry/credential
+            TF_VAR_vultr_api_key=op://Frankenstructure/Vultr API Key/password
+
+  plan-frankenbot:
+    # Phase 4c — the reversibility ORACLE. Runs `tofu plan` for the frankenbot
+    # stack on PRs, feeds the plan JSON to the risk-tier classifier, and upserts
+    # an INFORMATIONAL risk-tier PR comment.
+    #
+    # In the MVP this is informational ONLY: Frankenbot is propose-only and the
+    # TTL auto-merge path is DORMANT. This job exists so the classifier verdict
+    # is visible on every dependency-bump PR before we ever wire it to a merge
+    # button. It deliberately runs on PRs (unlike apply, which is main-only via
+    # check-deploy-prod) because the auto-merge decision must be made pre-merge.
+    #
+    # SECURITY / RESIDUAL RISK: this job runs `tofu plan` with the S3 backend
+    # creds, cluster kubeconfig, and vultr API key against PR-authored code. The
+    # `if` below restricts it to SAME-REPO branches, so fork PRs never receive
+    # prod credentials (the fork guard). The residual exfiltration risk is a
+    # same-repo branch pushed by someone who can write to the repo but whose PR
+    # you would not otherwise trust: their code executes in a prod-credentialed
+    # context and could attempt to leak secrets. Mitigate with branch protection
+    # — restrict who may push branches. Revisit if the dormant TTL auto-merge
+    # path is ever activated.
+    #
+    # ADVISORY: continue-on-error (below) keeps this job from ever blocking or
+    # red-flagging a PR — it is an informational oracle only, and it WILL fail
+    # until the Phase-0 1Password frankenbot items exist.
+    needs: [changes, test-frankenbot]
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.changes.outputs.frankenbot == 'true'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      pull-requests: write
+    continue-on-error: true
+    concurrency:
+      group: ${{ github.workflow }}-plan-frankenbot-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - id: tofu-plan
+        uses: ./.github/actions/tofu-plan
+        with:
+          stack_path: terraform/applications/frankenbot
+          op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          # Mirror deploy-frankenbot's op_refs. No image is built on a PR, so
+          # app_version is a synthetic placeholder — tofu requires the variable
+          # (no default) but the plan never pulls the image.
+          op_refs: |
+            TF_VAR_app_version=0.0.0-pr.${{ github.event.pull_request.number }}
+            TF_VAR_dockerconfigjson=op://Frankenstructure/Vultr Container Registry - Frankistry/credential
+            TF_VAR_vultr_api_key=op://Frankenstructure/Vultr API Key/password
+      - name: Classify plan into a risk tier
+        id: classify
+        # Non-blocking: a classifier hiccup must not fail the PR check. Only the
+        # plan step (above) is allowed to surface failures.
+        continue-on-error: true
+        env:
+          PLAN_JSON: ${{ steps.tofu-plan.outputs.plan_json }}
+        run: |
+          # tofu-plan's mise-action left the mise shims on PATH but installed
+          # only opentofu (install: false), so `python` would resolve to an
+          # uninstalled 3.12 shim. Install the pinned interpreter first. The
+          # classifier is pure stdlib, so no pip install is needed.
+          mise install python
+          PYTHONPATH=python/pipeline/frankenbot \
+            python -m frankenbot.cli classify-plan "$PLAN_JSON" --format comment > tier.md
+          cat tier.md
+      # Non-blocking: a comment hiccup must not fail the PR check. Gate on both
+      # the plan and classify steps succeeding so we never post an empty tier.
+      - name: Upsert risk-tier PR comment
+        if: always() && steps.tofu-plan.outcome == 'success' && steps.classify.outcome == 'success'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- frankenbot-plan -->';
+            const tier = fs.readFileSync('tier.md', 'utf8');
+            const body = `${marker}\n${tier}`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number, per_page: 100,
+            });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number, body,
+              });
+            }

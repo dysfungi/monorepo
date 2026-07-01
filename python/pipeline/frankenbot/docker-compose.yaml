@@ -1,0 +1,7 @@
+services:
+  agent:
+    platform: linux/amd64
+    image: sjc.vultrcr.com/frankistry/frankenbot/agent:${APP_VERSION:-local}
+    build:
+      context: .
+      dockerfile: Dockerfile

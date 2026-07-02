@@ -51,25 +51,6 @@ resource "kubernetes_cron_job_v1" "musync" {
             restart_policy = "Never"
             node_selector  = local.node_selector
 
-            affinity {
-              # https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
-              node_affinity {
-                preferred_during_scheduling_ignored_during_execution {
-                  weight = 2
-                  preference {
-                    match_expressions {
-                      key      = "vke.vultr.com/node-pool"
-                      operator = "In"
-                      values = [
-                        "default",
-                        local.namespace,
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-
             security_context {
               run_as_non_root = true
               run_as_user     = local.app_uid

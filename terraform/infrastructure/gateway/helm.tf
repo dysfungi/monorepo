@@ -16,7 +16,6 @@ resource "helm_release" "gateway" {
   values = [
     yamlencode({
       fullnameOverride              = "nginx-gateway"
-      affinity                      = local.affinity
       terminationGracePeriodSeconds = 50
       # https://github.com/nginx/nginx-gateway-fabric/blob/main/charts/nginx-gateway-fabric/values.yaml
       # https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#configure-delayed-pod-termination-for-zero-downtime-upgrades
@@ -118,7 +117,6 @@ resource "helm_release" "cert_manager" {
 
   values = [
     yamlencode({
-      affinity = local.affinity
       crds = {
         enabled = true
         keep    = true
@@ -136,7 +134,6 @@ resource "helm_release" "cert_manager" {
       cainjector = {
         enabled      = true
         replicaCount = 2
-        affinity     = local.affinity
         resources = {
           requests = {
             cpu    = "5m"
@@ -149,8 +146,7 @@ resource "helm_release" "cert_manager" {
         }
       }
       startupapicheck = {
-        enabled  = true
-        affinity = local.affinity
+        enabled = true
         resources = {
           requests = {
             cpu    = "5m"
@@ -164,7 +160,6 @@ resource "helm_release" "cert_manager" {
       }
       webhook = {
         replicaCount = 2
-        affinity     = local.affinity
         resources = {
           requests = {
             cpu    = "5m"
@@ -209,7 +204,6 @@ resource "helm_release" "external_dns" {
     yamlencode({
       namespaced = false
       provider   = "cloudflare" # NOTE: only "webhook" supports more config like resources
-      affinity   = local.affinity
       resources = {
         requests = {
           cpu    = "5m"

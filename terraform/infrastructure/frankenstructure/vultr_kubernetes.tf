@@ -80,11 +80,15 @@ resource "vultr_kubernetes_node_pools" "infrastructure" {
   max_nodes     = 3
 }
 
+# Node-pool naming convention: `<family>-<gputype>.<size>` (e.g. `vcg-nvidia-a40.small`),
+# where `<family>` (`vcg`) and `<gputype>` derive from the Vultr plan (see `mise run plans`
+# JSON `gputype` field), NOT the raw plan slug (e.g. `vcg-a40-2c-10g-4vram`). The sibling
+# CPU-pool convention is `vhp-amd.<size>`.
 # resource "vultr_kubernetes_node_pools" "llm" {
 #   cluster_id    = vultr_kubernetes.k8s.id
 #   node_quantity = 1
 #   plan          = local.cpu_plans.cloud_gpu.nvidia_a40_105usd
-#   label         = "llm"
+#   label         = "vcg-nvidia-a40.small"
 #   tag           = "llm"
 #   auto_scaler   = false
 #   min_nodes     = 1

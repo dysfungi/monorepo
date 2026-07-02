@@ -39,7 +39,6 @@ locals {
   }
 
   base_collector = {
-    affinity = local.affinity
     ports = [
       {
         name       = "zpages"

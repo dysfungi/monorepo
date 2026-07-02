@@ -10,7 +10,7 @@
 #     escalation, all caps dropped, read-only rootfs + RuntimeDefault seccomp):
 #     least privilege. /tmp is a writable emptyDir for the dotnet runtime.
 # Env is the merged terraform-managed Secret (DATABASE_URL) + the ESO-synced
-# musync-onepassword Secret (external creds + deadman URLs).
+# musync-onepassword Secret (external creds).
 resource "kubernetes_cron_job_v1" "musync" {
   for_each = local.cronjobs
 

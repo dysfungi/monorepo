@@ -21,8 +21,7 @@ resource "helm_release" "opentelemetry_kube_stack" {
       }
       instrumentation = local.instrumentation
       opentelemetry-operator = {
-        enabled  = true
-        affinity = local.affinity
+        enabled = true
         pdb = {
           create = true
         }

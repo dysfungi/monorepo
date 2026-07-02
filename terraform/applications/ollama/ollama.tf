@@ -39,17 +39,26 @@ resource "helm_release" "ollama" {
         "targetCPUUtilizationPercentage"    = 80
         "targetMemoryUtilizationPercentage" = 80
       }
-      "nodeAffinity" = {
-        "requiredDuringSchedulingIgnoredDuringExecution" = {
-          "nodeSelectorTerms" = {
-            "matchExpressions" = [
+      # Hard-gate ollama onto a GPU node pool. Nested under `affinity` because the
+      # otwld/ollama-helm chart only reads `.Values.affinity`; a top-level
+      # `nodeAffinity` key is silently dropped and never reaches the k8s API.
+      # Inert today (replicaCount=0, gpu.enabled=false); when the GPU node pool is
+      # provisioned, add its exact `vke.vultr.com/node-pool` label to `values`.
+      "affinity" = {
+        "nodeAffinity" = {
+          "requiredDuringSchedulingIgnoredDuringExecution" = {
+            "nodeSelectorTerms" = [
               {
-                "key"      = "vke.vultr.com/node-pool"
-                "operator" = "In"
-                "values" = [
-                  "gpu",
-                  "llm",
-                  kubernetes_namespace.ollama.metadata[0].name,
+                "matchExpressions" = [
+                  {
+                    "key"      = "vke.vultr.com/node-pool"
+                    "operator" = "In"
+                    "values" = [
+                      "gpu",
+                      "llm",
+                      kubernetes_namespace.ollama.metadata[0].name,
+                    ]
+                  },
                 ]
               },
             ]

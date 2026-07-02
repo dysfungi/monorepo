@@ -45,9 +45,20 @@ Caveat baked into the recommendations: `k8s.pod.memory.usage` includes page
 **cache**, so it overstates the true working set. Memory recommendations are
 therefore kept **conservative** (we do not chase the raw MAX).
 
-> A Honeycomb usage board and a Grafana utilization dashboard will be authored as
-> Tofu in a later deliverable — see _(cross-link placeholder: observability
-> dashboards-as-code)_. This doc is the manual-query method until then.
+> This manual-query method is now backed by dashboards authored as Tofu in the
+> `terraform/infrastructure/observability` stack:
+>
+> - **Honeycomb board — "Resource Right-Sizing · frank8s"**
+>   (`honeycomb_boards.tf`): the raw 7-day CPU/memory **usage** gauges (P95 + MAX
+>   by workload) this section describes, as a board instead of ad-hoc queries.
+> - **Grafana Cloud dashboard — "frank8s · Utilization & Saturation"**
+>   (`grafana_dashboards.tf`): the derived utilization **ratios**
+>   (request/limit), memory working-set, node conditions, and CPU throttling —
+>   the saturation signals that route to Grafana Cloud per the telemetry
+>   deliverable, not to Honeycomb.
+>
+> Board/dashboard panel rendering is verified post-apply, and the Grafana metric
+> names are derived from the OTel→Prometheus normalization (verify at apply).
 
 ## 3. Heuristic
 

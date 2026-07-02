@@ -18,7 +18,12 @@ locals {
     }
     presets = {
       hostMetrics = {
-        enabled = true
+        # Disabled: the hostmetrics preset's `system.*` output is 100% dropped by
+        # every metrics allowlist (node-level CPU/memory are already covered by
+        # kubeletstats `k8s.node.*`, and `filter/metrics-infra` explicitly excludes
+        # `system.*`). Running the receiver only burned collector CPU to produce
+        # datapoints nothing exports. See filter/metrics-infra in base_collector.tf.
+        enabled = false
       }
       kubeletMetrics = {
         # enables the kubeletstatsreceiver and adds it to the metrics pipelines
@@ -48,10 +53,15 @@ locals {
           collection_interval = "300s"
           metric_groups       = ["node", "pod", "container"]
           metrics = {
-            "k8s.node.uptime" = {
-              enabled = true
-            }
-            "k8s.pod.uptime" = {
+            # container.cpu.usage is set explicitly for clarity/robustness (it is a
+            # harmless no-op: this metric is ENABLED by default in kubeletstats, and
+            # pinning it guards the metrics/utilization pipeline against a future
+            # default flip). The other GC-routed kubeletstats metrics
+            # (container.memory.*, container.filesystem.*, k8s.pod.memory.working_set,
+            # k8s.node.filesystem.*) are likewise default-enabled and merely dropped by
+            # the HC allowlist today. The four k8s.pod.*_utilization entries below, by
+            # contrast, ARE default-disabled and genuinely require the explicit enable.
+            "container.cpu.usage" = {
               enabled = true
             }
             "k8s.pod.cpu_limit_utilization" = {
@@ -196,6 +206,35 @@ locals {
               # Grafana Cloud unrouted; curated infra metrics now go to Honeycomb
               # (k8s-metrics dataset) via the "filter/metrics-infra" allowlist.
               "otlp/honeycomb-k8s-metrics",
+            ]
+          }
+          # GC utilization pipeline: kubeletstats (receiver) -> Grafana Cloud ONLY.
+          # Fans OUT from the same kubeletstats receiver as the HC "metrics" pipeline
+          # above (a receiver may feed multiple pipelines); the HC pipeline is
+          # untouched so Honeycomb volume stays flat. The kubeletMetrics preset only
+          # appends kubeletstats to the pipeline literally named "metrics", so this
+          # pipeline lists it explicitly. Processor chain mirrors the HC "metrics"
+          # pipeline (k8sattributes for pod labels + the resource-attr transforms)
+          # but swaps filter/metrics-infra -> filter/metrics-utilization and exports
+          # to GC. otlphttp/grafana-cloud + basicauth/grafana-cloud are inherited
+          # from base_collector, same as metrics/self and metrics/spanmetrics.
+          "metrics/utilization" = {
+            receivers = [
+              "kubeletstats",
+            ]
+            processors = [
+              "memory_limiter",
+              "filter",
+              "k8sattributes",
+              "transform",
+              "transform/drop_unneeded_resource_attributes",
+              "transform/add_resource_attributes_as_metric_attributes",
+              "filter/metrics-utilization",
+              "resourcedetection",
+              "batch",
+            ]
+            exporters = [
+              "otlphttp/grafana-cloud",
             ]
           }
           traces = {

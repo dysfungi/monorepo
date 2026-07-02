@@ -24,19 +24,24 @@ locals {
     mode     = "statefulset"
     replicas = 1
 
-    # Lean profile (see docs/right-sizing-resources.md). Discovery is scoped to the
-    # single automate-api PodMonitor (targetAllocator.prometheusCR below), so the
-    # embedded prometheus receiver's footprint is small -- 7-day actuals sit well
-    # under 64Mi, which is why the earlier 512Mi anti-OOM ceiling is no longer
-    # needed. CPU request added at the fleet floor; CPU limit omitted (throttling
-    # hurts scrape timeliness).
+    # Lean profile (see docs/right-sizing-resources.md). Discovery for the embedded
+    # `prometheus` receiver is scoped to the single automate-api PodMonitor
+    # (targetAllocator.prometheusCR below), so its footprint is small -- 7-day actuals
+    # sit well under 64Mi, which is why the earlier 512Mi anti-OOM ceiling is no longer
+    # needed. Request stays at 64Mi (scheduling reservation stays lean). The LIMIT was
+    # raised 64->128Mi because this collector now ALSO runs the full-cluster
+    # `prometheus/cadvisor` scrape (added below): /metrics/cadvisor is a large per-node
+    # payload, and even though metric_relabel_configs keeps only 3 series, the raw
+    # payload is transiently parsed before the keep filter applies -- the extra ceiling
+    # is burst headroom for that parse. CPU request at the fleet floor; CPU limit
+    # omitted (throttling hurts scrape timeliness).
     resources = {
       requests = {
         cpu    = "10m"
         memory = "64Mi"
       }
       limits = {
-        memory = "64Mi"
+        memory = "128Mi"
       }
     }
 
@@ -100,6 +105,70 @@ locals {
             scrape_configs = []
           }
         }
+        "prometheus/cadvisor" = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/prometheusreceiver/README.md
+          # cAdvisor scrape for CPU throttling (container_cpu_cfs_throttled_*), the
+          # #1 CPU-saturation signal, routed to Grafana Cloud (metrics/cadvisor
+          # pipeline). cAdvisor is exposed by every node's kubelet at
+          # /metrics/cadvisor; kubernetes_sd role=node discovers the nodes and the
+          # default __address__ is the kubelet (<node>:10250), so this is a DIRECT
+          # kubelet scrape -- authorized by the collector SA's `nodes/metrics` RBAC
+          # (scrape_collector_rbac.tf), exactly what that permission set was added
+          # for. Bearer token + CA come from the auto-mounted SA; insecure_skip_verify
+          # mirrors the daemon kubeletstats TLS setting (kubelet serving certs are not
+          # in the SA CA bundle).
+          #
+          # TA SAFETY: this is a SEPARATE receiver named `prometheus/cadvisor`. The
+          # operator's targetAllocator rewrites ONLY the receiver keyed exactly
+          # `prometheus` (verified in operator source v0.120.0: config_to_prom_config.go
+          # does `receivers["prometheus"]`, an exact map-key lookup, and config_replace.go
+          # writes back that one key). Sibling `prometheus/<suffix>` receivers are left
+          # intact -- so this static scrape_configs is NOT clobbered by the allocator.
+          # (Supersedes the older, over-cautious "rewrites any prometheus receiver"
+          # note in cluster_collector.tf; the daemon/cluster prometheus/self receivers
+          # already rely on the same exact-key contract.)
+          config = {
+            scrape_configs = [
+              {
+                job_name        = "kubelet-cadvisor"
+                scheme          = "https"
+                metrics_path    = "/metrics/cadvisor"
+                scrape_interval = "60s"
+                authorization = {
+                  type             = "Bearer"
+                  credentials_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+                }
+                tls_config = {
+                  ca_file              = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+                  insecure_skip_verify = true
+                }
+                kubernetes_sd_configs = [
+                  {
+                    role = "node"
+                  },
+                ]
+                relabel_configs = [
+                  {
+                    action = "labelmap"
+                    regex  = "__meta_kubernetes_node_label_(.+)"
+                  },
+                ]
+                # Bound receiver memory: /metrics/cadvisor is a large full-node payload,
+                # but only the CFS throttle family survives the metrics/cadvisor pipeline
+                # (filter/metrics-cadvisor). KEEP just those 3 series at scrape time so the
+                # full payload never enters the pipeline. Names mirror filter/metrics-cadvisor
+                # in base_collector.tf exactly (defense-in-depth: both agree).
+                metric_relabel_configs = [
+                  {
+                    source_labels = ["__name__"]
+                    regex         = "container_cpu_cfs_(throttled_periods_total|throttled_seconds_total|periods_total)"
+                    action        = "keep"
+                  },
+                ]
+              },
+            ]
+          }
+        }
       }
       processors = {
         # Inherited from base_collector (defaultCRConfig); listed here only so the
@@ -126,6 +195,25 @@ locals {
               # Grafana Cloud unrouted; route the curated dotnet metric to
               # Honeycomb (k8s-metrics dataset).
               "otlp/honeycomb-k8s-metrics",
+            ]
+          }
+          # cAdvisor throttling pipeline: prometheus/cadvisor (receiver) -> Grafana
+          # Cloud ONLY. Separate from the "metrics" pipeline above because it has a
+          # different receiver (a static kubelet scrape, NOT target-allocated) and a
+          # different allowlist. filter/metrics-cadvisor keeps only the
+          # container_cpu_cfs_throttled_* family; otlphttp/grafana-cloud,
+          # memory_limiter, and batch are inherited from base_collector.
+          "metrics/cadvisor" = {
+            receivers = [
+              "prometheus/cadvisor",
+            ]
+            processors = [
+              "memory_limiter",
+              "filter/metrics-cadvisor",
+              "batch",
+            ]
+            exporters = [
+              "otlphttp/grafana-cloud",
             ]
           }
         }

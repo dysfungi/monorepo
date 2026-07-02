@@ -1,0 +1,92 @@
+{
+  "type": "setlists",
+  "itemsPerPage": 20,
+  "page": 1,
+  "total": 3,
+  "setlist": [
+    {
+      "id": "a1",
+      "eventDate": "20-06-2026",
+      "artist": {
+        "mbid": "r-mbid",
+        "name": "Radiohead",
+        "sortName": "Radiohead"
+      },
+      "venue": {
+        "name": "The Fillmore",
+        "city": {
+          "name": "San Francisco",
+          "country": { "code": "US", "name": "United States" }
+        }
+      },
+      "sets": {
+        "set": [
+          {
+            "song": [
+              { "name": "Bloom" },
+              { "name": "15 Step" },
+              { "name": "Idioteque" }
+            ]
+          },
+          { "encore": 1, "song": [{ "name": "Reckoner" }] }
+        ]
+      }
+    },
+    {
+      "id": "b2",
+      "eventDate": "15-06-2026",
+      "artist": {
+        "mbid": "r-mbid",
+        "name": "Radiohead",
+        "sortName": "Radiohead"
+      },
+      "venue": {
+        "name": "Hollywood Bowl",
+        "city": {
+          "name": "Los Angeles",
+          "country": { "code": "US", "name": "United States" }
+        }
+      },
+      "sets": {
+        "set": [
+          {
+            "song": [
+              { "name": "15 Step" },
+              { "name": "Bloom" },
+              { "name": "Idioteque" },
+              { "name": "Lucky" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c3",
+      "eventDate": "10-06-2026",
+      "artist": {
+        "mbid": "r-mbid",
+        "name": "Radiohead",
+        "sortName": "Radiohead"
+      },
+      "venue": {
+        "name": "Madison Square Garden",
+        "city": {
+          "name": "New York",
+          "country": { "code": "US", "name": "United States" }
+        }
+      },
+      "sets": {
+        "set": [
+          {
+            "song": [
+              { "name": "Bloom" },
+              { "name": "15 Step" },
+              { "name": "Reckoner" },
+              { "name": "Idioteque" }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

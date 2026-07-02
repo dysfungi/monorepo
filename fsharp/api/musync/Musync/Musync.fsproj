@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Musync</AssemblyName>
+    <Version>0.1.0</Version>
+
+    <!-- General Info -->
+    <Authors>Derek M Frank</Authors>
+
+    <!-- Build config -->
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+
+    <!-- NuGet config -->
+    <PackageId>Musync</PackageId>
+  </PropertyGroup>
+
+  <!-- F# is order-sensitive top-to-bottom: dependency order is load-bearing. -->
+  <ItemGroup>
+    <Compile Include="Errors.fs" />
+    <Compile Include="Domain.fs" />
+    <Compile Include="Config.fs" />
+    <Compile Include="Ports.fs" />
+    <Compile Include="Calendar.fs" />
+    <Compile Include="Email.fs" />
+    <Compile Include="Persistence.fs" />
+    <Compile Include="Adapters/Songkick.fs" />
+    <Compile Include="Adapters/SongkickEnrich.fs" />
+    <Compile Include="Adapters/CalendarEmail.fs" />
+    <Compile Include="Adapters/Setlist.fs" />
+    <Compile Include="Adapters/Notifier.fs" />
+    <Compile Include="CalendarSync.fs" />
+    <Compile Include="SetlistCurate.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Argu" Version="6.2.5" />
+    <PackageReference Include="FsConfig" Version="4.1.0" />
+    <PackageReference Include="FsHttp" Version="15.0.3" />
+    <PackageReference Include="Ical.Net" Version="4.3.1" />
+    <PackageReference Include="MailKit" Version="4.17.0" />
+    <PackageReference Include="MimeKit" Version="4.17.0" />
+    <PackageReference Include="Npgsql.FSharp" Version="8.0.0" />
+    <PackageReference Include="Validus" Version="4.1.4" />
+    <PackageReference Update="FSharp.Core" Version="9.0.201" />
+  </ItemGroup>
+</Project>

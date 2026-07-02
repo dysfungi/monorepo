@@ -1,0 +1,81 @@
+services:
+  # One-shot CLI runner. Override the command per invocation, e.g.:
+  #   docker compose run --rm musync poll-songkick
+  musync:
+    platform: linux/amd64
+    image: sjc.vultrcr.com/frankistry/musync/cli:${APP_VERSION:-local}
+    build:
+      context: .
+      target: final
+    environment: &musync_env
+      DATABASE_URL: postgres://musync_api:postgres@postgres:5432/musync_app?sslmode=disable
+      SONGKICK_ICS_URL: ${MUSYNC_SONGKICK_ICS_URL:-}
+      SETLIST_FM_API_KEY: ${MUSYNC_SETLIST_FM_API_KEY:-}
+      USER_EMAIL: ${MUSYNC_USER_EMAIL:-}
+      SMTP_HOST: ${MUSYNC_SMTP_HOST:-}
+      SMTP_PORT: ${MUSYNC_SMTP_PORT:-587}
+      SMTP_USERNAME: ${MUSYNC_SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${MUSYNC_SMTP_PASSWORD:-}
+      SMTP_FROM: ${MUSYNC_SMTP_FROM:-}
+      SMTP_SECURITY: ${MUSYNC_SMTP_SECURITY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      dbmigrate:
+        condition: service_completed_successfully
+
+  musync-unit-tests:
+    platform: linux/amd64
+    image: sjc.vultrcr.com/frankistry/musync/cli-unit-tests:local
+    build:
+      context: .
+      target: unit-test
+    entrypoint: [dotnet, watch, test]
+    volumes:
+      - ./Musync:/source/Musync
+      - ./Musync.Tests:/source/Musync.Tests
+
+  dbmigrate:
+    platform: linux/amd64
+    image: ghcr.io/amacneil/dbmate
+    restart: on-failure:5
+    command:
+      - up
+      - --strict
+      - --verbose
+    environment:
+      DATABASE_URL: postgres://pgadmin:postgres@postgres:5432/musync_app?sslmode=disable
+      DBMATE_WAIT: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./db:/db
+
+  postgres:
+    # https://hub.docker.com/_/postgres
+    image: postgres:16
+    restart: always
+    shm_size: 128mb
+    command: ["postgres", "-c", "log_statement=all"]
+    healthcheck:
+      test: pg_isready
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      PGDATABASE: &admin_dbname defaultdb
+      PGPASSWORD: &admin_dbpwd postgres
+      PGSSLMODE: allow
+      PGUSER: &admin_dbuser pgadmin
+      POSTGRES_DB: *admin_dbname
+      POSTGRES_PASSWORD: *admin_dbpwd
+      POSTGRES_USER: *admin_dbuser
+    ports:
+      - "5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+
+volumes:
+  pgdata:

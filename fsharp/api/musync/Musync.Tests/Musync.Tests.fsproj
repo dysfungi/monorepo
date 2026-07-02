@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Musync.Tests</AssemblyName>
+    <TargetFramework>net9.0</TargetFramework>
+    <GenerateProgramFile>false</GenerateProgramFile>
+
+    <Authors>Derek M Frank</Authors>
+    <PackageId>Musync.Tests</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Core.fs" />
+    <Compile Include="DomainTests.fs" />
+    <Compile Include="SongkickTests.fs" />
+    <Compile Include="SongkickEnrichTests.fs" />
+    <Compile Include="PersistenceTests.fs" />
+    <Compile Include="CalendarTests.fs" />
+    <Compile Include="CalendarStateTests.fs" />
+    <Compile Include="SetlistTests.fs" />
+    <Compile Include="NotifierTests.fs" />
+    <Compile Include="SetlistCurateTests.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <!-- Fixtures must sit next to the test assembly so the pure parsers can read
+       them (ICS for Songkick; JSON for Setlist.fm). -->
+  <ItemGroup>
+    <None Include="fixtures/songkick_attendance.ics">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="fixtures/songkick_concert_page.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="fixtures/songkick_concert_page_full.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="fixtures/setlist_radiohead_setlists.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="fixtures/setlist_search_empty.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="fixtures/setlist_beatles_fuzzy.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Expecto" Version="10.2.2" />
+    <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.15.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Include="Npgsql.FSharp" Version="8.0.0" />
+    <!-- In-process fake SMTP sink for the EmailSender integration test (loopback,
+         no real network). -->
+    <PackageReference Include="netDumbster" Version="3.1.1" />
+    <PackageReference Update="FSharp.Core" Version="9.0.201" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Musync/Musync.fsproj" />
+  </ItemGroup>
+</Project>

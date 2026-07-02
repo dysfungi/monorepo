@@ -11,6 +11,18 @@ locals {
       repository = "otel/opentelemetry-collector-contrib"
       tag        = "0.123.0"
     }
+    # Lean profile (see docs/right-sizing-resources.md). Single-replica deployment
+    # running the k8sclusterreceiver + k8sobjectsreceiver; CPU limit omitted
+    # fleet-wide (throttling hurts scrape/export timeliness).
+    resources = {
+      requests = {
+        cpu    = "10m"
+        memory = "128Mi"
+      }
+      limits = {
+        memory = "160Mi"
+      }
+    }
     presets = {
       clusterMetrics = {
         # enables the k8sclusterreceiver and adds it to the metrics pipelines

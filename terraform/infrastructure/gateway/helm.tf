@@ -26,14 +26,17 @@ resource "helm_release" "gateway" {
             level = "info"
           }
         }
+        # Lean profile (see docs/right-sizing-resources.md). CPU limit intentionally
+        # omitted fleet-wide: throttling the control plane adds reconcile/route
+        # latency for no benefit. Memory RAISED (req 128->288Mi): the control plane
+        # was under-declared and ran near its old request under normal load.
         resources = {
           requests = {
-            cpu    = "30m"
-            memory = "128Mi"
+            cpu    = "10m"
+            memory = "288Mi"
           }
           limits = {
-            cpu    = "100m"
-            memory = "512Mi"
+            memory = "352Mi"
           }
         }
         lifecycle = {
@@ -121,27 +124,30 @@ resource "helm_release" "cert_manager" {
         enabled = true
         keep    = true
       }
+      # Lean profile (see docs/right-sizing-resources.md). CPU limits omitted
+      # fleet-wide (throttling hurts latency); memory limit == request to pin a
+      # tight ceiling for these low, stable-footprint controllers.
       resources = {
         requests = {
-          cpu    = "5m"
-          memory = "32Mi"
+          cpu    = "10m"
+          memory = "64Mi"
         }
         limits = {
-          cpu    = "10m"
           memory = "64Mi"
         }
       }
       cainjector = {
         enabled      = true
         replicaCount = 2
+        # Memory RAISED (req 32->96Mi): the cainjector caches CA bundles for every
+        # injectable webhook and was under-declared relative to actual usage.
         resources = {
           requests = {
-            cpu    = "5m"
-            memory = "32Mi"
+            cpu    = "10m"
+            memory = "96Mi"
           }
           limits = {
-            cpu    = "10m"
-            memory = "64Mi"
+            memory = "96Mi"
           }
         }
       }
@@ -160,14 +166,16 @@ resource "helm_release" "cert_manager" {
       }
       webhook = {
         replicaCount = 2
+        # Memory limit raised 32->48Mi for headroom on cert-manager's admission path:
+        # observed ~31.85Mi (~99.5% of the old 32Mi limit) under validation-load
+        # spikes. Request stays 32Mi.
         resources = {
           requests = {
-            cpu    = "5m"
-            memory = "16Mi"
-          }
-          limits = {
             cpu    = "10m"
             memory = "32Mi"
+          }
+          limits = {
+            memory = "48Mi"
           }
         }
       }
@@ -204,14 +212,16 @@ resource "helm_release" "external_dns" {
     yamlencode({
       namespaced = false
       provider   = "cloudflare" # NOTE: only "webhook" supports more config like resources
+      # Memory RAISED (req 32->96Mi): external-dns holds the full record set for
+      # every managed zone in memory between reconciles and was under-declared.
+      # CPU limit omitted fleet-wide (see docs/right-sizing-resources.md).
       resources = {
         requests = {
-          cpu    = "5m"
-          memory = "32Mi"
+          cpu    = "10m"
+          memory = "96Mi"
         }
         limits = {
-          cpu    = "10m"
-          memory = "64Mi"
+          memory = "96Mi"
         }
       }
       rbac = {

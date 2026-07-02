@@ -4,6 +4,18 @@ locals {
     enabled = true
     # https://artifacthub.io/packages/helm/opentelemetry-helm/opentelemetry-kube-stack#scrape_configs_file-details
     scrape_configs_file = "" # Disable Prometheus scraping
+    # Lean profile (see docs/right-sizing-resources.md). DaemonSet (one pod per node)
+    # running hostMetrics + kubeletstats + log collection; the busiest collector, so
+    # its CPU floor (25m) is higher than the fleet default. CPU limit omitted.
+    resources = {
+      requests = {
+        cpu    = "25m"
+        memory = "160Mi"
+      }
+      limits = {
+        memory = "192Mi"
+      }
+    }
     presets = {
       hostMetrics = {
         enabled = true

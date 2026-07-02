@@ -57,14 +57,16 @@ resource "helm_release" "miniflux" {
           allowedNetworks = "10.0.0.0/8"
         }
       }
+      # Lean profile (see docs/right-sizing-resources.md). This was the fleet's worst
+      # over-provisioner: requested 0.5Gi/0.1 CPU but 7-day actuals sit near idle.
+      # Trimmed to a tight floor; CPU limit dropped (throttling hurts latency).
       resources = {
-        limits = {
-          cpu    = "0.5"
-          memory = "1Gi"
-        }
         requests = {
-          cpu    = "0.1"
-          memory = "0.5Gi"
+          cpu    = "10m"
+          memory = "64Mi"
+        }
+        limits = {
+          memory = "64Mi"
         }
       }
     }),

@@ -33,6 +33,19 @@ resource "helm_release" "opentelemetry_kube_stack" {
             # repository = "otel/opentelemetry-collector"
             # tag        = "0.126.0"
           }
+          # Lean profile (see docs/right-sizing-resources.md). The operator reconciles
+          # the OpenTelemetryCollector CRs; its memory limit (96Mi) sits at the top of
+          # the operator/target-allocator range since it holds more watch state than
+          # the allocator. CPU limit omitted fleet-wide.
+          resources = {
+            requests = {
+              cpu    = "10m"
+              memory = "64Mi"
+            }
+            limits = {
+              memory = "96Mi"
+            }
+          }
         }
       }
       extraEnvs = [

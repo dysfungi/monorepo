@@ -48,14 +48,46 @@ resource "vultr_kubernetes" "k8s" {
   ha_controlplanes = false
   enable_firewall  = true
 
+  # Inline pool is functionally the `vhp-amd.medium` workhorse (vhp-2c-4gb-amd, $24/mo).
+  # WHY the label stays `default`: in vultr provider 2.21.0 the inline pool's `plan` and
+  # `label` are immutable — an Update silently drops changes to them (no-op + perpetual
+  # drift), and forcing a rename (`default`->`vhp-amd.medium`) would require a pool
+  # REPLACEMENT, i.e. a full cluster rebuild. So we only touch the mutable min/max here.
+  # Rescaled to min1/max1: the standalone `small` pool below carries the elastic capacity;
+  # this stays a single stable 4 GB medium node for workloads that want the headroom.
   node_pools {
     node_quantity = 1
     plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_24usd
     label         = "default"
     auto_scaler   = true
     min_nodes     = 1
-    max_nodes     = 2
+    max_nodes     = 1
   }
+
+  # Don't let routine applies fight an autoscaler burst: node_quantity drifts as the
+  # autoscaler adds/removes nodes, so ignore it on the inline pool.
+  lifecycle {
+    ignore_changes = [node_pools[0].node_quantity]
+  }
+}
+
+# `vhp-amd.small` — standalone 2 GB AMD workhorse pool. Elastic capacity for the cluster:
+# min2/max4 gives 3-node redundancy floor (2 small + 1 default/medium) and autoscaler
+# headroom. Replaces the single-purpose `infrastructure` pool (deleted below).
+#
+# LABEL CAVEAT: the `.` in `vhp-amd.small` is UNPROVEN in a Vultr pool label. Kubernetes
+# label VALUES permit `.`, but the Vultr API's accepted charset for pool labels is
+# unconfirmed. If `tofu apply` REJECTS this label, fall back to the all-dash form
+# `vhp-amd-small` (and use `tag = "small"` unchanged). Do not spend a cluster rebuild on it.
+resource "vultr_kubernetes_node_pools" "small" {
+  cluster_id    = vultr_kubernetes.k8s.id
+  node_quantity = 2
+  plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_12usd
+  label         = "vhp-amd.small"
+  tag           = "small"
+  auto_scaler   = true
+  min_nodes     = 2
+  max_nodes     = 4
 }
 
 # resource "vultr_kubernetes_node_pools" "temp" {
@@ -68,17 +100,6 @@ resource "vultr_kubernetes" "k8s" {
 #   min_nodes     = 1
 #   max_nodes     = 2
 # }
-
-resource "vultr_kubernetes_node_pools" "infrastructure" {
-  cluster_id    = vultr_kubernetes.k8s.id
-  node_quantity = 1
-  plan          = local.cpu_plans.cloud_compute.high_performance.amd_epyc_24usd
-  label         = "infrastructure"
-  tag           = "infrastructure"
-  auto_scaler   = true
-  min_nodes     = 1
-  max_nodes     = 3
-}
 
 # Node-pool naming convention: `<family>-<gputype>.<size>` (e.g. `vcg-nvidia-a40.small`),
 # where `<family>` (`vcg`) and `<gputype>` derive from the Vultr plan (see `mise run plans`

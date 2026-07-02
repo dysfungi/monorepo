@@ -22,14 +22,15 @@ resource "helm_release" "httpbin" {
         targetCPUUtilizationPercentage = 80
         # targetMemoryUtilizationPercentage = 80
       }
+      # Lean profile (see docs/right-sizing-resources.md): a demo/echo service with a
+      # negligible footprint. CPU limit dropped fleet-wide (throttling hurts latency).
       resources = {
         requests = {
           cpu    = "10m"
-          memory = "16Mi"
+          memory = "32Mi"
         }
         limits = {
-          cpu    = "100m"
-          memory = "128Mi"
+          memory = "32Mi"
         }
       }
     }),

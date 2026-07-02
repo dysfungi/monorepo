@@ -59,13 +59,15 @@ resource "helm_release" "ntfy" {
         storageClass = ""
       }
 
+      # Lean profile (see docs/right-sizing-resources.md): 7-day actuals show a tiny,
+      # flat footprint for this single-replica relay. CPU limit already omitted.
       resources = {
         requests = {
-          cpu    = "50m"
-          memory = "64Mi"
+          cpu    = "10m"
+          memory = "32Mi"
         }
         limits = {
-          memory = "128Mi"
+          memory = "32Mi"
         }
       }
     }),

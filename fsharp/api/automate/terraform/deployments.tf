@@ -93,14 +93,17 @@ resource "kubernetes_deployment" "api" {
             # period_seconds        = 5
           }
 
+          # Lean profile (see docs/right-sizing-resources.md). The pod-level target
+          # (192Mi req / 256Mi lim) is split across the two containers: the api gets
+          # the larger share (a .NET runtime), the monitor sidecar a small floor.
+          # CPU limit dropped fleet-wide -- throttling the request path hurts latency.
           resources {
             requests = {
-              cpu    = "100m"
-              memory = "64Mi"
+              cpu    = "10m"
+              memory = "128Mi"
             }
             limits = {
-              cpu    = "250m"
-              memory = "512Mi"
+              memory = "192Mi"
             }
           }
 
@@ -158,14 +161,16 @@ resource "kubernetes_deployment" "api" {
             protocol       = "TCP"
           }
 
+          # dotnet-monitor diagnostics sidecar. See the api container above and
+          # docs/right-sizing-resources.md. Limit raised 64->128Mi for diagnostic dump
+          # headroom (dotnet-monitor buffers dumps/gcdumps in memory). Request stays 64Mi.
           resources {
             requests = {
-              cpu    = "50m"
-              memory = "128Mi"
+              cpu    = "10m"
+              memory = "64Mi"
             }
             limits = {
-              cpu    = "250m"
-              memory = "256Mi"
+              memory = "128Mi"
             }
           }
 

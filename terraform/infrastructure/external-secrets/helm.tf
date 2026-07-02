@@ -11,6 +11,44 @@ resource "helm_release" "external_secrets" {
   values = [
     yamlencode({
       installCRDs = true
+      # Lean profile (see docs/right-sizing-resources.md). Per-component resources:
+      # the top-level block is the controller (busiest -- reconciles every
+      # ExternalSecret, so it carries the largest memory floor at 128Mi); webhook and
+      # certController are lightweight admission/cert helpers. CPU limits omitted
+      # fleet-wide; memory limit == request for the lightweight webhook/certController.
+      resources = {
+        requests = {
+          cpu    = "10m"
+          memory = "128Mi"
+        }
+        # Limit raised 128->160Mi for headroom: the controller runs at a steady
+        # ~105Mi that climbs over uptime, and it is on the ESO critical path.
+        limits = {
+          memory = "160Mi"
+        }
+      }
+      webhook = {
+        resources = {
+          requests = {
+            cpu    = "10m"
+            memory = "64Mi"
+          }
+          limits = {
+            memory = "64Mi"
+          }
+        }
+      }
+      certController = {
+        resources = {
+          requests = {
+            cpu    = "10m"
+            memory = "64Mi"
+          }
+          limits = {
+            memory = "64Mi"
+          }
+        }
+      }
     })
   ]
 
@@ -38,6 +76,33 @@ resource "helm_release" "onepassword_connect" {
       connect = {
         credentialsName = kubernetes_secret.onepassword_connect_credentials.metadata[0].name
         credentialsKey  = "1password-credentials.json"
+        # Lean profile (see docs/right-sizing-resources.md). The connect pod runs TWO
+        # containers with SEPARATE resource keys -- this chart has no pod-level
+        # connect.resources. connect-api serves ESO reads; connect-sync refreshes the
+        # local cache. The pod-level target (64Mi req/lim) is split evenly across them.
+        # CPU limits omitted fleet-wide.
+        api = {
+          resources = {
+            requests = {
+              cpu    = "10m"
+              memory = "32Mi"
+            }
+            limits = {
+              memory = "32Mi"
+            }
+          }
+        }
+        sync = {
+          resources = {
+            requests = {
+              cpu    = "10m"
+              memory = "32Mi"
+            }
+            limits = {
+              memory = "32Mi"
+            }
+          }
+        }
       }
       operator = {
         create = false
@@ -59,6 +124,27 @@ resource "helm_release" "reloader" {
   chart      = "reloader"
   version    = "2.2.12"
   namespace  = local.namespace
+
+  # Lean profile (see docs/right-sizing-resources.md). The chart shipped no resources
+  # by default, so this ADDS a declaration. Chart path is reloader.deployment.resources;
+  # CPU limit omitted fleet-wide.
+  values = [
+    yamlencode({
+      reloader = {
+        deployment = {
+          resources = {
+            requests = {
+              cpu    = "10m"
+              memory = "96Mi"
+            }
+            limits = {
+              memory = "96Mi"
+            }
+          }
+        }
+      }
+    })
+  ]
 
   depends_on = [kubernetes_namespace.external_secrets]
 }

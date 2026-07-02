@@ -86,6 +86,22 @@ resource "helm_release" "nodered" {
           "node-red-contrib-prometheus-exporter",
         ]
       }
+      # Lean profile (see docs/right-sizing-resources.md). node-red-chart 0.33.0 ships
+      # defaults (requests 100m/128Mi, limits 500m/512Mi). CPU request is trimmed
+      # 100m -> 10m (it was over-provisioned vs 7-day actuals); the memory REQUEST is
+      # set to 256Mi to honestly reflect ~210Mi live usage (node-red holds its flow
+      # runtime plus the prometheus-exporter sidecar node in one Node.js heap, which
+      # grows); the chart's proven 512Mi limit is kept as the ceiling. CPU limit
+      # omitted fleet-wide.
+      "resources" = {
+        "requests" = {
+          "cpu"    = "10m"
+          "memory" = "256Mi"
+        }
+        "limits" = {
+          "memory" = "512Mi"
+        }
+      }
     }),
   ]
 }

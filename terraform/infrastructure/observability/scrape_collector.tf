@@ -24,16 +24,19 @@ locals {
     mode     = "statefulset"
     replicas = 1
 
-    # The target allocator + prometheus receiver are memory-hungry relative to
-    # the chart/operator defaults; bump the floor and ceiling so the StatefulSet
-    # stops OOM-restarting. (No explicit resources block existed previously --
-    # these values replace the inherited defaults.)
+    # Lean profile (see docs/right-sizing-resources.md). Discovery is scoped to the
+    # single automate-api PodMonitor (targetAllocator.prometheusCR below), so the
+    # embedded prometheus receiver's footprint is small -- 7-day actuals sit well
+    # under 64Mi, which is why the earlier 512Mi anti-OOM ceiling is no longer
+    # needed. CPU request added at the fleet floor; CPU limit omitted (throttling
+    # hurts scrape timeliness).
     resources = {
       requests = {
-        memory = "128Mi"
+        cpu    = "10m"
+        memory = "64Mi"
       }
       limits = {
-        memory = "512Mi"
+        memory = "64Mi"
       }
     }
 
@@ -51,6 +54,19 @@ locals {
       filterStrategy     = "relabel-config"
       # Read access to the monitoring.coreos.com CRs + namespaces (see RBAC file).
       serviceAccount = kubernetes_service_account.scrape_target_allocator.metadata[0].name
+      # Lean profile (see docs/right-sizing-resources.md). The allocator only tracks
+      # the single automate PodMonitor's targets, so its footprint is minimal. Limit
+      # raised 64->96Mi for headroom (observed ~85% of the old 64Mi limit while fresh;
+      # within the documented 64-96Mi range). Request stays 64Mi.
+      resources = {
+        requests = {
+          cpu    = "10m"
+          memory = "64Mi"
+        }
+        limits = {
+          memory = "96Mi"
+        }
+      }
       prometheusCR = {
         enabled = true
         # Scope discovery to ONLY the automate-api PodMonitor. The CRD's

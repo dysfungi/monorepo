@@ -13,3 +13,4 @@ affinity-removal PR (Deliverable 1) @worktree:.claude/worktrees/b92f4cdc-f1c5-45
 right-sizing PR (Deliverable 2) @worktree:.claude/worktrees/b92f4cdc-f1c5-455c-8e49-50fbc708d6e5.rightsizing session:b92f4cdc agent:claude-code model:claude-opus-4-8
 telemetry re-enablement PR (Deliverable 3) @worktree:.claude/worktrees/b92f4cdc-f1c5-455c-8e49-50fbc708d6e5.telemetry session:b92f4cdc agent:claude-code model:claude-opus-4-8
 dashboards PR (Deliverable 5) @worktree:.claude/worktrees/b92f4cdc-f1c5-455c-8e49-50fbc708d6e5.dashboards session:b92f4cdc agent:claude-code model:claude-opus-4-8
+topology-spread + conventions PR (Deliverable 4a) @worktree:.claude/worktrees/b92f4cdc-f1c5-455c-8e49-50fbc708d6e5.spread-conventions session:b92f4cdc agent:claude-code model:claude-opus-4-8

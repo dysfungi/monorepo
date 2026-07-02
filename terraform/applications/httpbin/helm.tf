@@ -22,6 +22,30 @@ resource "helm_release" "httpbin" {
         targetCPUUtilizationPercentage = 80
         # targetMemoryUtilizationPercentage = 80
       }
+      # Node-loss resilience (see terraform/applications/README.md): keep the two
+      # replicas on distinct nodes so losing a single node cannot take httpbin fully
+      # offline. The matheusfm/httpbin chart does NOT expose
+      # topologySpreadConstraints, so we express the intent with a soft (preferred)
+      # podAntiAffinity on the hostname topology — never required, so a cluster with
+      # only one schedulable node still runs both replicas.
+      affinity = {
+        podAntiAffinity = {
+          preferredDuringSchedulingIgnoredDuringExecution = [
+            {
+              weight = 100
+              podAffinityTerm = {
+                topologyKey = "kubernetes.io/hostname"
+                labelSelector = {
+                  matchLabels = {
+                    "app.kubernetes.io/name"     = "httpbin"
+                    "app.kubernetes.io/instance" = "httpbin"
+                  }
+                }
+              }
+            },
+          ]
+        }
+      }
       # Lean profile (see docs/right-sizing-resources.md): a demo/echo service with a
       # negligible footprint. CPU limit dropped fleet-wide (throttling hurts latency).
       resources = {

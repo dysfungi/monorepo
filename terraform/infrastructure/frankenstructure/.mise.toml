@@ -41,3 +41,16 @@ run = "tofu init"
 # NOTE: copy_k8s_id / copy_registry_id / copy_storage_id are file tasks under
 # .mise/tasks/ (auto-discovered); they hold the vultr|jq|pbcopy plumbing and are
 # not redeclared here.
+
+# ── vultr plans (node-pool sizing) ─────────────────────────────────────────────
+# VULTR_API_KEY is inherited from the root mise env (see header). -p 500 pulls all
+# plans in one page so the list isn't silently truncated to the default page size.
+[tasks.plans]
+description = "List Vultr plans (JSON) for node-pool sizing"
+run = "vultr-cli -o json plans list -p 500"
+
+# Price-sorted table of plans available in lax (frank8s' region), for eyeballing
+# node-pool sizing options. jq is lax-filtered (region "lax") and cost-sorted.
+[tasks."plans:table"]
+description = "Vultr lax-region plans as a price-sorted table"
+run = "vultr-cli -o json plans list -p 500 | jq -r '.plans | map(select((.locations // []) | index(\"lax\"))) | sort_by(.monthly_cost) | ([\"ID\",\"vCPU\",\"RAM_MB\",\"DISK_GB\",\"USD_MO\",\"TYPE\"] | @tsv), (.[] | [.id, .vcpu_count, .ram, .disk, .monthly_cost, .type] | @tsv)'"

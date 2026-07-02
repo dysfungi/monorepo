@@ -22,6 +22,15 @@ SQLite message cache on a 2Gi Vultr block-storage PVC mounted at `/var/cache/ntf
 (survives pod restarts). The chart runs a single replica with a `Recreate` strategy,
 so the `ReadWriteOnce` volume always has a single writer.
 
+## Redundancy
+
+ntfy stays **1 replica by design** — a documented exception to the repo's
+[node-loss resilience convention](../README.md#node-loss-resilience-convention)
+(`replicas >= 2` + `topologySpreadConstraints`). It is a single-writer workload
+(SQLite on an RWO volume, no cross-instance message fan-out), so it **cannot** run
+more than one replica. A node loss makes ntfy briefly unavailable until the pod
+reschedules onto another node — accepted for this best-effort notification relay.
+
 ## Ingress
 
 Exposed through the shared [`gateway-route`](../../modules/gateway-route) module, which

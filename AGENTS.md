@@ -74,6 +74,7 @@ We use `mise` (`.mise.toml`) for managing the developer environment and secrets.
 ### Kubernetes
 
 - **Verification:** Feel free to use `kubectl` to inspect, troubleshoot, and verify the live state of resources in the Kubernetes cluster (e.g., checking active pods, namespaces, Custom Resource Definitions, or logs) to ensure precise operational alignment.
+- **Node-loss resilience:** App Deployments default to `replicas >= 2` **and** carry `topologySpreadConstraints` (`topologyKey=kubernetes.io/hostname`, `maxSkew=1`, `whenUnsatisfiable=ScheduleAnyway`) so replicas survive a single node loss. Pin each constraint's `labelSelector.matchLabels` to the workload's own rendered pod labels — many charts pass the constraint through raw, where `nil` matches nothing (no-op) and `{}` matches every pod in the namespace (wrong skew). If a chart cannot express `topologySpreadConstraints`, fall back to a soft `podAntiAffinity` (same `topologyKey`). Singleton/stateful workloads (an RWO volume or no cross-instance clustering, e.g. ntfy) are explicit, documented exceptions. Replica counts must fit the node budget (see right-sizing). Full rationale: [`terraform/applications/README.md`](terraform/applications/README.md).
 
 ---
 

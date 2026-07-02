@@ -57,6 +57,26 @@ resource "helm_release" "miniflux" {
           allowedNetworks = "10.0.0.0/8"
         }
       }
+      # Node-loss resilience (see terraform/applications/README.md): spread the two
+      # replicas across distinct nodes (best-effort) so a single node loss cannot
+      # take miniflux fully offline. The gabe565 chart's bjw-s/common 1.5.1 (pre-v2
+      # schema) renders pod options at the TOP LEVEL, so this is a top-level key —
+      # NOT defaultPodOptions.topologySpreadConstraints. Postgres is external
+      # (postgresql.enabled=false), so there is no RWO PVC and both replicas schedule
+      # cleanly.
+      topologySpreadConstraints = [
+        {
+          maxSkew           = 1
+          topologyKey       = "kubernetes.io/hostname"
+          whenUnsatisfiable = "ScheduleAnyway"
+          labelSelector = {
+            matchLabels = {
+              "app.kubernetes.io/name"     = "miniflux"
+              "app.kubernetes.io/instance" = "miniflux"
+            }
+          }
+        },
+      ]
       # Lean profile (see docs/right-sizing-resources.md). This was the fleet's worst
       # over-provisioner: requested 0.5Gi/0.1 CPU but 7-day actuals sit near idle.
       # Trimmed to a tight floor; CPU limit dropped (throttling hurts latency).

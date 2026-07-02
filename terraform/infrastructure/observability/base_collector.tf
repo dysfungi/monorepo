@@ -301,6 +301,54 @@ locals {
             ]
           }
         }
+        "filter/metrics-utilization" = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/filterprocessor/README.md
+          # Grafana-Cloud allowlist (SIBLING to filter/metrics-infra, which is
+          # UNTOUCHED). These are the useful utilization/saturation signals a prior
+          # cost pass pruned because Honeycomb bills per DATAPOINT. GC bills per
+          # ACTIVE SERIES (10k free) and this fleet sits far under, so we re-enable
+          # them into GC via the metrics/utilization pipelines (daemon + cluster)
+          # instead of Honeycomb. Same allowlist idiom as filter/metrics-infra: a
+          # metric is dropped when the condition is true, so we drop everything NOT
+          # in the allowed set. One shared list serves both pipelines -- kubeletstats
+          # names are no-ops on the cluster pipeline and k8s_cluster names are no-ops
+          # on the daemon pipeline (a name that never appears simply never matches).
+          # OTTL metric context uses `name`, not `metric.name`.
+          # NAME GOTCHAS (verified against receiver documentation.md):
+          #   - kubeletstats CONTAINER metrics are bare `container.*` (NO k8s. prefix),
+          #     while k8s_cluster container metrics ARE `k8s.container.*`.
+          #   - utilization/request/limit/condition leaves use UNDERSCORES
+          #     (cpu_limit_utilization, cpu_request, condition_ready), not dots.
+          error_mode = "ignore"
+          metrics = {
+            metric = [
+              <<-EOT
+              not (name == "k8s.pod.cpu_limit_utilization" or name == "k8s.pod.cpu_request_utilization" or name == "k8s.pod.memory_limit_utilization" or name == "k8s.pod.memory_request_utilization" or name == "k8s.pod.memory.working_set" or name == "container.memory.working_set" or name == "container.cpu.usage" or name == "container.memory.usage" or name == "k8s.node.filesystem.usage" or name == "k8s.node.filesystem.capacity" or name == "container.filesystem.usage" or name == "container.filesystem.capacity" or name == "k8s.container.cpu_request" or name == "k8s.container.cpu_limit" or name == "k8s.container.memory_request" or name == "k8s.container.memory_limit" or name == "k8s.node.condition_ready" or name == "k8s.node.condition_memory_pressure" or name == "k8s.node.condition_disk_pressure" or name == "k8s.node.condition_pid_pressure" or name == "k8s.deployment.available" or name == "k8s.deployment.desired" or name == "k8s.daemonset.ready_nodes" or name == "k8s.daemonset.desired_scheduled_nodes" or name == "k8s.statefulset.ready_pods" or name == "k8s.statefulset.desired_pods" or name == "k8s.job.failed_pods" or name == "k8s.hpa.current_replicas" or name == "k8s.hpa.desired_replicas")
+              EOT
+              ,
+            ]
+          }
+        }
+        "filter/metrics-cadvisor" = {
+          # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/filterprocessor/README.md
+          # Grafana-Cloud allowlist for the scrape collector's cAdvisor scrape
+          # (prometheus/cadvisor -> metrics/cadvisor pipeline). Keep ONLY the CFS
+          # CPU-throttling family -- the #1 CPU-saturation signal -- and drop every
+          # other cAdvisor series (which is enormous and would blow the GC
+          # active-series budget). throttled_periods / periods_total are the
+          # numerator+denominator pair for a throttle RATIO; throttled_seconds is
+          # the absolute stall time. Same idiom + explicit-name style as
+          # filter/metrics-infra. OTTL metric context uses `name`, not `metric.name`.
+          error_mode = "ignore"
+          metrics = {
+            metric = [
+              <<-EOT
+              not (name == "container_cpu_cfs_throttled_periods_total" or name == "container_cpu_cfs_throttled_seconds_total" or name == "container_cpu_cfs_periods_total")
+              EOT
+              ,
+            ]
+          }
+        }
         "filter/self-metrics" = {
           # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/filterprocessor/README.md
           # Per-collector liveness heartbeat (Option B): bound cardinality of the

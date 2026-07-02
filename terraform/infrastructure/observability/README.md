@@ -36,8 +36,10 @@ collectors. Each collector owns a distinct slice of the telemetry surface:
   - Pinned to `otel/opentelemetry-collector-contrib:0.123.0` — **the only
     image-pinned collector**, needed for `tlscheck` (see [Decisions](#decisions)).
 - **scrape** (StatefulSet + targetAllocator) — Prometheus CR discovery scoped to
-  the automate-api PodMonitor via label `otel-scrape=automate`; keeps only the
-  dotnet exception metric (`filter/metrics-dotnet`). 512Mi limit.
+  the automate-api PodMonitor via label `otel-scrape=automate` (dotnet exception
+  metric via `filter/metrics-dotnet` → HC), plus a static `prometheus/cadvisor`
+  kubelet scrape for CFS throttling → GC. 128Mi limit (raised from 64Mi for the
+  full-cluster cAdvisor parse burst).
 
 Notes:
 
@@ -54,16 +56,19 @@ Notes:
 Ground truth for every signal: receiver → collector·pipeline → exporter →
 where it actually lands in Honeycomb.
 
-| Signal                | Source / receiver         | Collector·pipeline         | Exporter (configured dataset header)         | Actual Honeycomb dataset                                            | Notes                                                               |
-| --------------------- | ------------------------- | -------------------------- | -------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| app logs              | `filelog` + `otlp`        | daemon·logs                | `otlp/honeycomb-k8s-logs` (`k8s-logs`)       | **per-service, routed by `service.name`**                           | `transform/severity` parse + `filter/logs` WARN+ drop               |
-| traces                | `otlp` (auto-instr)       | daemon·traces              | `otlp/honeycomb` (no header)                 | **default dataset by `service.name`** (e.g. `ngf-gateway-prod-web`) | 20% probabilistic sampling                                          |
-| kubelet metrics       | `kubeletstats` @ 300s     | daemon·metrics             | `otlp/honeycomb-k8s-metrics` (`k8s-metrics`) | **`metrics`**                                                       | `filter/metrics-infra` allowlist                                    |
-| cluster metrics       | `k8s_cluster` @ 300s      | cluster·metrics            | `otlp/honeycomb-k8s-metrics` (`k8s-metrics`) | **`metrics`**                                                       | allowlist: `k8s.container.restarts`, `k8s.pod.phase`, cpu/mem usage |
-| dotnet exceptions     | `prometheus` scrape @ 30s | scrape·metrics             | `otlp/honeycomb-k8s-metrics` (`k8s-metrics`) | **`metrics`**                                                       | `systemruntime_exception_count` only                                |
-| httpcheck (uptime)    | `httpcheck` @ 60s         | cluster·metrics/synthetics | `otlp/honeycomb-synthetics` (`synthetics`)   | **`metrics`**                                                       | by `http.url`                                                       |
-| tlscheck (SSL expiry) | `tlscheck` @ 300s         | cluster·metrics/synthetics | `otlp/honeycomb-synthetics` (`synthetics`)   | **`metrics`**                                                       | `tlscheck.time_left` by `tlscheck.target`                           |
-| k8s events            | `k8sobjects`              | cluster·logs               | `otlp/honeycomb-k8s-events` (`k8s-events`)   | **`k8s-events`**                                                    | `filter/logs` intentionally omitted (keep all events)               |
+| Signal                           | Source / receiver           | Collector·pipeline          | Exporter (configured dataset header)         | Actual Honeycomb dataset                                            | Notes                                                               |
+| -------------------------------- | --------------------------- | --------------------------- | -------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| app logs                         | `filelog` + `otlp`          | daemon·logs                 | `otlp/honeycomb-k8s-logs` (`k8s-logs`)       | **per-service, routed by `service.name`**                           | `transform/severity` parse + `filter/logs` WARN+ drop               |
+| traces                           | `otlp` (auto-instr)         | daemon·traces               | `otlp/honeycomb` (no header)                 | **default dataset by `service.name`** (e.g. `ngf-gateway-prod-web`) | 20% probabilistic sampling                                          |
+| kubelet metrics                  | `kubeletstats` @ 300s       | daemon·metrics              | `otlp/honeycomb-k8s-metrics` (`k8s-metrics`) | **`metrics`**                                                       | `filter/metrics-infra` allowlist                                    |
+| cluster metrics                  | `k8s_cluster` @ 300s        | cluster·metrics             | `otlp/honeycomb-k8s-metrics` (`k8s-metrics`) | **`metrics`**                                                       | allowlist: `k8s.container.restarts`, `k8s.pod.phase`, cpu/mem usage |
+| dotnet exceptions                | `prometheus` scrape @ 30s   | scrape·metrics              | `otlp/honeycomb-k8s-metrics` (`k8s-metrics`) | **`metrics`**                                                       | `systemruntime_exception_count` only                                |
+| httpcheck (uptime)               | `httpcheck` @ 60s           | cluster·metrics/synthetics  | `otlp/honeycomb-synthetics` (`synthetics`)   | **`metrics`**                                                       | by `http.url`                                                       |
+| tlscheck (SSL expiry)            | `tlscheck` @ 300s           | cluster·metrics/synthetics  | `otlp/honeycomb-synthetics` (`synthetics`)   | **`metrics`**                                                       | `tlscheck.time_left` by `tlscheck.target`                           |
+| k8s events                       | `k8sobjects`                | cluster·logs                | `otlp/honeycomb-k8s-events` (`k8s-events`)   | **`k8s-events`**                                                    | `filter/logs` intentionally omitted (keep all events)               |
+| utilization (node/pod/container) | `kubeletstats` @ 300s       | daemon·metrics/utilization  | `otlphttp/grafana-cloud`                     | **— (Grafana Cloud)**                                               | `filter/metrics-utilization` allowlist; HC pipeline untouched       |
+| utilization (cluster)            | `k8s_cluster` @ 300s        | cluster·metrics/utilization | `otlphttp/grafana-cloud`                     | **— (Grafana Cloud)**                                               | req/limit denominators, node conditions, workload readiness         |
+| cadvisor throttling              | `prometheus/cadvisor` @ 60s | scrape·metrics/cadvisor     | `otlphttp/grafana-cloud`                     | **— (Grafana Cloud)**                                               | `filter/metrics-cadvisor`: `container_cpu_cfs_throttled_*`          |
 
 > **Dataset routing — the header is not the whole story.** Honeycomb routes OTLP
 > **metrics** to the single `metrics` dataset regardless of the
@@ -112,8 +117,11 @@ Gateway rules scope to `service_name="ngf:gateway:prod-web"`.
 > node), so it fires only on a **fleet-wide** outage. Collector self-telemetry is
 > routed to GC by a `prometheus/self` receiver: the daemon and cluster collectors
 > self-scrape `:8888`, while the scrape collector is **cross-scraped from the
-> cluster collector** (its own targetAllocator rewrites prometheus receivers, so
-> it cannot self-scrape).
+> cluster collector**. (Historically this was believed necessary because "the
+> targetAllocator rewrites prometheus receivers"; the allocator in fact rewrites
+> ONLY the receiver keyed exactly `prometheus`, so a sibling `prometheus/self`
+> there would survive — see the TA-safety note in `scrape_collector.tf`. The
+> cross-scrape is kept as-is since it works.)
 
 > **spanmetrics sits _after_ the 20% sampler.** Absolute counts are therefore
 > ÷5, but the **error ratio** (5xx / total) and **latency percentiles** are
@@ -167,6 +175,63 @@ Result: ~953k → ~150k events/day (~84% reduction). The `metrics` dataset
 (~98k/day) is now the floor — per-pod infra metrics dominate under Honeycomb's
 per-datapoint model.
 
+### Telemetry catalog
+
+Ground truth for **which metric class lands where and why**. This table is the
+guard against a future cost pass re-pruning the useful signals: read the
+destination rationale below before touching any allowlist.
+
+> **Why the HC/GC split — READ THIS before re-pruning.** Honeycomb Free bills per
+> **datapoint**: every metric sample emitted is billable, so high-cardinality /
+> per-container series are expensive, and `filter/metrics-infra` deliberately keeps
+> the HC metric set tiny. Grafana Cloud Free bills per **active series** (10k
+> included) with unlimited datapoints per series — once a series exists its samples
+> are effectively free. This fleet sits far under 10k active series, so the useful
+> utilization / saturation metrics route to **GC** (where they cost ≈nothing)
+> instead of HC (where a prior cost pass pruned them under per-datapoint billing).
+> **Do NOT move the GC-routed classes back into the HC allowlist to "consolidate"** —
+> that reintroduces the exact per-datapoint cost this split exists to avoid.
+
+| Metric class                                                                              | Dest        | Use case                                   | Kept / dropped — why                                                             |
+| ----------------------------------------------------------------------------------------- | ----------- | ------------------------------------------ | -------------------------------------------------------------------------------- |
+| node/pod CPU+mem usage (`k8s.{node,pod}.{cpu,memory}.usage`)                              | **HC**      | baseline node/pod resource use             | KEPT in HC allowlist (`filter/metrics-infra`) — small, high-value                |
+| container restarts, pod phase (`k8s.container.restarts`, `k8s.pod.phase`)                 | **HC**      | crashloop / pod health                     | KEPT in HC allowlist                                                             |
+| dotnet exceptions (`systemruntime_exception_count`)                                       | **HC**      | app error signal                           | KEPT (scrape, `filter/metrics-dotnet`)                                           |
+| pod utilization ratios (`k8s.pod.{cpu,memory}_{request,limit}_utilization`)               | **GC**      | right-sizing headroom, throttle risk       | RE-ENABLED → GC. Computed on daemon, dropped by HC allowlist; per-series ≈free   |
+| container cpu/mem (`container.cpu.usage`, `container.memory.{usage,working_set}`)         | **GC**      | per-container hotspots                     | GC-only — higher cardinality than pod-level; `container.cpu.usage` newly enabled |
+| pod memory working set (`k8s.pod.memory.working_set`)                                     | **GC**      | true mem pressure vs page cache            | GC — already emitted, was HC-dropped                                             |
+| filesystem usage/capacity (`k8s.node.filesystem.*`, `container.filesystem.*`)             | **GC**      | disk-fill prediction                       | GC — already emitted, was HC-dropped                                             |
+| container request/limit denominators (`k8s.container.{cpu,memory}_{request,limit}`)       | **GC**      | right-sizing math (the ratio denominators) | GC — from `k8s_cluster`, was HC-dropped                                          |
+| node conditions (`k8s.node.condition_{ready,memory_pressure,disk_pressure,pid_pressure}`) | **GC**      | node health                                | GC — pressures need `node_conditions_to_report` expanded on `k8s_cluster`        |
+| workload readiness (`k8s.{deployment,daemonset,statefulset,job,hpa}.*`)                   | **GC**      | rollout / capacity health                  | GC — from `k8s_cluster`, was HC-dropped                                          |
+| cAdvisor CPU throttling (`container_cpu_cfs_throttled_*`, `_periods_total`)               | **GC**      | #1 CPU-saturation signal                   | RE-ENABLED via new `prometheus/cadvisor` scrape → GC (`filter/metrics-cadvisor`) |
+| hostmetrics `system.*`                                                                    | **dropped** | (redundant)                                | DROPPED at source — preset disabled; duplicated kubeletstats `k8s.node.*`        |
+| `k8s.{node,pod}.uptime`                                                                   | **dropped** | low value                                  | enable REMOVED — was allowlisted-out (no-op) anyway                              |
+| replicaset desired/available (`k8s.replicaset.*`)                                         | **dropped** | high-volume, low-signal                    | disabled at `k8s_cluster` receiver (pre-existing)                                |
+| app logs (WARN+), traces (20%), k8s events                                                | **HC**      | debugging / audit                          | see [Signal catalog](#signal-catalog) + reduction levers above                   |
+| synthetics (httpcheck/tlscheck), gateway RED (spanmetrics)                                | **HC + GC** | alert signals                              | dual-routed so GC can evaluate alerts (see [Alerting](#alerting))                |
+
+#### Post-deploy verification
+
+Collector config (receivers, pipelines, OTTL) is **not** `tofu validate`-checked —
+`tofu validate` only proves the HCL is well-formed. GitOps applies on merge; after
+the deploy lands, confirm:
+
+1. **Collectors healthy + GC receiving the new series.** `kubectl -n observability
+get pods` shows no `CrashLoopBackOff`, and the re-enabled utilization/cadvisor
+   series appear in Grafana Cloud (Explore the `metrics/utilization` +
+   `metrics/cadvisor` classes from the [catalog](#telemetry-catalog) above).
+2. **`prometheus/cadvisor` scrape actually works (F2).** Confirm the receiver
+   survives the operator's targetAllocator in the rendered `OpenTelemetryCollector`
+   CR (only the exact-keyed `prometheus` receiver is rewritten; the
+   `prometheus/cadvisor` sibling must remain a static scrape), and that the scrape
+   StatefulSet pod reaches the kubelet at `:10250` (`/metrics/cadvisor`) — check its
+   logs for scrape errors / TLS or RBAC (`nodes/metrics`) failures.
+3. **GC active-series budget (F3).** Verify Grafana Cloud active-series count stays
+   under the 10k free-tier cap after the additive series land; the scrape-level
+   keep-filter and the `metrics/cadvisor` allowlist should hold cAdvisor to the 3
+   CFS families.
+
 ### Decisions
 
 ADR-lite, 2026-06.
@@ -196,16 +261,28 @@ ADR-lite, 2026-06.
   downstream multiline-recombine operator — deleting the problem class rather than
   patching its symptoms.
 
-- **Infra metrics in Honeycomb (cost tradeoff).** Per the Honeycomb-primary goal
-  we keep infra metrics here even though they are the dominant remaining cost
-  under per-datapoint billing. Mitigated with a 300s collection interval and a
-  tight allowlist (`filter/metrics-infra`) rather than diverting them to Grafana
-  Cloud, which would re-split observability across two backends.
+- **Infra metrics split across Honeycomb and Grafana Cloud (cost-driven).** The
+  small, high-value core (`filter/metrics-infra`: node/pod cpu+mem usage, restarts,
+  pod phase) stays in Honeycomb at a 300s interval — cheap enough under
+  per-datapoint billing and co-located with traces/logs. The broader
+  utilization/saturation set a prior pass over-pruned (per-pod ratios, per-container
+  cpu/mem, node conditions, workload readiness, CFS throttling) now routes to
+  **Grafana Cloud** via parallel `metrics/utilization` + `metrics/cadvisor`
+  pipelines: GC's per-active-series billing (10k free, fleet well under) makes these
+  effectively free where HC's per-datapoint model made them the dominant cost. The
+  HC allowlist + pipelines are untouched, so HC volume stays flat (~150k/day); the
+  re-enabled signals are additive on GC. See [Telemetry catalog](#telemetry-catalog).
 
 - **Scrape collector scoped to automate-only.** The targetAllocator
   `podMonitorSelector` is keyed to label `otel-scrape=automate` (the prometheusCR
   integration has no namespace selector). This prevents the collector from
   discovering and scraping every PodMonitor in the cluster.
+
+- **`metrics/cadvisor` pipeline kept deliberately lean.** It runs no
+  `k8sattributes`/`resourcedetection` enrichment — that would add memory and
+  cardinality for no gain, since the CFS throttle series already carry the
+  Prometheus `pod`/`container`/`namespace` labels needed to correlate them back to
+  workloads. Enrichment is reserved for the OTLP paths that lack those labels.
 
 ### Operations / gotchas
 

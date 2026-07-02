@@ -41,6 +41,14 @@ locals {
           # intact (no metrics dropped) while emitting ~10x fewer datapoints.
           # Cluster-level resource counts change slowly; 5-minute resolution is ample.
           collection_interval = "300s"
+          # Emit a metric per node condition. Default is ["Ready"] (only
+          # k8s.node.condition_ready); add the pressure conditions so the GC
+          # metrics/utilization pipeline can forward k8s.node.condition_memory_pressure
+          # / _disk_pressure / _pid_pressure. Each listed PascalCase condition yields a
+          # distinct k8s.node.condition_<snake_case> metric (allowlisted in
+          # filter/metrics-utilization). Non-Ready conditions are NOT emitted unless
+          # listed here, so allowlisting them alone would be a silent no-op.
+          node_conditions_to_report = ["Ready", "MemoryPressure", "DiskPressure", "PIDPressure"]
           metrics = {
             # Disable replicaset metrics by default. These are typically high volume, low signal metrics.
             # If volume is not a concern, then the following blocks can be removed.
@@ -277,6 +285,34 @@ locals {
               # Grafana Cloud unrouted; curated cluster metrics now go to
               # Honeycomb (k8s-metrics dataset) via "filter/metrics-infra".
               "otlp/honeycomb-k8s-metrics",
+            ]
+          }
+          # GC utilization pipeline: k8s_cluster (receiver) -> Grafana Cloud ONLY.
+          # Fans OUT from the same k8s_cluster receiver as the HC "metrics" pipeline
+          # above; the HC pipeline is untouched so Honeycomb volume stays flat.
+          # Carries the request/limit denominators, node conditions, and workload-
+          # readiness metrics a prior cost pass dropped. Processor chain mirrors the
+          # HC "metrics" pipeline but swaps filter/metrics-infra ->
+          # filter/metrics-utilization (one shared allowlist, defined in
+          # base_collector) and exports to GC. otlphttp/grafana-cloud +
+          # basicauth/grafana-cloud are inherited from base_collector.
+          "metrics/utilization" = {
+            receivers = [
+              "k8s_cluster",
+            ]
+            processors = [
+              "memory_limiter",
+              "filter",
+              "k8sattributes",
+              "transform",
+              "transform/drop_unneeded_resource_attributes",
+              "transform/add_resource_attributes_as_metric_attributes",
+              "filter/metrics-utilization",
+              "resourcedetection",
+              "batch",
+            ]
+            exporters = [
+              "otlphttp/grafana-cloud",
             ]
           }
           "metrics/synthetics" = {

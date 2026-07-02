@@ -138,11 +138,16 @@ jobs:
     needs:
       - lint
     runs-on: ubuntu-latest
+    env:
+      MISE_ENV: ci
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v5
+      - uses: jdx/mise-action@v4
         with:
-          dotnet-version: 9.0.202
+          version: 2026.6.14
+          install: false
+          cache: true
+      - run: mise install dotnet
       - name: Test
         working-directory: fsharp/api/musync
         run: dotnet test ./Musync.Tests
@@ -441,7 +446,7 @@ jobs:
         with:
           stack_path: fsharp/api/musync/terraform
           op_service_account_token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          # SONGKICK_ICS_URL, SETLIST_FM_API_KEY, SMTP_*, and DEADMAN_* are synced
+          # SONGKICK_ICS_URL, SETLIST_FM_API_KEY, USER_EMAIL, and SMTP_* are synced
           # from 1Password by the ESO ExternalSecret "musync-onepassword" (see
           # external_secret_musync.tf), so they are not injected here.
           op_refs: |

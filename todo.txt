@@ -10,3 +10,4 @@ Phase 4b PR B migrate grafana-cloud secret to ESO ExternalSecret +observability 
 (B) Drop obsolete "never tofu apply locally" guidance (state locking enabled) +docs @worktree:.claude/worktrees/tofu-lock-docs session:tofu-lock-docs agent:claude model:claude-opus-4-8
 GC alerting phase 2 +observability @worktree:.claude/worktrees/8185ccc4-5994-4831-b817-8fca22eac321.gc-alerts-phase2 session:8185ccc4-5994-4831-b817-8fca22eac321 agent:claude model:claude-opus-4-8
 affinity-removal PR (Deliverable 1) @worktree:.claude/worktrees/b92f4cdc-f1c5-455c-8e49-50fbc708d6e5.affinity-removal session:b92f4cdc agent:claude-code model:claude-opus-4-8
+node-pool migration HCL + runbook (Deliverable 4b) @worktree:.claude/worktrees/b92f4cdc-f1c5-455c-8e49-50fbc708d6e5.nodepools session:b92f4cdc agent:claude-code model:claude-opus-4-8

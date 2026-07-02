@@ -21,6 +21,27 @@ resource "helm_release" "gateway" {
       # https://docs.nginx.com/nginx-gateway-fabric/installation/installing-ngf/helm/#configure-delayed-pod-termination-for-zero-downtime-upgrades
       nginxGateway = {
         replicas = 2
+        # Node-loss resilience (see terraform/applications/README.md): spread the two
+        # replicas across distinct nodes (best-effort). NOTE: this hardens the NGF
+        # CONTROL PLANE (the reconciler) only — it improves reconciliation HA after a
+        # node loss. The traffic-serving data plane is a SEPARATE, dynamically
+        # provisioned nginx Deployment (see the `nginx` block below) and is NOT spread
+        # here. matchLabels keys on app.kubernetes.io/name=nginx-gateway-fabric, which
+        # is unique to the control plane; data-plane pods share instance=nginx-gateway
+        # but carry name=prod-web-nginx.
+        topologySpreadConstraints = [
+          {
+            maxSkew           = 1
+            topologyKey       = "kubernetes.io/hostname"
+            whenUnsatisfiable = "ScheduleAnyway"
+            labelSelector = {
+              matchLabels = {
+                "app.kubernetes.io/name"     = "nginx-gateway-fabric"
+                "app.kubernetes.io/instance" = "nginx-gateway"
+              }
+            }
+          },
+        ]
         config = {
           logging = {
             level = "info"
@@ -139,6 +160,22 @@ resource "helm_release" "cert_manager" {
       cainjector = {
         enabled      = true
         replicaCount = 2
+        # Node-loss resilience (see terraform/applications/README.md): spread the two
+        # cainjector replicas across distinct nodes (best-effort).
+        topologySpreadConstraints = [
+          {
+            maxSkew           = 1
+            topologyKey       = "kubernetes.io/hostname"
+            whenUnsatisfiable = "ScheduleAnyway"
+            labelSelector = {
+              matchLabels = {
+                "app.kubernetes.io/name"      = "cainjector"
+                "app.kubernetes.io/instance"  = "cert-manager"
+                "app.kubernetes.io/component" = "cainjector"
+              }
+            }
+          },
+        ]
         # Memory RAISED (req 32->96Mi): the cainjector caches CA bundles for every
         # injectable webhook and was under-declared relative to actual usage.
         resources = {
@@ -166,6 +203,22 @@ resource "helm_release" "cert_manager" {
       }
       webhook = {
         replicaCount = 2
+        # Node-loss resilience (see terraform/applications/README.md): spread the two
+        # webhook replicas across distinct nodes (best-effort).
+        topologySpreadConstraints = [
+          {
+            maxSkew           = 1
+            topologyKey       = "kubernetes.io/hostname"
+            whenUnsatisfiable = "ScheduleAnyway"
+            labelSelector = {
+              matchLabels = {
+                "app.kubernetes.io/name"      = "webhook"
+                "app.kubernetes.io/instance"  = "cert-manager"
+                "app.kubernetes.io/component" = "webhook"
+              }
+            }
+          },
+        ]
         # Memory limit raised 32->48Mi for headroom on cert-manager's admission path:
         # observed ~31.85Mi (~99.5% of the old 32Mi limit) under validation-load
         # spikes. Request stays 32Mi.

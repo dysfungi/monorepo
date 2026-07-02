@@ -53,6 +53,14 @@ resource "helm_release" "ntfy" {
       # restarts. storageClass "" => cluster default (vultr-block-storage). The chart
       # hardcodes replicas=1 + Recreate strategy, so the single-writer RWO volume is
       # safe. Mount path is hardcoded to /var/cache/ntfy by the chart (not overridable).
+      #
+      # RESILIENCE EXCEPTION: the repo convention (see terraform/applications/README.md)
+      # is that app Deployments run replicas >= 2 with topologySpreadConstraints so a
+      # node loss can't take a whole service offline. ntfy is a documented exception:
+      # it is a single-writer workload (SQLite on an RWO volume, no cross-instance
+      # message fan-out), so it CANNOT run more than one replica. A node loss makes
+      # ntfy briefly unavailable until the pod reschedules — accepted for this
+      # best-effort notification relay.
       persistence = {
         enabled      = true
         size         = "2Gi"
